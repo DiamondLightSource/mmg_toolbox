@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools >= 61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mmg_data_analysis"
+version = "0.1"
+dependencies = [
+  "numpy",
+  "h5py",
+  "hdf5plugin",
+  "hdfmap",
+  "matplotlib",
+  "imageio",
+  "scipy",
+  "lmfit"
+]
+requires-python = ">=3.10"
+authors = [
+  {name = "Dan Porter", email = "dan.porter@diamond.ac.uk"},
+]
+maintainers = [
+  {name = "Dan Porter", email = "dan.porter@diamond.ac.uk"},
+]
+description = "Repository for useful python data analysis functions for the Diamond Magnetic Materials Group"
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = [
+  'nexus',
+]
+classifiers = [
+  'Programming Language :: Python :: 3.10',
+  'Intended Audience :: Science/Research',
+  'Topic :: Scientific/Engineering :: Physics',
+  'License :: OSI Approved :: Apache Software License',
+  'Development Status :: 3 - Alpha',
+]
+
