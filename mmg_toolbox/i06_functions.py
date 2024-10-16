@@ -1,6 +1,6 @@
 
 import numpy as np
-from pymmg.nexus_reader import readscan_Nexus
+from mmg_toolbox.nexus_reader import readscan_Nexus
 
 
 def max_min_energy_Nexus(scanlist):
