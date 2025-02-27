@@ -1,0 +1,27 @@
+# conda env create --file environment.yml -p /loc/of/mmg_toolbox/
+# conda activate /dls/science/users/grp66007/envs/mmg_toolbox
+name: mmg_toolbox
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - ipython
+  - jupyter
+  - numpy
+  - h5py
+  - hdf5plugin
+  - matplotlib
+  - imageio
+  - scipy
+  - lmfit
+  - nbconvert
+  - nbformat
+  - nexpy
+  - git
+  - pip
+  - pip:
+      # works for regular pip packages
+      - hdfmap
+      # and for wheels
+      #- http://www.lfd.uci.edu/~gohlke/pythonlibs/bofhrmxk/opencv_python-3.1.0-cp35-none-win_amd64.whl
+prefix: /dls/science/users/grp66007/envs/mmg_toolbox
