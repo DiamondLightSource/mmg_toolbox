@@ -8,15 +8,19 @@ import tkinter as tk
 from tkinter import ttk
 from threading import Thread
 
-from ..styles import create_root
 from ...file_functions import list_files, list_path_time, display_timestamp, get_hdf_string
-from ..functions import treeview_sort_column, post_right_click_menu, select_folder
+from ..misc.styles import create_root
+from ..misc.functions import treeview_sort_column, post_right_click_menu, select_folder
+from ..misc.logging import create_logger
+
+logger = create_logger(__file__)
 
 
 class NexusFolderTreeViewFrame:
     """Frame with TreeView and entry for Folders"""
 
     def __init__(self, root: tk.Misc, initial_directory: str | None = None):
+        logger.info('Creating NexusFolderTreeViewFrame')
         self.root = root
         self.search_str = ""
         self.search_time = time.time()
@@ -170,10 +174,10 @@ class NexusFolderTreeViewFrame:
                 for file in files:
                     timestamp = os.stat(file).st_mtime
                     mtime = display_timestamp(timestamp)
-                    self.tree.insert(item, tk.END, text=os.path.basename(file), values=(mtime, timestamp, '', ''))
+                    self.tree.insert(item, tk.END, text=os.path.basename(file), values=(mtime, timestamp, '', '', file))
                 if self.read_datasets.get():
                     self.update_datasets(self.hdf_path.get())
-                print(f"Expanding took {time.time() - start_time:.3g} s")
+                logger.info(f"Expanding took {time.time() - start_time:.3g} s")
 
     def update_datasets(self, event=None):
         """Update dataset values column for hdf files under open folders"""
@@ -224,7 +228,7 @@ class NexusFolderTreeViewFrame:
         iid = self.tree.focus()
         item = self.tree.item(iid)
         if self.tree.set(iid, 'files') == '' and item['text'] != '..':
-            pass
+            self.open_nexus_treeview()
         else:
             # item is a folder, open folder
             self._prev_folder = self.filepath.get()
@@ -294,6 +298,7 @@ class NexusFolderTreeViewFrame:
                 foldername = os.path.dirname(filename)
             else:  # item is a folder
                 foldername = self.tree.set(iid, 'filepath')
+        logger.debug(f"Selected item: filename='{filename}', foldername='{foldername}'")
         return filename, foldername
 
     def copy_path(self):
@@ -305,12 +310,13 @@ class NexusFolderTreeViewFrame:
             self.root.clipboard_append(folderpath)
 
     def right_click_menu(self):
+        logger.info('Creating right click menu')
         # right-click menu - file options
         m_file = tk.Menu(self.root, tearoff=0)
         m_file.add_command(label="Copy path", command=self.copy_path)
-        # m_file.add_command(label="open Treeview", command=self.menu_file_gui)
-        # m_file.add_command(label="open Plot", command=self.menu_plot_gui)
-        # m_file.add_command(label="open Image", command=self.menu_image_gui)
+        m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
+        m_file.add_command(label="open Plot", command=self.open_nexus_plot)
+        m_file.add_command(label="open Image", command=self.open_nexus_image)
         # m_file.add_command(label="open Namespace", command=self.menu_namespace_gui)
         # m_file.add_command(label="open Nexus Classes", command=self.menu_class_gui)
         # right-click menu - folder options
@@ -328,8 +334,10 @@ class NexusFolderTreeViewFrame:
                 self.tree.selection_set(iid)
                 filename, foldername = self.get_filepath()
                 if filename:
+                    logger.debug(f"Right click menu created for file: {filename}")
                     menu = m_file
                 else:
+                    logger.debug(f"Right click menu created for folder: {foldername}")
                     menu = m_folder
                 post_right_click_menu(menu, event.x_root, event.y_root)
         return menu_popup
@@ -364,6 +372,30 @@ class NexusFolderTreeViewFrame:
                 self.tree.selection_add(branch)
                 self.tree.see(branch)
                 break
+
+    "======================================================"
+    "=============== widget functions ====================="
+    "======================================================"
+
+    def open_nexus_treeview(self):
+        filename, foldername = self.get_filepath()
+        logger.info(f"Opening nexus viewer for filename: {filename}")
+        if filename:
+            from ..main import create_nexus_viewer
+            create_nexus_viewer(filename, parent=self.root)
+
+    def open_nexus_plot(self):
+        filename, foldername = self.get_filepath()
+        logger.info(f"Opening nexus plot viewer for filename: {filename}")
+        if filename:
+            from ..main import create_nexus_plotter
+            create_nexus_plotter(filename, parent=self.root)
+
+    def open_nexus_image(self):
+        filename, foldername = self.get_filepath()
+        logger.info(f"Opening nexus image viewer for filename: {filename}")
+        if filename:
+            pass
 
     "======================================================"
     "================= misc functions ====================="

@@ -8,8 +8,11 @@ import datetime
 import sys
 from tkinter import messagebox, filedialog
 
-from ..styles import tk, ttk, create_root
-from ..functions import topmenu
+from ..misc.styles import tk, ttk, create_root
+from ..misc.functions import topmenu
+from ..misc.logging import create_logger
+
+logger = create_logger(__file__)
 
 
 # Define colors for the variouse types of tokens

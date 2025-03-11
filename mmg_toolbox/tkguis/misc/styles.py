@@ -37,7 +37,9 @@ def create_style(root):
 
 
 def extra_styles(style: ttk.Style):
-    """Add additional styles to use on individual ttk components"""
+    """
+    Add additional styles to use on individual ttk components
+    """
     style.configure("Red.TLabel", foreground='red', font='TkDefaultFont 24 bold')
 
 
@@ -64,7 +66,7 @@ class RootWithStyle(tk.Tk):
     style: ttk.Style | None = None
 
 
-def create_root(window_title: str, parent: RootWithStyle | None = None) -> RootWithStyle:
+def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None) -> RootWithStyle:
     """Create tkinter root object with style attribute"""
     if parent:
         root = tk.Toplevel(parent)

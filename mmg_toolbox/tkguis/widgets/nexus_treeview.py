@@ -7,15 +7,18 @@ import h5py
 import tkinter as tk
 from tkinter import ttk
 
-from ..styles import create_root, update_text_style
-from ...file_functions import hdfobj_string
-from ..functions import post_right_click_menu, open_close_all_tree, select_hdf_file
-
-
 import hdfmap
 from hdfmap.eval_functions import generate_identifier
 
+from ...file_functions import hdfobj_string
+from ..misc.styles import create_root, update_text_style
+from ..misc.functions import post_right_click_menu, open_close_all_tree, select_hdf_file
+from ..misc.logging import create_logger
+
+logger = create_logger(__file__)
+
 DETAILS_TAB_WIDTH = 30
+
 
 def populate_tree(treeview: ttk.Treeview, hdf_filename, openstate=True):
     """Load HDF file, populate ttk.treeview object"""
@@ -140,14 +143,14 @@ class HDFViewer:
     :param parent: tk root
     """
 
-    def __init__(self, hdf_filename=None, parent=None):
+    def __init__(self, root: tk.Misc, hdf_filename: str = None):
         self.map = None
-        self.root = create_root('NeXus Reader', parent=parent)
+        self.root = root
 
         # Variables
         self.dataset_list = []  # not currently used
         self.filepath = tk.StringVar(self.root, '')
-        self.expandall = tk.BooleanVar(self.root, True)
+        self.expandall = tk.BooleanVar(self.root, False)
         self.expression_box = tk.StringVar(self.root, '')
         self.expression_path = tk.StringVar(self.root, 'path = ')
         self.search_box = tk.StringVar(self.root, '')
@@ -182,10 +185,8 @@ class HDFViewer:
         "-------- Start Mainloop ------"
         if hdf_filename:
             self.filepath.set(hdf_filename)
-            self.root.title = f"HDFView: {os.path.basename(hdf_filename)}"
+            # self.root.title = f"HDFView: {os.path.basename(hdf_filename)}"
             self.populate_tree()
-        if parent is None:
-            self.root.mainloop()
 
     "======================================================"
     "================= init functions ====================="
@@ -301,7 +302,7 @@ class HDFViewer:
         tree.heading("name", text="Name")
         tree.heading("value", text="Value")
         tree.bind("<<TreeviewSelect>>", self.tree_select)
-        tree.bind("<Double-1>", self.on_double_click)
+        # tree.bind("<Double-1>", self.on_double_click)
         tree.bind("<Button-3>", right_click_menu(frm, tree))
         return tree
 
@@ -357,7 +358,7 @@ class HDFViewer:
     def fun_expression(self, event=None):
         if self.map is None:
             return
-        self.text2.delete('1.0', tk.END)
+        # self.text2.delete('1.0', tk.END)
         expression = self.expression_box.get()
         self.expression_path.set(f"path = {self.map.get_path(expression)}")
         out_str = f">>> {expression}\n"
@@ -366,5 +367,6 @@ class HDFViewer:
             out = self.map.eval(self.map.load_hdf(), expression)
         except NameError as ne:
             out = ne
-        out_str += f"{out}"
-        self.text2.insert('1.0', out_str)
+        out_str += f"{out}\n\n"
+        # self.text2.insert('1.0', out_str)
+        self.text2.insert(tk.END, out_str)

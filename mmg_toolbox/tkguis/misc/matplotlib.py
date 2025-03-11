@@ -4,7 +4,10 @@ Useful tkinter functions that use matplotlib
 
 import tkinter as tk
 from tkinter import ttk
+
 from matplotlib.figure import Figure
+from matplotlib.axes import Axes
+from matplotlib.lines import Line2D
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 from .styles import create_root
@@ -57,7 +60,8 @@ class CustomToolbar(NavigationToolbar2Tk):
         NavigationToolbar2Tk.__init__(self, canvas_, parent_)
 
 
-def ini_plot(frame, figure_size=FIGURE_SIZE, figure_dpi=FIGURE_DPI):
+def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] = FIGURE_SIZE,
+             figure_dpi: int = FIGURE_DPI) -> tuple[Figure, Axes, list[Line2D], NavigationToolbar2Tk]:
     """Create a lineplot on a tk canvas with toolbar"""
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
     fig.patch.set_facecolor('w')

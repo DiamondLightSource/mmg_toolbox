@@ -2,7 +2,10 @@
 Simple window with editable text box
 """
 
-from ..styles import tk, ttk, create_root
+from ..misc.styles import tk, ttk, create_root
+from ..misc.logging import create_logger
+
+logger = create_logger(__file__)
 
 
 class EditText:
@@ -13,7 +16,7 @@ class EditText:
     :param parent: tk root
     """
 
-    def __init__(self, expression: str, parent: tk.Tk | None = None, textwidth=30):
+    def __init__(self, expression: str, parent: tk.Misc | None = None, textwidth=30):
         self.output = expression
         self.root = create_root('Configure text', parent=parent)
 

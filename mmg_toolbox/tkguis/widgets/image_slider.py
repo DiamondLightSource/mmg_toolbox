@@ -5,20 +5,23 @@ a tkinter frame with an image with slider
 import tkinter as tk
 from tkinter import ttk
 
-from ..styles import create_root
-from ..matplotlib import ini_image, DEFAULT_COLORMAP, COLORMAPS
+from ..misc.styles import create_root
+from ..misc.matplotlib import ini_image, DEFAULT_COLORMAP, COLORMAPS
+from ..misc.logging import create_logger
+
+logger = create_logger(__file__)
 
 
 AXES = ['axis 1', 'axis 2', 'axis 3']
+
 
 class SimpleImage:
     """
     Simple Image plot
     """
 
-    def __init__(self, xdata, ydata, xlabel='', ylabel='', title='', parent=None):
-        self.root = create_root('Simple Image', parent)
-
+    def __init__(self, root: tk.Misc, xdata, ydata, xlabel='', ylabel='', title=''):
+        self.root = root
         self.fig, self.ax1, self.ax1_image, self.cb1, self.toolbar = ini_image(self.root)
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
@@ -80,7 +83,6 @@ class ImageViewer:
         self.cmax = tk.DoubleVar(self.root, 1)
         self.fixclim = tk.BooleanVar(self.root, False)
         self.colormap = tk.StringVar(self.root, DEFAULT_COLORMAP)
-
 
         "----------- Options -----------"
         self.ini_options()

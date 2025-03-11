@@ -1,32 +1,32 @@
 """
 a tkinter frame with a single plot
 """
+import tkinter as tk
 
-from hdfmap import create_nexus_map
+from ..misc.matplotlib import ini_plot
+from ..misc.logging import create_logger
 
-from ..styles import create_root
-from ..matplotlib import ini_plot
+logger = create_logger(__file__)
 
 
 class SimplePlot:
     """
-    Simple plot
+    Simple plot - single plot in frame with axes
     """
 
-    def __init__(self, xdata, ydata, xlabel='', ylabel='', title='', parent=None):
-        self.root = create_root('Simple Plot', parent)
-
+    def __init__(self, root: tk.Misc, xdata: list[float], ydata: list[float],
+                 xlabel: str = '', ylabel: str = '', title: str = ''):
+        self.root = root
         self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(self.root)
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
         self.ax1.set_title(title)
         self.plot(xdata, ydata)
 
-
     def plot(self, *args, **kwargs):
         lines = self.ax1.plot(*args, **kwargs)
         self.plot_list.extend(lines)
-        self.update_plot()
+        self.update_axes()
 
     def reset_plot(self):
         # self.ax1.set_xlabel(self.xaxis.get())
@@ -37,24 +37,9 @@ class SimplePlot:
         for obj in self.ax1.lines:
             obj.remove()
 
-    def update_plot(self):
+    def update_axes(self):
         self.ax1.relim()
         self.ax1.autoscale(True)
         self.ax1.autoscale_view()
         self.fig.canvas.draw()
         self.toolbar.update()
-
-
-class NexusDefaultPlot(SimplePlot):
-    def __init__(self, hdf_filename):
-        self.map = create_nexus_map(hdf_filename)
-        with self.map.load_hdf() as hdf:
-            self.data = self.map.get_plot_data(hdf)
-        super().__init__(
-            xdata=self.data['xdata'],
-            ydata=self.data['ydata'],
-            xlabel=self.data['xlabel'],
-            ylabel=self.data['ylabel'],
-            title=self.data['title']
-        )
-
