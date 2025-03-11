@@ -10,6 +10,7 @@ __all__ = ['start_gui']
 
 
 def start_gui():
+    from .env_functions import get_data_directory
     from .tkguis import create_file_browser
-    create_file_browser()
+    create_file_browser(initial_directory=get_data_directory())
 
