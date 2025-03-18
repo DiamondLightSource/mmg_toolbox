@@ -21,6 +21,15 @@ def get_user():
     return next((os.environ[u] for u in USER if u in os.environ), '')
 
 
+def get_data_directory():
+    """Return the default data directory"""
+    beamline = get_beamline()
+    year = datetime.now().year
+    if beamline:
+        return f"/dls/{beamline}/data/{year}"
+    return os.path.expanduser('~')
+
+
 def get_dls_visits(instrument: str | None = None, year: str | int | None = None) -> dict[str, ...]:
     """Return list of visits"""
     if instrument is None:
