@@ -3,6 +3,7 @@ Configuration Options
 """
 
 import os
+import datetime
 import tempfile
 import json
 
@@ -18,6 +19,8 @@ if not os.access(TMPDIR, os.W_OK):
     if not os.access(TMPDIR, os.W_OK):
         TMPDIR = os.path.expanduser('~')
 CONFIG_FILE = os.path.join(TMPDIR, TMPFILE)
+
+YEAR = str(datetime.datetime.now().year)
 
 META_STRING = """
 {filename}
@@ -37,32 +40,41 @@ REPLACE_NAMES = {
 CONFIG = {
     'config_file': CONFIG_FILE,
     'default_beamline': None,
+    'default_directory': os.path.expanduser('~'),
     'normalise_factor': '/Transmission/count_time/(rc/300.)',
     'replace_names': {},
-    'metadata_string': META_STRING
+    'metadata_string': META_STRING,
+    'default_colormap': 'twilight',
 }
 
 BEAMLINE_CONFIG = {
     'i06': {
         'default_beamline': 'i06',
+        'default_directory': f"/dls/i06/data/{YEAR}/",
     },
     'i06-1': {
         'default_beamline': 'i06-1',
+        'default_directory': f"/dls/i06-1/data/{YEAR}/",
     },
     'i06-2': {
         'default_beamline': 'i06-2',
+        'default_directory': f"/dls/i06-2/data/{YEAR}/",
     },
     'i10': {
         'default_beamline': 'i10',
+        'default_directory': f"/dls/i10/data/{YEAR}/",
     },
     'i10-1': {
         'default_beamline': 'i10-1',
+        'default_directory': f"/dls/i10-1/data/{YEAR}/",
     },
     'i16': {
         'default_beamline': 'i16',
+        'default_directory': f"/dls/i16/data/{YEAR}/",
     },
     'i21': {
         'default_beamline': 'i21',
+        'default_directory': f"/dls/i21/data/{YEAR}/",
     },
 }
 

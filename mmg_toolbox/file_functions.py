@@ -7,7 +7,9 @@ import datetime
 import typing
 import h5py
 import hdfmap
+import numpy as np
 from hdfmap.eval_functions import dataset2str, dataset2data
+from PIL import Image
 
 
 def list_files(folder_directory: str, extension='.nxs') -> list[str]:
@@ -41,7 +43,7 @@ def list_path_time(directory: str) -> list[tuple[str, float]]:
                 folders.append((f.path, f.stat().st_mtime))
             except PermissionError or FileNotFoundError:
                 pass
-    return folders
+    return sorted(folders, key=lambda x: x[0])
 
 
 def list_folder_file_names(directory: str) -> tuple[list[str], list[str]]:
@@ -181,3 +183,9 @@ def hdfobj_string(hdf_filename: str, hdf_address: str) -> str:
             else:
                 out += str(obj[()])
     return out
+
+
+def read_tiff(image_filename: str) -> np.ndarray:
+    """Read a tiff image, returning numpy array"""
+    image = Image.open(image_filename)
+    return np.array(image)

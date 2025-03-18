@@ -87,6 +87,32 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
     return root
 
 
+def create_hover(parent: tk.Misc | RootWithStyle):
+    """
+    Create tkinter frame hovering above the current widget
+
+    E.G.
+    window_frame, close = create_hover(widget)
+    ttk.Button(window_frame, text='Close', command=close).pack()
+
+    :param parent: tk widget or root
+    :returns: ttk.Frame object inside tk.TopLevel with no window management
+    :returns: function close() -> None (releases widget and destroys hover window)
+    """
+    root = create_root('', parent)
+    root.wm_overrideredirect(True)
+
+    window = ttk.Frame(root, borderwidth=20, relief=tk.RAISED)
+    window.pack(side=tk.TOP, fill=tk.BOTH)
+
+    def destroy(event=None):
+        root.grab_release()
+        root.destroy()
+
+    root.grab_set()
+    return window, destroy
+
+
 def update_text_style(widget: tk.Text, style: ttk.Style):
     """
     Update a tk.Text widget with the current style

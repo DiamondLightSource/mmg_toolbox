@@ -11,7 +11,7 @@ import hdfmap
 from hdfmap.eval_functions import generate_identifier
 
 from ...file_functions import hdfobj_string
-from ..misc.styles import create_root, update_text_style
+from ..misc.styles import update_text_style
 from ..misc.functions import post_right_click_menu, open_close_all_tree, select_hdf_file
 from ..misc.logging import create_logger
 
@@ -139,8 +139,8 @@ class HDFViewer:
      - Search for addresses using the search bar
      - Click on a dataset or group to view stored attributes and data
 
+    :param root: tk root
     :param hdf_filename: str or None*, if str opens this file initially
-    :param parent: tk root
     """
 
     def __init__(self, root: tk.Misc, hdf_filename: str = None):

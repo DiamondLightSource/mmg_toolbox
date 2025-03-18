@@ -1,7 +1,7 @@
 """
 Useful tkinter functions that use matplotlib
 """
-
+import numpy as np
 import tkinter as tk
 from tkinter import ttk
 
@@ -14,8 +14,8 @@ from .styles import create_root
 
 # parameters
 FIGURE_SIZE = (6, 5)
-IMAGE_SIZE = (14, 6)
-FIGURE_DPI = 100
+IMAGE_SIZE = (6, 4)
+FIGURE_DPI = 80
 COLORMAPS = ['viridis', 'Spectral', 'plasma', 'inferno', 'Greys', 'Blues', 'winter', 'autumn',
              'hot', 'hot_r', 'hsv', 'rainbow', 'jet', 'twilight', 'hsv']
 DEFAULT_COLORMAP = 'twilight'
@@ -96,10 +96,13 @@ def ini_image(frame, figure_size=IMAGE_SIZE, figure_dpi=FIGURE_DPI):
     """Create an image plot on a tk canvas with toolbar"""
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
     fig.patch.set_facecolor('w')
-    # Amplitude
+
     ax1 = fig.add_subplot(111)
-    zeros = [[0 for n in range(10)] for m in range(10)]
-    ax1_image = ax1.pcolormesh(zeros, shading='auto')
+    # zeros = np.array([[0 for n in range(10)] for m in range(10)])
+    xvals = np.arange(100)
+    yvals = np.arange(100)
+    default = np.random.rand(100, 100)
+    ax1_image = ax1.pcolormesh(xvals, yvals, default, shading='auto', cmap=DEFAULT_COLORMAP)
     ax1.set_xlabel(u'Axis 0')
     ax1.set_ylabel(u'Axis 1')
     ax1.set_xlim([0, 100])
