@@ -3,7 +3,6 @@ a tkinter frame with a single plot
 """
 import tkinter as tk
 from tkinter import ttk
-import h5py
 
 import hdfmap
 from hdfmap import create_nexus_map

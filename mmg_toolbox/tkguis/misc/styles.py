@@ -83,7 +83,7 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
     root.wm_title(window_title)
     # self.root.minsize(width=640, height=480)
     # root.maxsize(width=root.winfo_screenwidth() * 3 // 4, height=root.winfo_screenheight() * 3 // 4)
-    root.maxsize(width=int(root.winfo_screenwidth() * 0.9), height=int(root.winfo_screenheight() * 0.8))
+    # root.maxsize(width=int(root.winfo_screenwidth() * 0.9), height=int(root.winfo_screenheight() * 0.8))
     return root
 
 

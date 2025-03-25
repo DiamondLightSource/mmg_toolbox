@@ -40,7 +40,7 @@ class FolderScanSelector:
         self.columns = (
             # (name, text, width, reverse, sort_col)
             ("#0", 'Folder', 100, False, None),
-            ("modified", 'Date', 150, True, "modified_time"),
+            ("modified", 'Date', 100, True, "modified_time"),
             ('modified_time', 'Modified', 0, False, None),
             ("files", 'Files', 0, False, None),
             ("data", 'Data', 200, False, None),
@@ -54,7 +54,7 @@ class FolderScanSelector:
         self.tree.bind("<<TreeviewOpen>>", self.populate_folder)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.tree.bind("<Double-1>", self.on_double_click)
-        self.tree.bind('<KeyPress>', self.on_key_press)
+        # self.tree.bind('<KeyPress>', self.on_key_press)
         self.tree.bind("<Button-3>", self.right_click_menu())
 
         # Populate
@@ -68,9 +68,9 @@ class FolderScanSelector:
 
     def ini_folderpath(self):
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side=tk.TOP, fill=tk.X)
 
-        var = ttk.Button(frm, text='Add Folder', command=self.browse_folder, width=8)
+        var = ttk.Button(frm, text='Add Folder', command=self.browse_folder)
         var.pack(side=tk.LEFT)
         var = ttk.Button(frm, text='Nexus Files', command=self.nexus_file_options)
         var.pack(side=tk.RIGHT)
@@ -81,7 +81,7 @@ class FolderScanSelector:
         """
         Creates a ttk.TreeView object inside a frame with columns for folders
         """
-        frm = ttk.Frame(self.root, width=50)
+        frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP)
 
         tree = ttk.Treeview(frm, columns=[c[0] for c in self.columns[1:]])
@@ -93,7 +93,7 @@ class FolderScanSelector:
         var = ttk.Scrollbar(frm, orient="horizontal", command=tree.xview)
         var.pack(side=tk.BOTTOM, fill=tk.X)
         tree.configure(xscrollcommand=var.set)
-        tree.pack()
+        tree.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
 
         def tree_sort(col, reverse, sort_col=None):
             return lambda: treeview_sort_column(tree, col, reverse=reverse, sort_col=sort_col)

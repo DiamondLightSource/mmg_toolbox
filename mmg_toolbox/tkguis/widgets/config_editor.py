@@ -43,8 +43,12 @@ class ConfigEditor:
         # Colormaps
         frm = ttk.Frame(self.window)
         frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
-        self.config_vars['default_colormap'] = tk.StringVar(self.root, self.config.get('default_colormap', DEFAULT_COLORMAP))
-        var = ttk.Combobox(frm, )
+        default_colormap = self.config.get('default_colormap', DEFAULT_COLORMAP)
+        self.config_vars['default_colormap'] = tk.StringVar(self.root, default_colormap)
+        colormap = tk.StringVar(self.root, default_colormap)
+        var = ttk.Combobox(frm, textvariable=colormap)
+        var.pack(side=tk.LEFT)
+        var.bind('<<ComboboxSelected>>', lambda e: self.config_vars['default_colormap'].set(colormap.get()))
 
         # metadata string textbox
         frm = ttk.LabelFrame(self.window, text='Metadata expression')

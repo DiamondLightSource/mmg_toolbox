@@ -27,7 +27,21 @@ class NexusScanDetailsPlot:
         self.map = None
         self.config = get_config() if config is None else config
 
-        frm = ttk.LabelFrame(self.root, text='Files')
+        # scroll = ttk.Scrollbar(self.root, orient=tk.VERTICAL)
+        # scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        # canvas = tk.Canvas(self.root)#, #yscrollcommand=scroll.set)
+        # canvas.pack()
+        # scroll.config(command=canvas.yview)
+        # window = ttk.Frame(canvas)
+        # canvas.create_window(0, 0, window=window)
+        # # var.config(command=terminal.yview)
+        # # terminal.configure(yscrollcommand=var.set)
+        # canvas.config(yscrollcommand=scroll.set,
+        #               scrollregion=(0, 0, 100, 100))
+
+        window = tk.Frame()
+        window.pack()
+        frm = ttk.LabelFrame(window, text='Files', width=50)
         frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)
         self.selector_widget = FolderScanSelector(frm, initial_directory=initial_folder)
         self.selector_widget.tree.bind("<<TreeviewSelect>>", self.on_file_select)
@@ -36,10 +50,17 @@ class NexusScanDetailsPlot:
         # frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.YES, padx=2, pady=2)
         self.detail_widget = NexusDetails(frm, config=self.config)
 
-        frm = ttk.LabelFrame(self.root, text='Plot')
+        frm = ttk.LabelFrame(window, text='Plot')
         frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)
-        self.plot_widget = NexusDefaultPlot(frm, config=self.config)
-        self.image_widget = NexusDetectorImage(frm, config=self.config)
+        sec = ttk.Frame(frm)
+        sec.pack(side=tk.TOP, fill=tk.X)
+        self.plot_widget = NexusDefaultPlot(sec, config=self.config)
+        self.index_line = self.plot_widget.ax1.axvline(0, ls='--', c='k')
+        sec = ttk.Frame(frm)
+        sec.pack(side=tk.TOP, fill=tk.X)
+        self.image_widget = NexusDetectorImage(sec, config=self.config)
+
+        self._log_size()
 
     def on_file_select(self, event=None):
         filename, folder = self.selector_widget.get_filepath()
@@ -50,3 +71,17 @@ class NexusScanDetailsPlot:
             self.detail_widget.update_data_from_file(filename, self.map)
             self.plot_widget.update_data_from_file(filename, self.map)
             self.image_widget.update_data_from_file(filename, self.map)
+
+            xvals, yvals = self.plot_widget.line.get_data()
+            print(f"nanargmax: {np.nanargmax(yvals)}")
+            index = np.nanargmax(yvals)
+            self.image_widget.view_index.set(index)
+            self.image_widget.update_image()
+            ylim = self.plot_widget.ax1.get_ylim()
+            self.index_line.set_data([xvals[index], xvals[index]], ylim)
+            self.plot_widget.update_axes()
+
+    def _log_size(self):
+        self.root.update()
+        logger.info(f"Geometry: {self.root.winfo_geometry()}")
+        logger.info(f"Screen Width x Height: {self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}")

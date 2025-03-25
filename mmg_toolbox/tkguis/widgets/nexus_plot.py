@@ -32,7 +32,7 @@ logger = create_logger(__file__)
 """
 
 
-class NexusDefaultPlot:
+class NexusDefaultPlot(SimplePlot):
     def __init__(self, root: tk.Misc, hdf_filename: str | None = None,
                  config: dict | None = None):
         self.root = root
@@ -44,6 +44,22 @@ class NexusDefaultPlot:
         self.axes_x = tk.StringVar(self.root, 'axes')
         self.axes_y = tk.StringVar(self.root, 'signal')
         self.normalise = tk.BooleanVar(self.root, False)
+
+        self.combo_x, self.combo_y = self.ini_axes_select()
+
+        super().__init__(
+            root=root,
+            xdata=[],
+            ydata=[],
+            xlabel=self.axes_x.get(),
+            ylabel=self.axes_y.get(),
+            title=''
+        )
+        self.line = self.plot_list[0]
+        if hdf_filename:
+            self.update_data_from_file(hdf_filename)
+
+    def ini_axes_select(self):
         selection_x = tk.StringVar(self.root, 'axes')
         selection_y = tk.StringVar(self.root, 'signal')
         axes_options = ['axes', 'signal']
@@ -51,11 +67,11 @@ class NexusDefaultPlot:
 
         def select_x(event):
             self.axes_x.set(selection_x.get())
-            self.update_axes()
+            self.update_axis_choice()
 
         def select_y(event):
             self.axes_y.set(selection_y.get())
-            self.update_axes()
+            self.update_axis_choice()
 
         section = ttk.Frame(self.root)
         section.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
@@ -67,12 +83,12 @@ class NexusDefaultPlot:
         var = ttk.Entry(frm, textvariable=self.axes_x, width=30)
         var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
-        var.bind('<Return>', self.update_axes)
-        var.bind('<KP_Enter>', self.update_axes)
-        self.combo_x = ttk.Combobox(frm, values=axes_options,
-                                    textvariable=selection_x, width=20)
-        self.combo_x.pack(side=tk.LEFT)
-        self.combo_x.bind('<<ComboboxSelected>>', select_x)
+        var.bind('<Return>', self.update_axis_choice)
+        var.bind('<KP_Enter>', self.update_axis_choice)
+        combo_x = ttk.Combobox(frm, values=axes_options,
+                               textvariable=selection_x, width=20)
+        combo_x.pack(side=tk.LEFT)
+        combo_x.bind('<<ComboboxSelected>>', select_x)
 
         frm = ttk.Frame(section)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
@@ -81,26 +97,15 @@ class NexusDefaultPlot:
         var = ttk.Entry(frm, textvariable=self.axes_y, width=30)
         var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
-        var.bind('<Return>', self.update_axes)
-        var.bind('<KP_Enter>', self.update_axes)
-        self.combo_y = ttk.Combobox(frm, values=signal_options,
+        var.bind('<Return>', self.update_axis_choice)
+        var.bind('<KP_Enter>', self.update_axis_choice)
+        combo_y = ttk.Combobox(frm, values=signal_options,
                                     textvariable=selection_y, width=20)
-        self.combo_y.pack(side=tk.LEFT)
-        self.combo_y.bind('<<ComboboxSelected>>', select_y)
+        combo_y.pack(side=tk.LEFT)
+        combo_y.bind('<<ComboboxSelected>>', select_y)
         var = ttk.Checkbutton(frm, text='Normalise', variable=self.normalise, command=self.normalise_signal)
         var.pack(side=tk.LEFT)
-
-        self.plot_widget = SimplePlot(
-            root=root,
-            xdata=[],
-            ydata=[],
-            xlabel=self.axes_x.get(),
-            ylabel=self.axes_y.get(),
-            title=''
-        )
-        self.line = self.plot_widget.plot_list[0]
-        if hdf_filename:
-            self.update_data_from_file(hdf_filename)
+        return combo_x, combo_y
 
     def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
         self.filename = filename
@@ -113,7 +118,7 @@ class NexusDefaultPlot:
             self.axes_x.set(self.data['xlabel'])
         if self.axes_y.get() not in self.combo_y['values']:
             self.axes_y.set(self.data['ylabel'])
-        self.update_axes()
+        self.update_axis_choice()
 
     def update_data(self, hdf: h5py.File):
         self.data = self.map.get_plot_data(hdf)
@@ -127,12 +132,12 @@ class NexusDefaultPlot:
             self.axes_y.set(signal + norm_by)
         else:
             self.axes_y.set(signal)
-        self.update_axes()
+        self.update_axis_choice()
 
-    def update_axes(self, event=None):
+    def update_axis_choice(self, event=None):
         xaxis = self.axes_x.get()
         yaxis = self.axes_y.get()
-        if xaxis in self.data['data'] and yaxis in self.data['data']:
+        if 'data' in self.data and xaxis in self.data['data'] and yaxis in self.data['data']:
             self.line.set_data(
                 self.data['data'][xaxis],
                 self.data['data'][yaxis]
@@ -146,7 +151,8 @@ class NexusDefaultPlot:
                 ydata = np.ones_like(xdata)
 
             self.line.set_data(xdata, ydata)
-        self.plot_widget.ax1.set_xlabel(xaxis)
-        self.plot_widget.ax1.set_ylabel(yaxis)
-        self.plot_widget.ax1.set_title(self.data['title'])
-        self.plot_widget.update_axes()
+        self.ax1.set_xlabel(xaxis)
+        self.ax1.set_ylabel(yaxis)
+        self.ax1.set_title(self.data['title'])
+        self.update_axes()
+
