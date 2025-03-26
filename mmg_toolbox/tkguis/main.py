@@ -58,3 +58,34 @@ def create_nexus_plotter(filename: str, parent: tk.Misc | None = None, config: d
     if parent is None:
         root.mainloop()
     return root
+
+
+def create_data_viewer(initial_folder: str | None = None,
+                       parent: tk.Misc | None = None, config: dict | None = None) -> RootWithStyle:
+    """
+    Create a Data Viewer showing all scans in an experiment folder
+    """
+    from .widgets.nexus_scan_plot import NexusScanDetailsPlot
+    from .widgets.config_editor import ConfigEditor
+
+    root = create_root(parent=parent, window_title='NeXus Data Viewer')
+    config = get_config() if config is None else config
+
+    widget = NexusScanDetailsPlot(root, initial_folder=initial_folder, config=config)
+
+    menu = {
+        'File': {
+            'Add Folder': widget.selector_widget.browse_folder,
+            'Folder Browser': lambda: create_file_browser(root, config.get('default_directory', None)),
+        },
+        'Config.': {
+            'Edit Config.': lambda: ConfigEditor(root, config),
+        }
+    }
+    menu.update(widget.image_widget.options_menu())
+
+    topmenu(root, menu, add_themes=True, add_about=True)
+
+    if parent is None:
+        root.mainloop()
+    return root

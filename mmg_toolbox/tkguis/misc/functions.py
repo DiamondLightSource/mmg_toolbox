@@ -112,14 +112,15 @@ def treeview_sort_column(treeview: ttk.Treeview, col: str, reverse: bool, sort_c
     treeview.heading(sort_col, command=lambda _col=col: treeview_sort_column(treeview, _col, not reverse, sort_col))
 
 
-def show_error(message, parent=None):
+def show_error(message, parent=None, raise_exception=True):
     """Display and raise error"""
     messagebox.showwarning(
         title="HDF File Error",
         message=message,
         parent=parent,
     )
-    raise Exception(message)
+    if raise_exception:
+        raise Exception(message)
 
 
 def post_right_click_menu(menu: tkinter.Menu, xpos: int, ypos: int):

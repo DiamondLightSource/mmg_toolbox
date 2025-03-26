@@ -11,63 +11,13 @@ import hdfmap
 from hdfmap.eval_functions import generate_identifier
 
 from ...file_functions import hdfobj_string
-from ..misc.styles import create_root, update_text_style
+from ..misc.styles import update_text_style
 from ..misc.functions import post_right_click_menu, open_close_all_tree, select_hdf_file
 from ..misc.logging import create_logger
 
 logger = create_logger(__file__)
 
 DETAILS_TAB_WIDTH = 30
-
-
-def populate_tree(treeview: ttk.Treeview, hdf_filename, openstate=True):
-    """Load HDF file, populate ttk.treeview object"""
-
-    datasets = []
-
-    def recur_func(hdf_group, tree_group="", top_address='/'):
-        for key in hdf_group:
-            obj = hdf_group.get(key)
-            link = hdf_group.get(key, getlink=True)
-            address = top_address + key
-            name = generate_identifier(address)
-            if isinstance(obj, h5py.Group):
-                try:
-                    nx_class = obj.attrs['NX_class'].decode() if 'NX_class' in obj.attrs else 'Group'
-                except AttributeError:
-                    nx_class = obj.attrs['NX_class']
-                except OSError:
-                    nx_class = 'Group'  # if object doesn't have attrs
-                values = (nx_class, name, "")
-                new_tree_group = treeview.insert(tree_group, tk.END, text=address, values=values)
-                # add attributes
-                for attr, val in obj.attrs.items():
-                    treeview.insert(new_tree_group, tk.END, text=f"@{attr}", values=('Attribute', attr, val))
-                recur_func(obj, new_tree_group, address + '/')
-                treeview.item(new_tree_group, open=openstate)
-            elif isinstance(obj, h5py.Dataset):
-                if isinstance(link, h5py.ExternalLink):
-                    link_type = 'External Link'
-                elif isinstance(link, h5py.SoftLink):
-                    link_type = 'Soft Link'
-                else:
-                    link_type = 'Dataset'
-                if obj.shape:
-                    val = f"{obj.dtype} {obj.shape}"
-                else:
-                    val = str(obj[()])
-                values = (link_type, name, val)
-                # datasets.append(address)
-                new_tree_group = treeview.insert(tree_group, tk.END, text=address, values=values)
-                for attr, val in obj.attrs.items():
-                    treeview.insert(new_tree_group, tk.END, text=f"@{attr}", values=('Attribute', attr, val))
-                treeview.item(new_tree_group, open=False)
-
-    with hdfmap.load_hdf(hdf_filename) as hdf:
-        # add top level file group
-        treeview.insert("", tk.END, text='/', values=('File', os.path.basename(hdf_filename), ''))
-        recur_func(hdf, "")
-    return datasets
 
 
 def search_tree(treeview, branch="", query="entry", match_case=False, whole_word=False):
@@ -129,6 +79,157 @@ def right_click_menu(frame, tree):
     return menu_popup
 
 
+class HdfTreeview:
+    """
+    HDF Treeview object
+    """
+    def __init__(self, root: tk.Misc):
+
+        frm = ttk.Frame(root)
+        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+
+        tree = ttk.Treeview(frm, columns=('type', 'name', 'value'), selectmode='browse')
+        tree.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+
+        var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
+        var.pack(side=tk.LEFT, fill=tk.Y)
+        tree.configure(yscrollcommand=var.set)
+
+        # Populate tree
+        tree.heading("#0", text="HDF Address")
+        tree.column("#0", minwidth=50, width=400)
+        tree.column("type", width=100, anchor='c')
+        tree.column("name", width=100, anchor='c')
+        tree.column("value", width=200, anchor='c')
+        tree.heading("type", text="Type")
+        tree.heading("name", text="Name")
+        tree.heading("value", text="Value")
+        # tree.bind("<<TreeviewSelect>>", self.tree_select)
+        # tree.bind("<Double-1>", self.on_double_click)
+        tree.bind("<Button-3>", right_click_menu(frm, tree))
+        self.tree = tree
+
+    def populate(self, hdf_obj: h5py.File, openstate=True):
+        """Load HDF file, populate ttk.treeview object"""
+
+        def recur_func(hdf_group, tree_group="", top_address='/'):
+            for key in hdf_group:
+                obj = hdf_group.get(key)
+                link = hdf_group.get(key, getlink=True)
+                address = top_address + key
+                name = generate_identifier(address)
+                if isinstance(obj, h5py.Group):
+                    try:
+                        nx_class = obj.attrs['NX_class'].decode() if 'NX_class' in obj.attrs else 'Group'
+                    except AttributeError:
+                        nx_class = obj.attrs['NX_class']
+                    except OSError:
+                        nx_class = 'Group'  # if object doesn't have attrs
+                    values = (nx_class, name, "")
+                    new_tree_group = self.tree.insert(tree_group, tk.END, text=address, values=values)
+                    # add attributes
+                    for attr, val in obj.attrs.items():
+                        self.tree.insert(new_tree_group, tk.END, text=f"@{attr}", values=('Attribute', attr, val))
+                    recur_func(obj, new_tree_group, address + '/')
+                    self.tree.item(new_tree_group, open=openstate)
+                elif isinstance(obj, h5py.Dataset):
+                    if isinstance(link, h5py.ExternalLink):
+                        link_type = 'External Link'
+                    elif isinstance(link, h5py.SoftLink):
+                        link_type = 'Soft Link'
+                    else:
+                        link_type = 'Dataset'
+                    if obj.shape:
+                        val = f"{obj.dtype} {obj.shape}"
+                    else:
+                        val = str(obj[()])
+                    values = (link_type, name, val)
+                    # datasets.append(address)
+                    new_tree_group = self.tree.insert(tree_group, tk.END, text=address, values=values)
+                    for attr, val in obj.attrs.items():
+                        self.tree.insert(new_tree_group, tk.END, text=f"@{attr}", values=('Attribute', attr, val))
+                    self.tree.item(new_tree_group, open=False)
+
+        # add top level file group
+        hdf_filename = hdf_obj.filename
+        self.tree.insert("", tk.END, text='/', values=('File', os.path.basename(hdf_filename), ''))
+        recur_func(hdf_obj, "")
+
+    def delete(self):
+        self.tree.delete(*self.tree.get_children())
+
+
+class HdfNameSpace:
+    """
+    HDF Namespace object
+    """
+
+    def __init__(self, root: tk.Misc):
+
+        frm = ttk.Frame(root)
+        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+
+        tree = ttk.Treeview(frm, columns=('path', 'value'), selectmode='browse')
+        tree.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+
+        var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
+        var.pack(side=tk.LEFT, fill=tk.Y)
+        tree.configure(yscrollcommand=var.set)
+
+        # Populate tree
+        tree.heading("#0", text="Name")
+        tree.column("#0", minwidth=50, width=100)
+        tree.column("path", width=300, anchor='c')
+        tree.column("value", width=200, anchor='c')
+        tree.heading("path", text="Path")
+        tree.heading("value", text="Value")
+        # tree.bind("<<TreeviewSelect>>", self.tree_select)
+        # tree.bind("<Double-1>", self.on_double_click)
+        tree.bind("<Button-3>", right_click_menu(frm, tree))
+        self.tree = tree
+
+    def populate(self, hdf_obj: h5py.File, hdf_map: hdfmap.NexusMap):
+        """Load HDF file, populate ttk.treeview object"""
+
+        data = {
+            name: hdf_map.get_string(hdf_obj, name)
+            for name, path in hdf_map.combined.items()
+        }
+
+        datasets = self.tree.insert("", tk.END, text='Combined', values=('', ''))
+        for name, path in hdf_map.combined.items():
+            value = data.get(name, 'NOT IN MAP')
+            self.tree.insert(datasets, tk.END, text=name, values=(path, value))
+
+        datasets = self.tree.insert("", tk.END, text='Values', values=('', ''))
+        for name, path in hdf_map.values.items():
+            value = data.get(name, 'NOT IN MAP')
+            self.tree.insert(datasets, tk.END, text=name, values=(path, value))
+
+        datasets = self.tree.insert("", tk.END, text='Arrays', values=('', ''))
+        for name, path in hdf_map.arrays.items():
+            value = data.get(name, 'NOT IN MAP')
+            self.tree.insert(datasets, tk.END, text=name, values=(path, value))
+
+        datasets = self.tree.insert("", tk.END, text='Scannables', values=('', ''))
+        for name, path in hdf_map.scannables.items():
+            value = data.get(name, 'NOT IN MAP')
+            self.tree.insert(datasets, tk.END, text=name, values=(path, value))
+
+        datasets = self.tree.insert("", tk.END, text='Metadata', values=('', ''))
+        for name, path in hdf_map.metadata.items():
+            value = data.get(name, 'NOT IN MAP')
+            self.tree.insert(datasets, tk.END, text=name, values=(path, value))
+
+        datasets = self.tree.insert("", tk.END, text='Image Data', values=('', ''))
+        for name, path in hdf_map.image_data.items():
+            value = data.get(name, 'NOT IN MAP')
+            self.tree.insert(datasets, tk.END, text=name, values=(path, value))
+
+    def delete(self):
+        self.tree.delete(*self.tree.get_children())
+
+
 class HDFViewer:
     """
     HDF Viewer - display cascading hierarchical data within HDF file in ttk GUI
@@ -139,8 +240,8 @@ class HDFViewer:
      - Search for addresses using the search bar
      - Click on a dataset or group to view stored attributes and data
 
+    :param root: tk root
     :param hdf_filename: str or None*, if str opens this file initially
-    :param parent: tk root
     """
 
     def __init__(self, root: tk.Misc, hdf_filename: str = None):
@@ -148,7 +249,6 @@ class HDFViewer:
         self.root = root
 
         # Variables
-        self.dataset_list = []  # not currently used
         self.filepath = tk.StringVar(self.root, '')
         self.expandall = tk.BooleanVar(self.root, False)
         self.expression_box = tk.StringVar(self.root, '')
@@ -166,8 +266,21 @@ class HDFViewer:
 
         frm = ttk.Frame(main)
         frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-        # treeview
-        self.tree = self.ini_treeview(frm)
+
+        # Tabs
+        self.view_tabs = ttk.Notebook(frm)
+        tab1 = ttk.Frame(self.view_tabs)
+        tab2 = ttk.Frame(self.view_tabs)
+
+        self.view_tabs.add(tab1, text='HDF Tree')
+        self.view_tabs.add(tab2, text='HdfMap')
+        self.view_tabs.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        # treeviews
+        self.hdf_tree = HdfTreeview(tab1)
+        self.hdf_map = HdfNameSpace(tab2)
+
+        self.hdf_tree.tree.bind('<<TreeviewSelect>>', self.tree_select)
+        self.hdf_map.tree.bind('<<TreeviewSelect>>', self.tree_select)
 
         frm = ttk.Frame(main)
         frm.pack(side=tk.LEFT, expand=tk.NO, fill=tk.BOTH)
@@ -185,8 +298,7 @@ class HDFViewer:
         "-------- Start Mainloop ------"
         if hdf_filename:
             self.filepath.set(hdf_filename)
-            # self.root.title = f"HDFView: {os.path.basename(hdf_filename)}"
-            self.populate_tree()
+            self.populate_from_file()
 
     "======================================================"
     "================= init functions ====================="
@@ -201,8 +313,8 @@ class HDFViewer:
 
         var = ttk.Entry(frm, textvariable=self.filepath)
         var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-        var.bind('<Return>', self.populate_tree)
-        var.bind('<KP_Enter>', self.populate_tree)
+        var.bind('<Return>', self.populate_from_file)
+        var.bind('<KP_Enter>', self.populate_from_file)
 
         var = ttk.Checkbutton(frm, variable=self.expandall, text='Expand', command=self.check_expand)
         var.pack(side=tk.LEFT)
@@ -279,81 +391,69 @@ class HDFViewer:
         text.configure(xscrollcommand=var.set)
         return text
 
-    def ini_treeview(self, frame: ttk.Frame) -> ttk.Treeview:
-        """Return tktreeview, tktext"""
-
-        frm = ttk.Frame(frame)
-        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-
-        tree = ttk.Treeview(frm, columns=('type', 'name', 'value'), selectmode='browse')
-        tree.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-
-        var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
-        var.pack(side=tk.LEFT, fill=tk.Y)
-        tree.configure(yscrollcommand=var.set)
-
-        # Populate tree
-        tree.heading("#0", text="HDF Address")
-        tree.column("#0", minwidth=50, width=400)
-        tree.column("type", width=100, anchor='c')
-        tree.column("name", width=100, anchor='c')
-        tree.column("value", width=200, anchor='c')
-        tree.heading("type", text="Type")
-        tree.heading("name", text="Name")
-        tree.heading("value", text="Value")
-        tree.bind("<<TreeviewSelect>>", self.tree_select)
-        # tree.bind("<Double-1>", self.on_double_click)
-        tree.bind("<Button-3>", right_click_menu(frm, tree))
-        return tree
-
     "======================================================"
     "================ general functions ==================="
     "======================================================"
 
     def check_expand(self):
-        open_close_all_tree(self.tree, "", self.expandall.get())
+        open_close_all_tree(self.hdf_tree, "", self.expandall.get())
 
     def _delete_tree(self):
-        self.tree.delete(*self.tree.get_children())
+        self.hdf_tree.delete()
+        self.hdf_map.delete()
 
-    def populate_tree(self, event=None):
-        self._delete_tree()
+    def populate_from_file(self, event=None):
         filename = self.filepath.get()
         self.map = hdfmap.create_nexus_map(filename)
-        self.dataset_list = populate_tree(self.tree, filename, self.expandall.get())
+        with hdfmap.load_hdf(filename) as hdf:
+            self.populate(hdf, self.map)
+
+    def populate(self, hdf_obj: h5py.File, hdf_map: hdfmap.NexusMap):
+        self._delete_tree()
+        self.hdf_tree.populate(hdf_obj, openstate=self.expandall.get())
+        self.hdf_map.populate(hdf_obj, hdf_map)
 
     "======================================================"
     "================= event functions ===================="
     "======================================================"
 
-    def tree_select(self, event=None):
+    def tree_select(self, event):
         self.text.delete('1.0', tk.END)
-        addresses = [self.tree.item(item)["text"] for item in self.tree.selection()]
-        if addresses:
-            out = hdfobj_string(self.filepath.get(), addresses[0])
-            self.text.insert('1.0', out)
-
-    def on_double_click(self, event=None):
-        addresses = [self.tree.item(item)["values"][1] for item in self.tree.selection()]
-        # if addresses and addresses[0] == 'data':
-        #     from .hdf_image_gui import HDFImageViewer
-        #     HDFImageViewer(self.filepath.get(), parent=self.root)
+        tree = event.widget
+        item = tree.focus()
+        if 'path' in tree['columns']:  # hdfmap tab
+            path = tree.set(item, column='path')
+        else:
+            path = tree.item(item, 'text')
+        out = hdfobj_string(self.filepath.get(), path)
+        self.text.insert('1.0', out)
 
     def select_file(self, event=None):
         filename = select_hdf_file(self.root)
         if filename:
             self.filepath.set(filename)
-            self.populate_tree()
+            self.populate_from_file()
 
     def fun_search(self, event=None):
-        self.tree.selection_remove(self.tree.selection())
-        search_tree(
-            treeview=self.tree,
-            branch="",
-            query=self.search_box.get(),
-            match_case=self.search_matchcase.get(),
-            whole_word=self.search_wholeword.get()
-        )
+        """Search currently active tab"""
+        if self.view_tabs.index(self.view_tabs.select()) == 0:
+            self.hdf_tree.tree.selection_remove(self.hdf_tree.tree.selection())
+            search_tree(
+                treeview=self.hdf_tree.tree,
+                branch="",
+                query=self.search_box.get(),
+                match_case=self.search_matchcase.get(),
+                whole_word=self.search_wholeword.get()
+            )
+        else:
+            self.hdf_map.tree.selection_remove(self.hdf_map.tree.selection())
+            search_tree(
+                treeview=self.hdf_map.tree,
+                branch="",
+                query=self.search_box.get(),
+                match_case=self.search_matchcase.get(),
+                whole_word=self.search_wholeword.get()
+            )
 
     def fun_expression(self, event=None):
         if self.map is None:

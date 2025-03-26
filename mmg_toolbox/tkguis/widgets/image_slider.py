@@ -28,7 +28,6 @@ class SimpleImage:
         self.ax1.set_title(title)
         self.plot(xdata, ydata)
 
-
     def plot(self, *args, **kwargs):
         lines = self.ax1.imshow(*args, **kwargs)
         self.plot_list.extend(lines)
