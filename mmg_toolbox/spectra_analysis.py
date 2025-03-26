@@ -57,7 +57,7 @@ def combine_energy_scans(energy, *args: tuple[np.ndarray, np.ndarray]):
     return data.mean(axis=0)
 
 
-def signal_jump(energy, signal, ev_from_start=5., ev_from_end=None):
+def signal_jump(energy, signal, ev_from_start=5., ev_from_end=None) -> float:
     """Return signal jump from start to end"""
     ev_from_end = ev_from_end or ev_from_start
     ini_signal = np.mean(signal[energy < np.min(energy) + ev_from_start])
@@ -65,19 +65,19 @@ def signal_jump(energy, signal, ev_from_start=5., ev_from_end=None):
     return fnl_signal - ini_signal
 
 
-def subtract_flat_background(energy, signal, ev_from_start=5.):
+def subtract_flat_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, np.ndarray]:
     """Subtract flat background"""
     bkg = np.mean(signal[energy < np.min(energy) + ev_from_start])
     return np.subtract(signal, bkg), bkg * np.ones_like(signal)
 
 
-def normalise_background(energy, signal, ev_from_start=5.):
+def normalise_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, np.ndarray]:
     """Normalise background to one"""
     bkg = np.mean(signal[energy < np.min(energy) + ev_from_start])
     return np.divide(signal, bkg), bkg * np.ones_like(signal)
 
 
-def fit_linear_background(energy, signal, ev_from_start=5.):
+def fit_linear_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, np.ndarray]:
     """Use lmfit to determine sloping background"""
     model = LinearModel(prefix='bkg_')
     region = energy < np.min(energy) + ev_from_start
@@ -89,7 +89,7 @@ def fit_linear_background(energy, signal, ev_from_start=5.):
     return signal - bkg, bkg
 
 
-def fit_curve_background(energy, signal, ev_from_start=5.):
+def fit_curve_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, np.ndarray]:
     """Use lmfit to determine sloping background"""
     model = QuadraticModel(prefix='bkg_')
     # region = (energy < np.min(energy) + ev_from_start) + (energy > np.max(energy) - ev_from_start)
@@ -102,7 +102,7 @@ def fit_curve_background(energy, signal, ev_from_start=5.):
     return signal - bkg, bkg
 
 
-def fit_exp_background(energy, signal, ev_from_start=5.):
+def fit_exp_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, np.ndarray]:
     """Use lmfit to determine sloping background"""
     model = ExponentialModel(prefix='bkg_')
     # region = (energy < np.min(energy) + ev_from_start) + (energy > np.max(energy) - ev_from_start)
@@ -116,7 +116,7 @@ def fit_exp_background(energy, signal, ev_from_start=5.):
     return signal - bkg, bkg
 
 
-def fit_exp_step(energy, signal, ev_from_start=5., ev_from_end=5.):  # good?
+def fit_exp_step(energy, signal, ev_from_start=5., ev_from_end=5.) -> tuple[np.ndarray, np.ndarray]:  # good?
     """Use lmfit to determine sloping background"""
     model = ExponentialModel(prefix='bkg_') + StepModel(form='arctan', prefix='jmp_')  # form='linear'
     region = (energy < np.min(energy) + ev_from_start) + (energy > np.max(energy) - ev_from_start)
@@ -139,7 +139,7 @@ def fit_exp_step(energy, signal, ev_from_start=5., ev_from_end=5.):  # good?
     return (signal - bkg) / jump, bkg / jump
 
 
-def i06_norm(energy, signal):
+def i06_norm(energy, signal) -> tuple[np.ndarray, np.ndarray]:
     """I06 norm and post_edge_norm option"""
     sig = 1.0 * signal
     sig /= sig[energy < energy[0] + 5].mean()  # nomalise by the average of a range of energy
@@ -154,14 +154,14 @@ def i06_norm(energy, signal):
     return sig, jump2 * np.ones_like(sig)
 
 
-def fit_bkg_then_norm_to_peak(energy, signal, ev_from_start=5., ev_from_end=5.):  # good?
+def fit_bkg_then_norm_to_peak(energy, signal, ev_from_start=5., ev_from_end=5.) -> tuple[np.ndarray, np.ndarray]:  # good?
     """Fit the background then normalise the post-edge to 1"""
     fit_signal, bkg = fit_exp_background(energy, signal, ev_from_start)
     peak = np.max(abs(fit_signal))
     return fit_signal / peak, bkg / peak
 
 
-def fit_bkg_then_norm_to_jump(energy, signal, ev_from_start=5., ev_from_end=5.):  # good?
+def fit_bkg_then_norm_to_jump(energy, signal, ev_from_start=5., ev_from_end=5.) -> tuple[np.ndarray, np.ndarray]:  # good?
     """Fit the background then normalise the post-edge to 1"""
     fit_signal, bkg = fit_exp_background(energy, signal, ev_from_start)
     jump = signal_jump(energy, fit_signal, ev_from_start, ev_from_end)
