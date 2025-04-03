@@ -12,7 +12,7 @@ from mmg_toolbox.tkguis import create_file_browser
 from mmg_toolbox.tkguis.widgets.scan_selector import FolderScanSelector
 # from mmg_toolbox.tkguis.widgets.nexus_details import NexusDetails
 from mmg_toolbox.tkguis.widgets.nexus_image import NexusDetectorImage
-from mmg_toolbox.tkguis.main import create_data_viewer
+from mmg_toolbox.tkguis.main import create_data_viewer, create_title_window
 from mmg_toolbox.tkguis.misc.logging import set_all_logging_level
 from mmg_toolbox.tkguis.misc.matplotlib import ini_image
 
@@ -35,7 +35,8 @@ if __name__ == '__main__':
     # FolderScanSelector(root)
     # root.mainloop()
 
-    create_data_viewer()
+    # create_data_viewer(r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus")
+    create_title_window()
 
     # root = create_root('image')
     # NexusDetectorImage(root, hdf_filename=r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus\1041304.nxs")

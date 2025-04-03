@@ -37,7 +37,7 @@ class ConfigEditor:
 
         # parameter entry boxes
         self.create_param('config_file', 'Config File:')
-        self.create_param('default_beamline', 'Beamline:')
+        self.create_param('beamline', 'Beamline:')
         self.create_param('normalise_factor', 'Normalise:')
 
         # Colormaps
@@ -46,7 +46,7 @@ class ConfigEditor:
         default_colormap = self.config.get('default_colormap', DEFAULT_COLORMAP)
         self.config_vars['default_colormap'] = tk.StringVar(self.root, default_colormap)
         colormap = tk.StringVar(self.root, default_colormap)
-        var = ttk.Combobox(frm, textvariable=colormap)
+        var = ttk.Combobox(frm, textvariable=colormap, values=COLORMAPS)
         var.pack(side=tk.LEFT)
         var.bind('<<ComboboxSelected>>', lambda e: self.config_vars['default_colormap'].set(colormap.get()))
 

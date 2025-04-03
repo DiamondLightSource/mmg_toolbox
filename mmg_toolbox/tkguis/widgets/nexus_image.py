@@ -38,6 +38,8 @@ class NexusDetectorImage:
         self.cmax = tk.DoubleVar(self.root, 1)
         self.fixclim = tk.BooleanVar(self.root, False)
         self.colormap = tk.StringVar(self.root, self.config.get('default_colormap', DEFAULT_COLORMAP))
+        self.image_error = tk.StringVar(self.root, '')
+        self.extra_plot_callbacks = []  # calls any function in this list on update_image
 
         section = ttk.Frame(self.root)
         section.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
@@ -53,6 +55,11 @@ class NexusDetectorImage:
         self.ax.set_xlabel(None)
         self.ax.set_ylabel(None)
 
+        # Error message
+        frm = ttk.Frame(section)
+        frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        self.error_label = ttk.Label(frm, textvariable=self.image_error)  # only pack this on error
+
         self.slider = self.ini_slider()
 
         if hdf_filename:
@@ -63,12 +70,16 @@ class NexusDetectorImage:
         frm.pack(expand=tk.NO, pady=2, padx=5)
 
         def inc():
-            self.view_index.set(self.view_index.get() + 1)
-            self.update_image()
+            new_val = self.view_index.get() + 1
+            if new_val < self.map.scannables_length():
+                self.view_index.set(new_val)
+                self.update_image()
 
         def dec():
-            self.view_index.set(self.view_index.get() - 1)
-            self.update_image()
+            new_val = self.view_index.get() - 1
+            if new_val >= 0:
+                self.view_index.set(new_val)
+                self.update_image()
 
         var = ttk.Label(frm, text='Index:', width=8)
         var.pack(side=tk.LEFT)
@@ -145,7 +156,15 @@ class NexusDetectorImage:
         }
         return menu
 
+    def _clear_error(self):
+        self.error_label.pack_forget()
+
+    def _show_error(self, message):
+        self.image_error.set(message)
+        self.error_label.pack()
+
     def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
+        self._clear_error()
         self.filename = filename
         self.map = create_nexus_map(self.filename) if hdf_map is None else hdf_map
         self.slider.config(to=self.map.scannables_length() - 1)  # set slider max
@@ -180,16 +199,13 @@ class NexusDetectorImage:
                     raise FileNotFoundError(f"File not found: {image_filename}")
                 image = read_tiff(image_filename)
         except Exception as e:
-            show_error(
-                message=f'Error loading image from file {os.path.basename(self.filename)}:\n{e}',
-                parent=self.root,
-                raise_exception=False
-            )
+            self._show_error(f'Error loading image: {e}')
             image = np.zeros([10, 10])
         return image, value
 
     def update_image(self, event=None):
         """Plot image data"""
+        self._clear_error()
         if self.filename is None:
             return
         image, value = self._get_image()
@@ -218,4 +234,7 @@ class NexusDetectorImage:
         self.fig.canvas.draw()
         # Load axis label
         self.axis_value.set(value)
+        # Run additional callbacks
+        for function in self.extra_plot_callbacks:
+            function()
 

@@ -11,9 +11,11 @@ import numpy as np
 from hdfmap.eval_functions import dataset2str, dataset2data
 from PIL import Image
 
+from mmg_toolbox.misc_functions import consolidate_numeric_strings
+
 
 def list_files(folder_directory: str, extension='.nxs') -> list[str]:
-    """Return list of files in directory with extension, returning list of full file paths"""
+    """Return list of files in directory with extension, returning list of full file paths ordered by modified time"""
     # return [os.path.join(folder_directory, file) for file in os.listdir(folder_directory) if file.endswith(extension)]
     try:
         return sorted(
@@ -73,8 +75,8 @@ def folder_summary(directory: str) -> str:
     folder_names, file_names = list_folder_file_names(directory)
 
     # subdirectories
-    # if len(folder_names) > 50:
-    #     folder_names = consolidate_strings(*folder_names)
+    if len(folder_names) > 10:
+        folder_names = consolidate_numeric_strings(*folder_names)
     if len(folder_names) > 30:
         subdirs_str = ""
     else:
@@ -82,37 +84,21 @@ def folder_summary(directory: str) -> str:
             f"  {name}" for name in folder_names
         ) + '\n'
     # files
+    files_str = '\n'.join(consolidate_numeric_strings(*file_names))
     file_ext = [os.path.splitext(file) for file in file_names]
     all_ext = {ext for name, ext in file_ext}
     file_types = {
         ext: (lst := [n for n, e in file_ext if e == ext], len(lst))
         for ext in all_ext
     }
-    # for ext, (lst, n) in file_types.items():
-    #     file_types[ext] = ([f"{name}{ext}" for name in consolidate_strings(*lst)], n)
-    # file_type_str = '\n'.join(
-    #     f"  {ext}: {n}" +
-    #     ('\n' + '\n'.join(
-    #         f"    {name}" for name in lst
-    #     )) if len(lst) < 10 else ''
-    #     for ext, (lst, n) in file_types.items()
-    # )
     file_type_str = '\n'.join(
         f"  {ext}: {n}" for ext, (lst, n) in file_types.items()
     )
-    # if len(file_names) > 30:
-    #     file_names = consolidate_strings(*file_names)
-    #     print(file_names)
-    #     print(len(file_names))
-    # if len(file_names) < 50:
-    #     file_names_str = '\n'.join(f"  {name}" for name in file_names)
-    # else:
-    #     file_names_str = ''
     summary = (
         f"Folder: {os.path.abspath(directory)}\n" +
         f"Modified: {display_timestamp(os.stat(directory).st_mtime)}\n\n" +
         f"Sub-Directories: {len(folder_names)}\n{subdirs_str}" +
-        f"\nFiles: {len(file_names)}"
+        f"\nFiles: {len(file_names)}\n{files_str}\n" +
         f"\nFile-types:\n{file_type_str}"
     )
     return summary

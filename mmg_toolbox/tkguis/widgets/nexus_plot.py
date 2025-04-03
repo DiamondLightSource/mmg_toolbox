@@ -139,8 +139,8 @@ class NexusDefaultPlot(SimplePlot):
         yaxis = self.axes_y.get()
         if 'data' in self.data and xaxis in self.data['data'] and yaxis in self.data['data']:
             self.line.set_data(
-                self.data['data'][xaxis],
-                self.data['data'][yaxis]
+                self.data['data'][xaxis].flatten(),
+                self.data['data'][yaxis].flatten()
             )
         else:
             with hdfmap.load_hdf(self.filename) as hdf:
@@ -149,6 +149,9 @@ class NexusDefaultPlot(SimplePlot):
 
             if ydata.shape != xdata.shape:
                 ydata = np.ones_like(xdata)
+
+            xdata = xdata.flatten()
+            ydata = ydata.flatten()
 
             self.line.set_data(xdata, ydata)
         self.ax1.set_xlabel(xaxis)

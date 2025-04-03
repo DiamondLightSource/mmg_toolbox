@@ -8,183 +8,111 @@ import tkinter as tk
 from tkinter import ttk
 from threading import Thread, current_thread
 
-from ...file_functions import list_files, display_timestamp, get_hdf_string
-from ..misc.styles import create_root
-from ..misc.functions import treeview_sort_column, post_right_click_menu, select_folder
+import hdfmap
+
+from ...file_functions import list_files, display_timestamp
+from ...env_functions import get_scan_number
+from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
 from ..misc.logging import create_logger
+from ..misc.config import get_config
 
 logger = create_logger(__file__)
 
 
-class FolderScanSelector:
+class _ScanSelector:
     """Frame with TreeView for selection of folders"""
+    tree: ttk.Treeview
 
-    def __init__(self, root: tk.Misc, initial_directory: str | None = None):
-        logger.info('Creating FolderScanSelector')
+    def __init__(self, root: tk.Misc, config: dict | None = None):
         self.root = root
+        self.config = get_config() if config is None else config
         self.search_str = ""
         self.search_time = time.time()
         self.search_reset = 3.0  # seconds
-        self._prev_folder = ''
         self._update_time = 10  # seconds - poll folders for new files
 
         # Variables
         self.extension = tk.StringVar(root, '.nxs')
-        self.hdf_path = tk.StringVar(root, '')
         self.read_datasets = tk.BooleanVar(root, True)
         self.search_box = tk.StringVar(root, '')
         self.search_matchcase = tk.BooleanVar(root, False)
         self.search_wholeword = tk.BooleanVar(root, True)
 
         # Columns
-        self.columns = (
+        self.columns = [
             # (name, text, width, reverse, sort_col)
-            ("#0", 'Folder', 100, False, None),
-            ("modified", 'Date', 100, True, "modified_time"),
+            ("#0", 'Number', 100, False, None),
+            ("modified", 'Date', 150, True, "modified_time"),
             ('modified_time', 'Modified', 0, False, None),
-            ("files", 'Files', 0, False, None),
-            ("data", 'Data', 200, False, None),
             ("filepath", 'File Path', 0, False, None),
-        )
-
-        # Build widgets
-        self.ini_folderpath()
-        self.tree = self.folder_treeview()
-        self.tree.configure(displaycolumns=('modified', 'data'))  # hide columns
-        self.tree.bind("<<TreeviewOpen>>", self.populate_folder)
-        self.tree.bind("<<TreeviewSelect>>", self.on_select)
-        self.tree.bind("<Double-1>", self.on_double_click)
-        # self.tree.bind('<KeyPress>', self.on_key_press)
-        self.tree.bind("<Button-3>", self.right_click_menu())
-
-        # Populate
-        if initial_directory:
-            self.add_folder(initial_directory)
-        self.poll_files()
-
-    "======================================================"
-    "================= init functions ====================="
-    "======================================================"
-
-    def ini_folderpath(self):
-        frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, fill=tk.X)
-
-        var = ttk.Button(frm, text='Add Folder', command=self.browse_folder)
-        var.pack(side=tk.LEFT)
-        var = ttk.Button(frm, text='Nexus Files', command=self.nexus_file_options)
-        var.pack(side=tk.RIGHT)
-        var = ttk.Button(frm, text='Search', command=self.search_options)
-        var.pack(side=tk.RIGHT)
-
-    def folder_treeview(self) -> ttk.Treeview:
-        """
-        Creates a ttk.TreeView object inside a frame with columns for folders
-        """
-        frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP)
-
-        tree = ttk.Treeview(frm, columns=[c[0] for c in self.columns[1:]])
-
-        var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
-        var.pack(side=tk.RIGHT, fill=tk.Y)
-        tree.configure(yscrollcommand=var.set)
-
-        var = ttk.Scrollbar(frm, orient="horizontal", command=tree.xview)
-        var.pack(side=tk.BOTTOM, fill=tk.X)
-        tree.configure(xscrollcommand=var.set)
-        tree.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-
-        def tree_sort(col, reverse, sort_col=None):
-            return lambda: treeview_sort_column(tree, col, reverse=reverse, sort_col=sort_col)
-
-        for name, text, width, reverse, sort_col in self.columns:
-            tree.heading(name, text=text, command=tree_sort(sort_col or name, reverse, name if sort_col else None))
-            tree.column(name, width=width, stretch=False)  # stretch stops columns from stretching when resized
-        return tree
+        ]
+        # add values from metadata_list
+        self.metadata_names = tuple(self.config.get('metadata_list', {}).keys())
+        self.columns += [
+            (name, name, 200, True, None) for name in self.metadata_names
+        ]
 
     "======================================================"
     "=============== populate functions ==================="
     "======================================================"
 
-    def add_folder(self, folder_path: str):
-        iid = self.tree.insert("", tk.END, text=os.path.basename(folder_path),
-                               values=('', '', '', '', folder_path))
-        self.populate_files(iid)
+    def _add_row(self, parent="", name="", timestamp=0.0, time_str="", filepath="", *args, **kwargs):
+        values = (time_str, timestamp, filepath) + args
+        iid = self.tree.insert(parent, tk.END, text=name, values=values)
+        for name, value in kwargs.items():
+            self.tree.set(iid, column=name, value=value)
+        return iid
 
-    def populate_files(self, item):
+    def _add_file(self, parent, filepath):
+        scan_number = str(get_scan_number(filepath))
+        timestamp = os.stat(filepath).st_mtime
+        mtime = display_timestamp(timestamp)
+        iid = self._add_row(parent, name=scan_number, timestamp=timestamp, time_str=mtime, filepath=filepath)
+        return iid
+
+    def _add_data(self, item):
+        filepath = self.tree.set(item, 'filepath')
+        if os.path.isdir(filepath):
+            return
+        file_map = hdfmap.create_nexus_map(filepath)
+        with hdfmap.load_hdf(filepath) as nxs:
+            for name, fmt in self.config.get('metadata_list', {}).items():
+                if not self.tree.winfo_exists():
+                    return
+                self.tree.set(item, name, file_map.format_hdf(nxs, fmt))
+
+    def populate_files(self, item, *file_list: str):
         """Add list of files below folder on folder expand"""
         # remove old entries
         self.tree.delete(*self.tree.get_children(item))
-        # add hdf files
-        path = self.tree.set(item, 'filepath')
-        files = list_files(path, self.extension.get())
         start_time = time.time()
-        for file in files:
-            timestamp = os.stat(file).st_mtime
-            mtime = display_timestamp(timestamp)
-            self.tree.insert(item, tk.END, text=os.path.basename(file), values=(mtime, timestamp, '', '', file))
+        for file in file_list:
+            self._add_file(item, file)
         if self.read_datasets.get():
-            self.update_datasets(self.hdf_path.get())
+            self.update_metadata()
         logger.info(f"Expanding took {time.time() - start_time:.3g} s")
 
-    def populate_folder(self, event=None):
-        """Add list of files below folder on folder expand"""
-        iid = self.tree.focus()
-        self.populate_files(iid)
-
-    def update_datasets(self, event=None):
+    def update_metadata(self, event=None):
         """Update dataset values column for hdf files under open folders"""
 
         def fn():
-            hdf_path = self.hdf_path.get()
-            self.tree.heading("data", text=hdf_path)
             for branch in self.tree.get_children():  # folders
-                folder = self.tree.set(branch, 'filepath')
                 for leaf in self.tree.get_children(branch):  # files
                     if not self.tree.winfo_exists():
                         return
-                    file = self.tree.item(leaf)['text']
-                    if file:
-                        filename = os.path.join(folder, file)
-                        value = get_hdf_string(filename, hdf_path, '...')
-                        self.tree.set(leaf, 'data', value)
+                    self._add_data(leaf)
 
         th = Thread(target=fn)
         th.start()  # will run until complete, may error if TreeView is destroyed
 
     def update_files(self):
         """Check folders in the tree for new files"""
-        hdf_path = self.hdf_path.get()
-        hdf_value = ''
-        for branch in self.tree.get_children():
-            folder = self.tree.set(branch, 'filepath')
-            files = list_files(folder, self.extension.get())
-            for leaf in self.tree.get_children(branch):  # files
-                if not self.tree.winfo_exists():
-                    return
-                file = self.tree.set(leaf, 'filepath')
-                if file in files:
-                    files.remove(file)
-
-            logger.info(f"Updating {len(files)} in '{os.path.basename(folder)}'")
-            logger.debug(f"update_files: Current thread: {current_thread()}, in process pid: {os.getpid()}")
-            for file in files:
-                if not self.tree.winfo_exists():
-                    return
-                timestamp = os.stat(file).st_mtime
-                mtime = display_timestamp(timestamp)
-                if self.read_datasets.get():
-                    hdf_value = get_hdf_string(file, hdf_path, '...')
-                self.tree.insert(branch, tk.END, text=os.path.basename(file),
-                                 values=(mtime, timestamp, '', hdf_value, file))
+        pass
 
     def poll_files(self):
         """Create background thread that checks the folders for new files"""
         def fn():
             while True:
-                with open('mylog.txt', 'a') as mylog:  # delete this once you are happy it works
-                    mylog.write(f"{time.ctime()} Current thread: {current_thread()}, in process pid: {os.getpid()}, exists: {self.tree.winfo_exists()}\n")
                 if not self.tree.winfo_exists():
                     logger.info('poll_files exiting')
                     return
@@ -194,75 +122,6 @@ class FolderScanSelector:
         th = Thread(target=fn)
         th.daemon = True  # runs thread in the background, outside mainloop, allowing python to close
         th.start()
-
-    "======================================================"
-    "============= navigation functions ==================="
-    "======================================================"
-
-    def browse_folder(self):
-        folder_directory = select_folder(parent=self.root)
-        if folder_directory:
-            self.add_folder(folder_directory)
-
-    def on_select(self, event=None):
-        if not self.tree.focus():
-            return
-        # iid = self.tree.focus()
-        # item = self.tree.item(iid)
-        print(self.get_filepath())
-
-    def on_double_click(self, event=None):
-        """Action on double click of file"""
-        if not self.tree.focus():
-            return
-        # iid = self.tree.focus()
-        # item = self.tree.item(iid)
-        self.open_nexus_treeview()
-
-    "======================================================"
-    "================= button functions ==================="
-    "======================================================"
-
-    def nexus_file_options(self):
-        root = create_root('', self.root)
-        root.wm_overrideredirect(True)
-
-        window = ttk.Frame(root, borderwidth=20, relief=tk.RAISED)
-        window.pack(side=tk.TOP, fill=tk.BOTH)
-
-        frm = ttk.Frame(window, borderwidth=10)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-
-        var = ttk.Button(frm, text='NeXus Dataset Path', command=self.select_dataset)
-        var.pack(side=tk.LEFT)
-        var = ttk.Entry(frm, textvariable=self.hdf_path)
-        var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-        var.bind('<Return>', self.update_datasets)
-        var.bind('<KP_Enter>', self.update_datasets)
-
-        frm = ttk.Frame(window, borderwidth=10)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        var = ttk.Checkbutton(frm, text='Read dataset', variable=self.read_datasets)
-        var.pack(side=tk.LEFT)
-        var = ttk.Label(frm, text=' | Extension: ')
-        var.pack(side=tk.LEFT)
-        var = ttk.OptionMenu(frm, self.extension, None, *('.nxs', '.hdf', '.hdf5'))
-        var.pack(side=tk.LEFT)
-
-        def close():
-            self.update_datasets()
-            root.destroy()
-
-        frm = ttk.Frame(window, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        var = ttk.Button(frm, text='Close', command=close)
-        var.pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
-
-    def select_dataset(self):
-        pass
-
-    def search_options(self):
-        pass
 
     "======================================================"
     "================ general functions ==================="
@@ -277,7 +136,6 @@ class FolderScanSelector:
         filename = None
         foldername = None
         for iid in self.tree.selection():
-            item = self.tree.item(iid)
             filepath = self.tree.set(iid, 'filepath')
             if os.path.isfile(filepath):
                 filename = filepath
@@ -408,4 +266,190 @@ class FolderScanSelector:
                 if query in test:
                     self.tree.selection_add(leaf)
                     self.tree.see(leaf)
+
+
+class FolderScanSelector(_ScanSelector):
+    """Frame with TreeView for selection of folders"""
+
+    def __init__(self, root: tk.Misc, initial_directory: str | None = None,
+                 config: dict | None = None):
+        logger.info('Creating FolderScanSelector')
+        super().__init__(root, config)
+
+        # Build widgets
+        self.ini_folderpath()
+        self.tree = folder_treeview(self.root, self.columns, 400, 200)
+        self.tree.configure(displaycolumns=('modified', ) + self.metadata_names)  # hide columns
+        self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        self.tree.bind("<Double-1>", self.on_double_click)
+        # self.tree.bind('<KeyPress>', self.on_key_press)
+        self.tree.bind("<Button-3>", self.right_click_menu())
+
+        # Populate
+        if initial_directory:
+            self.add_folder(initial_directory)
+        self.poll_files()
+
+    "======================================================"
+    "================= init functions ====================="
+    "======================================================"
+
+    def ini_folderpath(self):
+        frm = ttk.Frame(self.root)
+        frm.pack(side=tk.TOP, fill=tk.X)
+
+        var = ttk.Button(frm, text='Add Folder', command=self.browse_folder)
+        var.pack(side=tk.LEFT)
+        # var = ttk.Button(frm, text='Nexus Files', command=self.nexus_file_options)
+        # var.pack(side=tk.RIGHT)
+        var = ttk.Button(frm, text='Search', command=self.search_options)
+        var.pack(side=tk.RIGHT)
+
+    "======================================================"
+    "=============== populate functions ==================="
+    "======================================================"
+
+    def add_folder(self, folder_path: str):
+        iid = self._add_row("", name=os.path.basename(folder_path), filepath=folder_path)
+        files = list_files(folder_path, self.extension.get())
+        self.populate_files(iid, *files)
+
+    def update_files(self):
+        """Check folders in the tree for new files"""
+        for branch in self.tree.get_children():
+            folder = self.tree.set(branch, 'filepath')
+            files = list_files(folder, self.extension.get())
+            for leaf in self.tree.get_children(branch):  # files
+                if not self.tree.winfo_exists():
+                    return
+                file = self.tree.set(leaf, 'filepath')
+                if file in files:
+                    files.remove(file)
+
+            logger.info(f"Updating {len(files)} in '{os.path.basename(folder)}'")
+            logger.debug(f"update_files: Current thread: {current_thread()}, in process pid: {os.getpid()}")
+            for file in files:
+                if not self.tree.winfo_exists():
+                    return
+                iid = self._add_file(branch, file)
+                if self.read_datasets.get():
+                    self._add_data(iid)
+
+    "======================================================"
+    "============= navigation functions ==================="
+    "======================================================"
+
+    def browse_folder(self):
+        folder_directory = select_folder(parent=self.root)
+        if folder_directory:
+            self.add_folder(folder_directory)
+
+    def on_select(self, event=None):
+        if not self.tree.focus():
+            return
+        print(self.get_filepath())
+
+    def on_double_click(self, event=None):
+        """Action on double click of file"""
+        if not self.tree.focus():
+            return
+        # iid = self.tree.focus()
+        # item = self.tree.item(iid)
+        self.open_nexus_treeview()
+
+    "======================================================"
+    "================= button functions ==================="
+    "======================================================"
+
+    def select_dataset(self):
+        pass
+
+    def search_options(self):
+        pass
+
+
+class ScanSelector(_ScanSelector):
+    """Frame with TreeView for selection of scans"""
+
+    def __init__(self, root: tk.Misc, initial_directory: str, config: dict | None = None):
+        logger.info('Creating ScanSelector')
+        super().__init__(root, config)
+        self.folder = initial_directory
+        self.output_files = []
+
+        # Build widgets
+        self.tree = folder_treeview(self.root, self.columns, 600, 200)
+        self.tree.configure(displaycolumns=('modified', ) + self.metadata_names)  # hide columns
+        # self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        # self.tree.bind("<Double-1>", self.on_double_click)
+        # self.tree.bind('<KeyPress>', self.on_key_press)
+        self.tree.bind("<Button-3>", self.right_click_menu())
+
+        ttk.Button(self.root, text='Select', command=self.select_scans).pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+
+        self.poll_files()
+
+    def update_files(self):
+        """Check folders in the tree for new files"""
+        files = list_files(self.folder, self.extension.get())
+        for leaf in self.tree.get_children(""):  # files
+            if not self.tree.winfo_exists():
+                return
+            file = self.tree.set(leaf, 'filepath')
+            if file in files:
+                files.remove(file)
+
+        logger.info(f"Updating {len(files)} in '{os.path.basename(self.folder)}'")
+        logger.debug(f"update_files: Current thread: {current_thread()}, in process pid: {os.getpid()}")
+        for file in files:
+            if not self.tree.winfo_exists():
+                return
+            iid = self._add_file("", file)
+            if self.read_datasets.get():
+                self._add_data(iid)
+
+    def select_scans(self):
+        self.output_files = [
+            self.tree.set(iid, column='filepath')
+            for iid in self.tree.selection()
+        ]
+        self.root.destroy()
+
+    def show(self):
+        self.root.wait_window()
+        return self.output_files
+
+
+class ScanViewer(_ScanSelector):
+    """Frame with TreeView for selection of scans"""
+
+    def __init__(self, root: tk.Misc, *scan_files: str, config: dict | None = None):
+        logger.info('Creating ScanViewer')
+        super().__init__(root, config)
+        self.file_list = scan_files
+        self.output_files = []
+
+        # Build widgets
+        self.tree = folder_treeview(self.root, self.columns, 600, 200)
+        self.tree.configure(displaycolumns=('modified',) + self.metadata_names + ('filepath', ))  # hide columns
+        # self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        # self.tree.bind("<Double-1>", self.on_double_click)
+        # self.tree.bind('<KeyPress>', self.on_key_press)
+        self.tree.bind("<Button-3>", self.right_click_menu())
+
+        ttk.Button(self.root, text='Close', command=self.select_scans).pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+
+        self.populate_files("", *scan_files)
+
+    def select_scans(self):
+        self.output_files = [
+            self.tree.set(iid, column='filepath')
+            for iid in self.tree.selection()
+        ]
+        self.root.destroy()
+
+    def show(self):
+        self.root.wait_window()
+        return self.output_files
+
 

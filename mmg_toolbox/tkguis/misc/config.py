@@ -3,24 +3,13 @@ Configuration Options
 """
 
 import os
-import datetime
-import tempfile
 import json
 
-from ...env_functions import get_beamline
+from ...env_functions import TMPDIR, YEAR, get_beamline
 
 # config name (saved in TMPDIR)
 TMPFILE = 'mmg_config.json'
-
-# Find writable directory
-TMPDIR = tempfile.gettempdir()
-if not os.access(TMPDIR, os.W_OK):
-    TMPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    if not os.access(TMPDIR, os.W_OK):
-        TMPDIR = os.path.expanduser('~')
 CONFIG_FILE = os.path.join(TMPDIR, TMPFILE)
-
-YEAR = str(datetime.datetime.now().year)
 
 META_STRING = """
 {filename}
@@ -32,6 +21,12 @@ signal = {_signal}
 shape = {axes.shape}
 """
 
+META_LIST = {
+    # scan number and start_time included by default
+    # name: format
+    'cmd': '{scan_command}'
+}
+
 REPLACE_NAMES = {
     # NEW_NAME: EXPRESSION
     '_t': '(count_time|counttime|t?(1.0))',
@@ -39,41 +34,44 @@ REPLACE_NAMES = {
 
 CONFIG = {
     'config_file': CONFIG_FILE,
-    'default_beamline': None,
     'default_directory': os.path.expanduser('~'),
-    'normalise_factor': '/Transmission/count_time/(rc/300.)',
+    'processing_directory': os.path.expanduser('~'),
+    'notebook_directory': os.path.expanduser('~'),
+    'normalise_factor': '',
     'replace_names': {},
     'metadata_string': META_STRING,
+    'metadata_list': META_LIST,
     'default_colormap': 'twilight',
 }
 
 BEAMLINE_CONFIG = {
     'i06': {
-        'default_beamline': 'i06',
+        'beamline': 'i06',
         'default_directory': f"/dls/i06/data/{YEAR}/",
     },
     'i06-1': {
-        'default_beamline': 'i06-1',
+        'beamline': 'i06-1',
         'default_directory': f"/dls/i06-1/data/{YEAR}/",
     },
     'i06-2': {
-        'default_beamline': 'i06-2',
+        'beamline': 'i06-2',
         'default_directory': f"/dls/i06-2/data/{YEAR}/",
     },
     'i10': {
-        'default_beamline': 'i10',
+        'beamline': 'i10',
         'default_directory': f"/dls/i10/data/{YEAR}/",
     },
     'i10-1': {
-        'default_beamline': 'i10-1',
+        'beamline': 'i10-1',
         'default_directory': f"/dls/i10-1/data/{YEAR}/",
     },
     'i16': {
-        'default_beamline': 'i16',
+        'beamline': 'i16',
         'default_directory': f"/dls/i16/data/{YEAR}/",
+        'normalise_factor': '/Transmission/count_time/(rc/300.)',
     },
     'i21': {
-        'default_beamline': 'i21',
+        'beamline': 'i21',
         'default_directory': f"/dls/i21/data/{YEAR}/",
     },
 }

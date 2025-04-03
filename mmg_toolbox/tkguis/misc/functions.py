@@ -134,3 +134,50 @@ def post_right_click_menu(menu: tkinter.Menu, xpos: int, ypos: int):
         menu.tk_popup(xpos, ypos)
     finally:
         menu.grab_release()
+
+
+def folder_treeview(parent: tk.Misc, columns: list[tuple[str, str, int, bool, str | None]],
+                    width: int | None = None, height: int | None = None) -> ttk.Treeview:
+    """
+    Creates a ttk.TreeView object inside a frame with columns for folders
+    """
+    canvas = tk.Canvas(parent)
+    # fixed size of grid in canvas
+    canvas.grid_rowconfigure(0, weight=1)
+    canvas.grid_columnconfigure(0, weight=1)
+    if width and height:
+        canvas.configure(width=width, height=height)
+        canvas.pack()
+    else:
+        canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+    canvas.grid_propagate(False)
+
+    frm = ttk.Frame(canvas)
+    frm.grid_rowconfigure(0, weight=1)
+    frm.grid_columnconfigure(0, weight=1)
+
+    tree = ttk.Treeview(frm, columns=[c[0] for c in columns[1:]])
+    for c in columns:
+        tree.column(c[0], stretch=False)
+
+    var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
+    # var.pack(side=tk.RIGHT, fill=tk.Y)
+    var.grid(column=1, row=0, sticky='ns')
+    tree.configure(yscrollcommand=var.set)
+
+    var = ttk.Scrollbar(frm, orient="horizontal", command=tree.xview)
+    # var.pack(side=tk.BOTTOM, fill=tk.X)
+    var.grid(column=0, row=1, sticky='ew')
+    tree.configure(xscrollcommand=var.set)
+    # tree.pack(side=tk.TOP)
+    tree.grid(column=0, row=0, sticky='nsew')
+    frm.grid(column=0, row=0)
+
+    def tree_sort(col, reverse, sort_col=None):
+        return lambda: treeview_sort_column(tree, col, reverse=reverse, sort_col=sort_col)
+
+    for name, text, width, _reverse, _sort_col in columns:
+        tree.heading(name, text=text, command=tree_sort(_sort_col or name, _reverse, name if _sort_col else None))
+        tree.column(name, width=width, stretch=False)  # stretch stops columns from stretching when resized
+    return tree
+

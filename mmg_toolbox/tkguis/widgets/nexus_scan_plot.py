@@ -4,9 +4,7 @@ a tkinter frame with a single plot
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
-import h5py
 
-import hdfmap
 from hdfmap import create_nexus_map
 
 from ..misc.logging import create_logger
@@ -39,26 +37,39 @@ class NexusScanDetailsPlot:
         # canvas.config(yscrollcommand=scroll.set,
         #               scrollregion=(0, 0, 100, 100))
 
-        window = tk.Frame()
+        window = tk.Frame(self.root)
         window.pack()
         frm = ttk.LabelFrame(window, text='Files', width=50)
-        frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)
+        # frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)
+        frm.grid(column=0, row=0)
         self.selector_widget = FolderScanSelector(frm, initial_directory=initial_folder)
         self.selector_widget.tree.bind("<<TreeviewSelect>>", self.on_file_select)
 
-        # frm = ttk.LabelFrame(self.root, text='Details')
+        frm = ttk.LabelFrame(window, text='Details')
         # frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.YES, padx=2, pady=2)
+        frm.grid(column=0, row=1)
         self.detail_widget = NexusDetails(frm, config=self.config)
 
         frm = ttk.LabelFrame(window, text='Plot')
-        frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)
+        # frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)
+        frm.grid(column=1, row=0, rowspan=2)
         sec = ttk.Frame(frm)
         sec.pack(side=tk.TOP, fill=tk.X)
         self.plot_widget = NexusDefaultPlot(sec, config=self.config)
         self.index_line = self.plot_widget.ax1.axvline(0, ls='--', c='k')
-        sec = ttk.Frame(frm)
-        sec.pack(side=tk.TOP, fill=tk.X)
-        self.image_widget = NexusDetectorImage(sec, config=self.config)
+
+        self.image_frame = ttk.Frame(frm)  # image frame will be packed when required
+        # self.image_frame.pack(side=tk.TOP, fill=tk.X)
+        self.image_widget = NexusDetectorImage(self.image_frame, config=self.config)
+
+        # update image_widget update_image to add plot line
+        def update_index_line():
+            xvals, yvals = self.plot_widget.line.get_data()
+            index = self.image_widget.view_index.get()
+            ylim = self.plot_widget.ax1.get_ylim()
+            self.index_line.set_data([xvals[index], xvals[index]], ylim)
+            self.plot_widget.update_axes()
+        self.image_widget.extra_plot_callbacks.append(update_index_line)  # runs on update_image
 
         self._log_size()
 
@@ -70,16 +81,20 @@ class NexusScanDetailsPlot:
             self.map = create_nexus_map(filename)
             self.detail_widget.update_data_from_file(filename, self.map)
             self.plot_widget.update_data_from_file(filename, self.map)
-            self.image_widget.update_data_from_file(filename, self.map)
 
-            xvals, yvals = self.plot_widget.line.get_data()
-            print(f"nanargmax: {np.nanargmax(yvals)}")
-            index = np.nanargmax(yvals)
-            self.image_widget.view_index.set(index)
-            self.image_widget.update_image()
-            ylim = self.plot_widget.ax1.get_ylim()
-            self.index_line.set_data([xvals[index], xvals[index]], ylim)
-            self.plot_widget.update_axes()
+            if self.map.image_data:
+                self.image_widget.update_data_from_file(filename, self.map)
+                xvals, yvals = self.plot_widget.line.get_data()
+                index = np.nanargmax(yvals)
+                self.image_widget.view_index.set(index)
+                self.image_widget.update_image()
+                self.image_frame.pack(side=tk.TOP, fill=tk.X)
+                print(f"image frame: {self.image_frame.master.winfo_reqwidth()}x{self.image_frame.master.winfo_reqheight()}")
+                print(f"image fig: {self.image_widget.fig.get_size_inches()}")
+            else:
+                self.image_frame.pack_forget()
+                self.index_line.set_data([], [])
+                self.plot_widget.update_axes()
 
     def _log_size(self):
         self.root.update()
