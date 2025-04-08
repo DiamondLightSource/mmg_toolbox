@@ -196,8 +196,8 @@ def create_title_window():
 
     menu = {
         'File': {
-            'Folder Browser': lambda: create_file_browser(root, widget.data_dir.get()),
-            'Jupyter Browser': lambda: create_jupyter_browser(root, widget.proc_dir.get()),
+            'Folder Browser': lambda: create_file_browser(root, config.get('default_directory')),
+            'Jupyter Browser': lambda: create_jupyter_browser(root, widget.notebook_dir.get()),
             'Data Viewer': lambda: create_data_viewer(widget.data_dir.get(), root, config),
             'Range selector': lambda: create_range_selector(widget.data_dir.get(), root, config)
         },

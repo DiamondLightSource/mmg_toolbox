@@ -162,7 +162,7 @@ def folder_treeview(parent: tk.Misc, columns: list[tuple[str, str, int, bool, st
 
     var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
     # var.pack(side=tk.RIGHT, fill=tk.Y)
-    var.grid(column=1, row=0, sticky='ns')
+    var.grid(column=1, row=0, sticky='nsew')
     tree.configure(yscrollcommand=var.set)
 
     var = ttk.Scrollbar(frm, orient="horizontal", command=tree.xview)

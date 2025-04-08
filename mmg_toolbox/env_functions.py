@@ -136,4 +136,6 @@ def run_jupyter_notebook(notebook_filename: str):
     """
     Run a jupyter notebook
     """
-    pass
+    command = f"jupyter notebook {notebook_filename}"
+    run_command(command)
+

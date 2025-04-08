@@ -60,6 +60,7 @@ class TitleWindow:
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, pady=6)
         ttk.Button(frm, text='Data Viewer', command=self.open_data_viewer, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='NeXus Browser', command=self.open_file_browser, width=20).pack(side=tk.LEFT)
+        ttk.Button(frm, text='Notebook Browser', command=self.open_notebook_browser, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='Script Runner', command=self.open_script_runner, width=20).pack(side=tk.LEFT)
 
     def dls_directories(self, data_dir: str):
@@ -98,6 +99,10 @@ class TitleWindow:
     def open_file_browser(self):
         from ..main import create_file_browser
         create_file_browser(self.root, self.data_dir.get())
+
+    def open_notebook_browser(self):
+        from ..main import create_jupyter_browser
+        create_jupyter_browser(self.root, self.notebook_dir.get())
 
     def open_script_runner(self):
         from ..main import create_script_runner

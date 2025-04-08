@@ -40,7 +40,7 @@ class FolderTreeViewFrame:
         # Columns
         self.columns = [
             # (name, text, width, reverse, sort_col)
-            ("#0", 'Folder', 100, False, None),
+            ("#0", 'Folder', 200, False, None),
             ("modified", 'Modified', 150, True, "modified_time"),
             ('modified_time', 'Modified', 0, False, None),
             ("files", 'Files', 15, False, None),
@@ -185,16 +185,7 @@ class FolderTreeViewFrame:
 
     def on_double_click(self, event=None):
         """Open a folder or open a file in a new window"""
-        if not self.tree.focus():
-            return
-        iid = self.tree.focus()
-        item = self.tree.item(iid)
-        if self.tree.set(iid, 'files') == '' and item['text'] != '..':
-            self.open_nexus_treeview()
-        else:
-            # item is a folder, open folder
-            self._prev_folder = self.filepath.get()
-            self.set_folder(os.path.abspath(os.path.join(self._prev_folder, item['text'])))
+        pass
 
     "======================================================"
     "================= button functions ==================="
@@ -274,16 +265,7 @@ class FolderTreeViewFrame:
         cmd = f"cd {folderpath}"
         open_terminal(cmd)
 
-    def right_click_menu(self):
-        logger.info('Creating right click menu')
-        # right-click menu - file options
-        m_file = tk.Menu(self.root, tearoff=0)
-        m_file.add_command(label="Copy path", command=self.copy_path)
-        m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
-        m_file.add_command(label="open Plot", command=self.open_nexus_plot)
-        m_file.add_command(label="open Image", command=self.open_nexus_image)
-        # m_file.add_command(label="open Namespace", command=self.menu_namespace_gui)
-        # m_file.add_command(label="open Nexus Classes", command=self.menu_class_gui)
+    def _right_click_folder(self) -> tk.Menu:
         # right-click menu - folder options
         m_folder = tk.Menu(self.root, tearoff=0)
         m_folder.add_command(label="Copy path", command=self.copy_path)
@@ -292,7 +274,21 @@ class FolderTreeViewFrame:
         # m_folder.add_command(label="Open Folder Plots", command=self.menu_folder_plot)
         # # m_folder.add_command(label="Display Contents", command=self.menu_folder_plot)
         m_folder.add_command(label="Display Summary", command=self.open_folder_summary)
+        return m_folder
 
+    def _right_click_file(self) -> tk.Menu:
+        # right-click menu - file options
+        m_file = tk.Menu(self.root, tearoff=0)
+        m_file.add_command(label="Copy path", command=self.copy_path)
+        # m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
+        # m_file.add_command(label="open Plot", command=self.open_nexus_plot)
+        # m_file.add_command(label="open Image", command=self.open_nexus_image)
+        # m_file.add_command(label="open Namespace", command=self.menu_namespace_gui)
+        # m_file.add_command(label="open Nexus Classes", command=self.menu_class_gui)
+        return m_file
+
+    def right_click_menu(self):
+        logger.info('Creating right click menu')
         def menu_popup(event):
             # select item
             iid = self.tree.identify_row(event.y)
@@ -301,10 +297,10 @@ class FolderTreeViewFrame:
                 filename, foldername = self.get_filepath()
                 if filename:
                     logger.debug(f"Right click menu created for file: {filename}")
-                    menu = m_file
+                    menu = self._right_click_file()
                 else:
                     logger.debug(f"Right click menu created for folder: {foldername}")
-                    menu = m_folder
+                    menu = self._right_click_folder()
                 post_right_click_menu(menu, event.x_root, event.y_root)
         return menu_popup
 
@@ -403,6 +399,29 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
         logger.info('Creating NexusFolderTreeViewFrame')
         super().__init__('.nxs', root, initial_directory)
 
+    def _right_click_file(self) -> tk.Menu:
+        # right-click menu - file options
+        m_file = super()._right_click_file()
+        m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
+        m_file.add_command(label="open Plot", command=self.open_nexus_plot)
+        m_file.add_command(label="open Image", command=self.open_nexus_image)
+        # m_file.add_command(label="open Namespace", command=self.menu_namespace_gui)
+        # m_file.add_command(label="open Nexus Classes", command=self.menu_class_gui)
+        return m_file
+
+    def on_double_click(self, event=None):
+        """Open a folder or open a file in a new window"""
+        if not self.tree.focus():
+            return
+        iid = self.tree.focus()
+        item = self.tree.item(iid)
+        if self.tree.set(iid, 'files') == '' and item['text'] != '..':
+            self.open_nexus_treeview()
+        else:
+            # item is a folder, open folder
+            self._prev_folder = self.filepath.get()
+            self.set_folder(os.path.abspath(os.path.join(self._prev_folder, item['text'])))
+
     def update_datasets(self, event=None):
         """Update dataset values column for hdf files under open folders"""
 
@@ -428,4 +447,31 @@ class JupyterFolderTreeViewFrame(FolderTreeViewFrame):
     def __init__(self, root: tk.Misc, initial_directory: str | None = None):
         logger.info('Creating JupyterFolderTreeViewFrame')
         super().__init__('.ipynb', root, initial_directory)
-        # self.tree.configure(displaycolumns=('modified', 'files'))  # hide columns
+        self.tree.configure(displaycolumns=('modified', 'files'))  # hide columns
+
+    def _right_click_file(self) -> tk.Menu:
+        # right-click menu - file options
+        m_file = super()._right_click_file()
+        m_file.add_command(label="start jupyter", command=self.open_jupyter_notebook)
+        m_file.add_command(label="view html", command=self.open_jupyter_html)
+        return m_file
+
+    def open_jupyter_notebook(self):
+        from ...nb_runner import run_jupyter_notebook
+
+        filename, foldername = self.get_filepath()
+        if filename:
+            run_jupyter_notebook(filename)
+        else:
+            run_jupyter_notebook(foldername)
+
+    def open_jupyter_html(self):
+        from ...nb_runner import view_jupyter_notebook
+
+        filename, foldername = self.get_filepath()
+        if filename:
+            html = filename.replace('.ipynb', '.html')
+            if os.path.isfile(html):
+                view_jupyter_notebook(html)
+            else:
+                print(f"{html} doesn't exist.")
