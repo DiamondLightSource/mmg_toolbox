@@ -1,159 +1,216 @@
 """
 Spectra scan
 """
+from __future__ import annotations
 
 import os
 import numpy as np
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
+import h5py
 import hdfmap
 import mmg_toolbox.spectra_analysis as spa
+from typing_extensions import Self
+
+from .data_scan import Scan, Process
+
+
+BACKGROUND_FUNCTIONS = {
+    # description: (en, sig, *args, **kwargs) -> spectra, bkg
+    'flat': spa.subtract_flat_background,
+    'norm': spa.normalise_background,
+    'linear': spa.fit_linear_background,
+    'curve': spa.fit_curve_background,
+    'exp': spa.fit_exp_background,
+}
+
+
+def get_xas_group(nxs: h5py.File) -> h5py.Group | None:
+    """Return an open HDF group object, or None if it doesn't exist"""
+    entry = next(group for path, group in nxs.items() if group.attrs.get('NX_class', b'') == b'NXentry')
+    nx_xas = next((
+        group for path, group in entry.items()
+        if group.attrs.get('NX_class', b'') == b'NXsubentry'
+           and group.get('definition').asstr()[()] == 'NXxas'
+    ), None)
+    return nx_xas
+
+
+def is_nxxas(filename: str):
+    """Returns True is scan contains NXXas subentry, False otherwise"""
+    if os.path.isfile(filename):
+        with hdfmap.load_hdf(filename) as nxs:
+            nx_xas = get_xas_group(nxs)
+            if nx_xas:
+                return True
+    return False
 
 
 class Spectra:
-    def __init__(self, energy, signal):
+    """
+    An energy spectra, containing:
+
+    :param energy: n-length array
+    :param signal: n-length array
+    :param background: n-length array (*or None)
+    :param parents: list of Spectra or Scan objects (*or None)
+    :param process: str describing a process done to the spectra
+    :param label: str name of the spectra for plots
+    """
+    def __init__(self, energy: np.ndarray, signal: np.ndarray,
+                 background: np.ndarray | None = None,
+                 parents: list[Self | Scan] | None = None,
+                 process: str = 'raw', label: str = ''):
+        self.parents = parents
         self.energy = energy
         self.signal = signal
+        if energy.shape != signal.shape:
+            raise Exception(f"the shape of energy[{energy.shape}] and signal[{signal.shape}] must match")
+        self.background = background
+        if background is not None and background.shape != energy.shape:
+            raise Exception(f"the shape of energy[{energy.shape}] and background[{background.shape}] must match")
+        self.process = process
+        self.label = label
+
+    def __repr__(self):
+        return f"Spectra('{self.label}', energy=array{self.energy.shape}, signal=array{self.signal.shape}, process={self.process})"
 
     def __add__(self, other):
-        return combine_spectra(self, other)
+        return average_spectra(self, other)
 
     def __sub__(self, other):
+        if other in self.parents:
+            # remove other, recalculate average
+            return average_spectra(*(parent for parent in self.parents if parent != other))
+        # subtract new spectra from this spectra
         return subtract_spectra(self, other)
+
+    def remove_background(self, name='flat', *args, **kwargs) -> Spectra:
+        sig, bkg = BACKGROUND_FUNCTIONS[name](self.energy, self.signal, *args, **kwargs)
+        return Spectra(self.energy, sig, parents=[self], background=bkg, process=name)
+
+    def norm_to_peak(self) -> Spectra:
+        peak = self.signal_peak()
+        bkg = self.background / peak if self.background is not None else None
+        return Spectra(self.energy, self.signal / peak, parents=[self], background=bkg, process='norm to peak')
+
+    def norm_to_jump(self, ev_from_start=5., ev_from_end=None) -> Spectra:
+        jump = abs(self.signal_jump(ev_from_start, ev_from_end))
+        bkg = self.background / jump if self.background is not None else None
+        return Spectra(self.energy, self.signal / jump, parents=[self], background=bkg, process='norm to jump')
+
+    def signal_peak(self) -> float:
+        return np.max(abs(self.signal))
 
     def signal_jump(self, ev_from_start=5., ev_from_end=None) -> float:
         return spa.signal_jump(self.energy, self.signal, ev_from_start, ev_from_end)
 
-    def subtract_flat_background(self, ev_from_start=5.):
-        sig, bkg = spa.subtract_flat_background(self.energy, self.signal, ev_from_start)
-        return ProcessedSpectra(self, self.energy, sig, background=bkg)
-
-    def normalise_background(self, ev_from_start=5.):
-        sig, bkg = spa.normalise_background(self.energy, self.signal, ev_from_start)
-        return ProcessedSpectra(self, self.energy, sig, background=bkg)
-
-    def fit_linear_background(self, ev_from_start=5.):
-        sig, bkg = spa.fit_linear_background(self.energy, self.signal, ev_from_start)
-        return ProcessedSpectra(self, self.energy, sig, background=bkg)
-
-    def fit_curve_background(self, ev_from_start=5.):
-        sig, bkg = spa.fit_curve_background(self.energy, self.signal, ev_from_start)
-        return ProcessedSpectra(self, self.energy, sig, background=bkg)
-
-    def fit_exp_background(self, ev_from_start=5.):
-        sig, bkg = spa.fit_exp_background(self.energy, self.signal, ev_from_start)
-        return ProcessedSpectra(self, self.energy, sig, background=bkg)
-
-    def fit_exp_step(self, ev_from_start=5., ev_from_end=5.):
-        sig, bkg = spa.fit_exp_step(self.energy, self.signal, ev_from_start, ev_from_end)
-        return ProcessedSpectra(self, self.energy, sig, background=bkg)
-
-    def fit_bkg_then_norm_to_peak(self, ev_from_start=5., ev_from_end=5.):
-        sig, bkg = spa.fit_bkg_then_norm_to_peak(self.energy, self.signal, ev_from_start, ev_from_end)
-        return ProcessedSpectra(self, self.energy, sig, background=bkg)
-
-    def fit_bkg_then_norm_to_jump(self, ev_from_start=5., ev_from_end=5.):
-        sig, bkg = spa.fit_bkg_then_norm_to_jump(self.energy, self.signal, ev_from_start, ev_from_end)
-        return ProcessedSpectra(self, self.energy, sig, background=bkg)
-
-    def plot(self, ax: Axes | None = None, *args, **kwargs):
+    def plot(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
         if ax is None:
             ax = plt.gca()
-        ax.plot(self.energy, self.signal, *args, **kwargs)
+        if 'label' not in kwargs:
+            kwargs['label'] = self.label
+        return ax.plot(self.energy, self.signal, *args, **kwargs)
+
+    def plot_bkg(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
+        if self.background is None:
+            return []
+        if ax is None:
+            ax = plt.gca()
+        if 'label' not in kwargs:
+            kwargs['label'] = self.label + ' bkg'
+        return ax.plot(self.energy, self.background, *args, **kwargs)
+
+    def plot_parents(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
+        """Plot all parents on the current axes"""
+        if ax is None:
+            ax = plt.gca()
+        pl = []
+        label = kwargs.get('label', '')
+        for parent in self.parents:
+            if issubclass(type(parent), Spectra):
+                kwargs['label'] = parent.label + label
+                pl += ax.plot(parent.energy, parent.signal, *args, **kwargs)
+        return pl
 
 
-class ProcessedSpectra(Spectra):
-    """
-    Like spectra but with defined background
-    """
-    def __init__(self, original: Spectra, processed_energy, processed_signal, background=None):
-        self.original = original
-        super().__init__(processed_energy, processed_signal)
-        self.background = background
+def average_spectra(*spectra: Spectra) -> Spectra:
+    """Average multiple spectra"""
+    if any(isinstance(p, Spectra) for s in spectra for p in s.parents):
+        print('Warning - average of average')
+    parents = list(spectra)
+    av_energy = spa.average_energy_scans(*(s.energy for s in spectra))
+    av_signal = spa.average_energy_spectra(av_energy, *((s.energy, s.signal) for s in spectra))
+    if all(s.background is None for s in parents):
+        av_bkg = None
+    else:
+        bkg_spectra = ((s.energy, s.background) for s in parents if s.background is not None)
+        av_bkg = spa.average_energy_spectra(av_energy, *bkg_spectra)
+    label = next((s.label for s in spectra), '')
+    return Spectra(av_energy, av_signal, av_bkg, parents, process='average', label=label)
 
 
-class MultiSpectra(Spectra):
-    """
-    Combination of multiple spectra
-    """
-    def __init__(self, originals: list[Spectra], energy, signal):
-        self.originals = originals
-        super().__init__(energy, signal)
-
-    def __add__(self, other):
-        if isinstance(other, MultiSpectra):
-            return combine_spectra(*(self.originals + other.originals))
-        return combine_spectra(*(self.originals + [other]))
-
-
-def combine_spectra(*args: Spectra) -> MultiSpectra:
-    """Combine multiple spectra"""
-    av_energy = spa.average_energy_scans(*(spectra.energy for spectra in args))
-    new_signal = spa.combine_energy_scans(av_energy, *((spectra.energy, spectra.signal) for spectra in args))
-    return MultiSpectra(list(args), av_energy, new_signal)
-
-
-def subtract_spectra(spectra1: Spectra, spectra2: Spectra) -> MultiSpectra:
-    """Subtract spectra1 - spectra2"""
+def subtract_spectra(spectra1, spectra2) -> Spectra:
+    """Subtract spectra2 from spectra1"""
+    parents = [spectra1, spectra2]
     av_energy = spa.average_energy_scans(spectra1.energy, spectra2.energy)
-    signal1 = spa.combine_energy_scans(av_energy, (spectra1.energy, spectra1.signal))
-    signal2 = spa.combine_energy_scans(av_energy, (spectra2.energy, spectra2.signal))
-    return MultiSpectra([spectra1, spectra2], av_energy, signal1 - signal2)
+    signal1 = spa.average_energy_spectra(av_energy, (spectra1.energy, spectra1.signal))
+    signal2 = spa.average_energy_spectra(av_energy, (spectra2.energy, spectra2.signal))
+    if all(s.background is None for s in parents):
+        av_bkg = None
+    else:
+        bkg_spectra = ((s.energy, s.background) for s in parents if s.background is not None)
+        av_bkg = spa.average_energy_spectra(av_energy, *bkg_spectra)
+    difference = signal1 - signal2
+    label = f"{spectra1.label} - {spectra2.label}"
+    return Spectra(av_energy, difference, av_bkg, parents, process='subtraction', label=label)
 
 
-class Scan:
-    def __init__(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
-        self.filename = filename
-        self.map = hdfmap.create_nexus_map(filename) if hdf_map is None else hdf_map
-        default_scan = np.ones(self.map.scannables_shape())
-
-        with hdfmap.load_hdf(filename) as nxs:
-            energy = self.map.eval(nxs, '(fastEnergy|pgm_energy|energye|energyh)')
-            monitor = self.map.eval(nxs, '(C2|ca62sr|mcs16_data|mcse16_data|mcsh16_data)', default=1.0)
-            tey = self.map.eval(nxs, '(C1|ca61sr|mcs17_data|mcse17_data|mcsh17_data)', default=default_scan)
-            tfy = self.map.eval(nxs, '(C3|ca63sr|mcs18_data|mcse18_data|mcsh18_data|mcsd18_data)', default=default_scan)
-
-            def rd(expr, default=''):
-                return self.map.format_hdf(nxs, expr, default=default)
-            self.metadata = {
-                "scan": rd('{filename}'),
-                "cmd": rd('{(cmd|user_command|scan_command)}'),
-                "title": rd('{title}', os.path.basename(filename)),
-                "endstation": rd('{end_station}', 'unknown'),
-                "sample": rd('{sample_name}', ''),
-                "energy": rd('{np.mean((fastEnergy|pgm_energy|energye|energyh)):.2f} eV'),
-                "pol": rd('{polarisation?("lh")}'),
-                "height": rd('{(em_y|hfm_y):.2f}', '--'),
-                "pitch": rd('{(em_pitch|hfm_pitch):.2f}', '--'),
-                "temperature": rd(
-                    '{(T_sample|sample_temperature|lakeshore336_cryostat|lakeshore336_sample|itc3_device_sensor_temp?(300)):.2f} K'),
-                "field": rd('{(field_z|sample_field|magnet_field|ips_demand_field?(0)):.2f} T'),
-            }
-
-        self.tey = ScanSpectra(self, energy, tey, monitor)
-        self.tfy = ScanSpectra(self, energy, tfy, monitor)
-
-    def pol(self):
-        return self.metadata.get("pol", '')
+class _SpectraContainer:
+    metadata = {}
+    def __init__(self, tey: Spectra, tfy: Spectra, pol: str, **metadata):
+        self.tey = tey
+        self.tfy = tfy
+        self.pol = pol
+        self.metadata.update(metadata)
 
     def __add__(self, other):
-        if isinstance(other, Scan):
-            return SummedScans(self, other)
-        if isinstance(other, SummedScans):
-            return SummedScans(*([self] + other.scans))
-        raise TypeError(f"type {type(other)} cannot be added to Scan")
+        if issubclass(type(other), _SpectraContainer):
+            if self.pol != other.pol:
+                raise Exception("Polarisations do not match")
+            tey = self.tey + other.tey
+            tfy = self.tfy + other.tfy
+            return SpectraProcess('average', tey, tfy, self, other, pol=self.pol)
+        raise TypeError(f"type {type(other)} cannot be added to {type(self)}")
 
     def __sub__(self, other):
-        if isinstance(other, Scan):
-            return SubtractPolarisations(self, other)
-        raise TypeError(f"type {type(other)} cannot be subtracted from Scan")
+        if issubclass(type(other), _SpectraContainer):
+            return SpectraDifference(self, other)
+        raise TypeError(f"type {type(other)} cannot be subtracted from {type(self)}")
 
-    def create_figure(self):
+    def remove_background(self, name='flat', *args, **kwargs) -> SpectraProcess:
+        tey = self.tey.remove_background(name, *args, **kwargs)
+        tfy = self.tfy.remove_background(name, *args, **kwargs)
+        return SpectraProcess(name, tey, tfy, self, pol=self.pol)
+
+    def norm_to_peak(self) -> SpectraProcess:
+        tey = self.tey.norm_to_peak()
+        tfy = self.tfy.norm_to_peak()
+        return SpectraProcess('norm to peak', tey, tfy, self, pol=self.pol)
+
+    def norm_to_jump(self, ev_from_start=5., ev_from_end=None) -> SpectraProcess:
+        tey = self.tey.norm_to_jump(ev_from_start, ev_from_end)
+        tfy = self.tfy.norm_to_jump(ev_from_start, ev_from_end)
+        return SpectraProcess('norm to jump', tey, tfy, self, pol=self.pol)
+
+    def create_figure(self, title: str | None = None):
         """Create plot of spectra"""
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[12, 6])
-        fig.suptitle(self.metadata['title'])
-        self.tey.plot(ax1, label='TEY')
-        self.tfy.plot(ax2, label='TFY')
+        if title is None:
+            title = self.metadata.get('title', self.pol)
+        fig.suptitle(title)
+        self.tey.plot(ax1)
+        self.tfy.plot(ax2)
 
         ax1.set_xlabel('E [eV]')
         ax1.set_ylabel('TEY / monitor')
@@ -161,129 +218,114 @@ class Scan:
         ax2.set_ylabel('TFY / monitor')
 
 
-class ScanSpectra(Spectra):
+class SpectraScan(Scan, _SpectraContainer):
     """
-    Loading spectra from scan
+    Scan with TEY and TFY spectra
     """
-    def __init__(self, scan: Scan, energy, signal, monitor=1.0):
-        self.scan = scan
-        super().__init__(energy, signal / monitor)
-        self.monitor = monitor
+    def __init__(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
+        scan_names = {
+            'energy': '(fastEnergy|pgm_energy|energye|energyh)',
+            'monitor': '(C2|ca62sr|mcs16_data|mcse16_data|mcsh16_data?(1.0))',
+            'tey': '(C1|ca61sr|mcs17_data|mcse17_data|mcsh17_data)',
+            'tfy': '(C3|ca63sr|mcs18_data|mcse18_data|mcsh18_data|mcsd18_data)'
+        }
+        metadata_names = {
+                "scan": '{filename}',
+                "cmd": '{(cmd|user_command|scan_command)}',
+                "title": '{title}',
+                "endstation": '{end_station}',
+                "sample": '{sample_name}',
+                "pol": '{polarisation?("lh")}',
+                "temperature": '{(T_sample|sample_temperature|lakeshore336_cryostat' +
+                               '|lakeshore336_sample|itc3_device_sensor_temp?(300)):.2f} K',
+                "field": '{(field_z|sample_field|magnet_field|ips_demand_field?(0)):.2f} T',
+            }
+        Scan.__init__(self, filename, hdf_map, scan_names=scan_names, metadata_names=metadata_names)
+        if 'xas_entry' not in self.map.classes:
+            raise Exception(f"{self.filename} does not include NXSubEntry 'xas_entry'")
+        tey_norm = self.scan_data['tey'] / self.scan_data['monitor']
+        tfy_norm = self.scan_data['tfy'] / self.scan_data['monitor']
+        pol = self.metadata.get('pol', '')
+        tey = Spectra(self.scan_data['energy'], tey_norm, parents=[self], label=f"{self.scan_number} {pol} tey")
+        tfy = Spectra(self.scan_data['energy'], tfy_norm, parents=[self], label=f"{self.scan_number} {pol} tfy")
+        _SpectraContainer.__init__(self, tey=tey, tfy=tfy, pol=pol)
+
+    def __repr__(self):
+        return f"SpectraScan<{self.scan_number}, pol='{self.pol}')>"
+
+    def __str__(self):
+        out = self.__repr__() + '\n'
+        out += f"  tey: {repr(self.tey)}\n"
+        out += f"  tfy: {repr(self.tfy)}\n"
+        out += '  Metadata:\n'
+        out += '\n'.join(f"   {name}: {val}" for name, val in self.metadata.items())
+        return out
 
 
-class SummedScans:
-    """
-    Processing of multiple scans
-    """
-    def __init__(self, *scans: Scan, **kwargs):
-        self.scans = list(scans)
-        self.tey = combine_spectra(*(s.tey for s in scans))
-        self.tfy = combine_spectra(*(s.tfy for s in scans))
-        self.metadata = kwargs
+class SpectraProcess(Process, _SpectraContainer):
+    """Container for Spectra Process"""
+    def __init__(self, description: str, tey: Spectra, tfy: Spectra, *parents: _SpectraContainer, **metadata):
+        Process.__init__(self, description, *parents)
+        _SpectraContainer.__init__(self, tey, tfy, metadata.get('pol', ''))
 
-    def subtract_flat_background(self, ev_from_start=5.):
-        tey = self.tey.subtract_flat_background(ev_from_start)
-        tfy = self.tfy.subtract_flat_background(ev_from_start)
-        return ProcessScans(self, tey, tfy, 'subtract flat background')
+    def __repr__(self):
+        return f"SpectraProcess('{self.description}', " + str(self.parents) + ')'
 
-    def normalise_background(self, ev_from_start=5.):
-        tey = self.tey.normalise_background(ev_from_start)
-        tfy = self.tfy.normalise_background(ev_from_start)
-        return ProcessScans(self, tey, tfy, 'normalise background')
-
-    def fit_linear_background(self, ev_from_start=5.):
-        tey = self.tey.fit_linear_background(ev_from_start)
-        tfy = self.tfy.fit_linear_background(ev_from_start)
-        return ProcessScans(self, tey, tfy, 'fit linear background')
-
-    def fit_curve_background(self, ev_from_start=5.):
-        tey = self.tey.fit_curve_background(ev_from_start)
-        tfy = self.tfy.fit_curve_background(ev_from_start)
-        return ProcessScans(self, tey, tfy, 'fit curved background')
-
-    def fit_exp_background(self, ev_from_start=5.):
-        tey = self.tey.fit_exp_background(ev_from_start)
-        tfy = self.tfy.fit_exp_background(ev_from_start)
-        return ProcessScans(self, tey, tfy, 'fit exp. background')
-
-    def fit_exp_step(self, ev_from_start=5., ev_from_end=5.):
-        tey = self.tey.fit_exp_step(ev_from_start, ev_from_end)
-        tfy = self.tfy.fit_exp_step(ev_from_start, ev_from_end)
-        return ProcessScans(self, tey, tfy, 'fit step')
-
-    def fit_bkg_then_norm_to_peak(self, ev_from_start=5., ev_from_end=5.):
-        tey = self.tey.fit_bkg_then_norm_to_peak(ev_from_start, ev_from_end)
-        tfy = self.tfy.fit_bkg_then_norm_to_peak(ev_from_start, ev_from_end)
-        return ProcessScans(self, tey, tfy, 'fit exp. background then norm. to peak')
-
-    def fit_bkg_then_norm_to_jump(self, ev_from_start=5., ev_from_end=5.):
-        tey = self.tey.fit_bkg_then_norm_to_jump(ev_from_start, ev_from_end)
-        tfy = self.tfy.fit_bkg_then_norm_to_jump(ev_from_start, ev_from_end)
-        return ProcessScans(self, tey, tfy, 'fit exp. background then norm. to jump')
-
-
-class ProcessScans:
-    """
-    Processing of multiple scans
-    """
-    def __init__(self, scan_obj: Scan | SummedScans, tey: ProcessedSpectra, tfy: ProcessedSpectra, description: str):
-        self.parent = scan_obj
-        self.tey = tey
-        self.tfy = tfy
-        self.metadata = scan_obj.metadata
-        self.process_description = description
-
-
-def split_polarisations(*scans: Scan) -> tuple[SummedScans, SummedScans]:
-    """
-    Split scans by polarisation
-    """
-    scans = list(scans)
-    pols = [scan.pol() for scan in scans]
-    unique_pols = list(set(pols))
-    if len(unique_pols) < 2:
-        raise Exception('only 1 polarisation')
-    elif len(unique_pols) > 2:
-        print('Warning: other polarisations will be ignored')
-
-    pol1, pol2 = unique_pols
-    pol1_scans = SummedScans(*[scan for scan in scans if scan.pol() == pol1], pol=pol1)
-    pol2_scans = SummedScans(*[scan for scan in scans if scan.pol() == pol2], pol=pol2)
-    return pol1_scans, pol2_scans
-
-
-class SubtractPolarisations:
-    """
-    Processing of multiple scans in different pol states
-    """
-    def __init__(self, pol1: SummedScans | ProcessScans, pol2: SummedScans | ProcessScans):
-
-        self.pol1 = pol1.metadata['pol']
-        self.pol2 = pol2.metadata['pol']
-        self.pol1_scans = pol1
-        self.pol2_scans = pol2
-
-        self.tey = subtract_spectra(self.pol1_scans.tey, self.pol2_scans.tey)
-        self.tfy = subtract_spectra(self.pol1_scans.tfy, self.pol2_scans.tfy)
-
-    def title(self):
-        process = self.pol1_scans.process_description if hasattr(self.pol1_scans, 'process_description') else 'normalised data'
-        return f"{self.pol1} - {self.pol2}\n{process}"
-
-    def create_figure(self):
+    def create_figure(self, title: str | None = None):
         """Create plot of spectra"""
-        fig, ax = plt.subplots(2, 2, figsize=[12, 8])
-        fig.suptitle(self.title())
+        if title is None:
+            title = self.description
+        super().create_figure(title)
 
-        self.pol1_scans.tey.plot(ax[0, 0], label=f"TEY {self.pol1}")
-        self.pol2_scans.tey.plot(ax[0, 0], label=f"TEY {self.pol2}")
-        self.pol1_scans.tfy.plot(ax[0, 1], label=f"TFY {self.pol1}")
-        self.pol2_scans.tfy.plot(ax[0, 1], label=f"TFY {self.pol2}")
 
-        self.tey.plot(ax[1, 0], label=f"TEY {self.pol1}-{self.pol2}")
-        self.tfy.plot(ax[1, 1], label=f"TFY {self.pol1}-{self.pol2}")
+class SpectraDifference(SpectraProcess):
+    """Specific SpectraProcess for difference between two Spectra"""
+    def __init__(self, spectra1: _SpectraContainer, spectra2: _SpectraContainer):
+        if spectra1.pol == spectra2.pol:
+            raise Exception("Polarisations must be different")
+        tey = subtract_spectra(spectra1.tey, spectra2.tey)
+        tfy = subtract_spectra(spectra1.tfy, spectra2.tfy)
+        pol = f"{spectra1.pol} - {spectra2.pol}"
+        if 'pc' in pol:
+            process = 'XMCD'
+        elif 'lh' in pol:
+            process = 'XMLD'
+        else:
+            process = pol
+        super().__init__(process, tey, tfy, spectra1, spectra2, pol=pol)
 
-        for _ax in ax.flatten():
-            _ax.set_xlabel('E [eV]')
-            # _ax.set_ylabel('signal / monitor')
-            _ax.legend()
+        self.spectra1 = spectra1
+        self.spectra2 = spectra2
+
+    def create_figure(self, title: str | None = None):
+        """Create plot of spectra"""
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[12, 6], dpi=60)
+        if title is None:
+            title = self.description
+        fig.suptitle(title)
+
+        self.spectra1.tey.plot_parents(ax1)
+        self.spectra2.tey.plot_parents(ax1)
+        self.tey.plot(ax1)
+
+        self.spectra1.tey.plot_parents(ax2)
+        self.spectra2.tey.plot_parents(ax2)
+        self.tey.plot(ax2)
+
+        ax1.set_xlabel('E [eV]')
+        ax1.set_ylabel('TEY / monitor')
+        ax2.set_xlabel('E [eV]')
+        ax2.set_ylabel('TFY / monitor')
+        ax1.legend()
+        ax2.legend()
+
+
+def find_pol_pairs(*scans: SpectraScan):
+    """Find pairs of scans with opposite polarisations"""
+    pols = list(set(scan.pol for scan in scans))
+    if len(pols) < 2:
+        raise Exception('Not enough polarisations!')
+    pol1_scans = [scan for scan in scans if scan.pol == pols[0]]
+    pol2_scans = [scan for scan in scans if scan.pol == pols[1]]
+    return [SpectraDifference(scan1, scan2) for scan1, scan2 in zip(pol1_scans, pol2_scans)]
+

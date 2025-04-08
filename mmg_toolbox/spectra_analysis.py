@@ -27,11 +27,11 @@ def get_spectra(*file_list: str, energy_path: str, signal_path: str, pol_path: s
         en_list.append(energy)
         signals[pol][os.path.basename(file)] = (energy, signal)
     av_energy = average_energy_scans(*en_list)
-    interp_signals = {p: combine_energy_scans(av_energy, *val.values()) for p, val in signals.items()}
+    interp_signals = {p: average_energy_spectra(av_energy, *val.values()) for p, val in signals.items()}
     return av_energy, interp_signals, signals
 
 
-def average_energy_scans(*args: tuple[np.ndarray]):
+def average_energy_scans(*args: np.ndarray):
     """Return the minimum range covered by all input arguments"""
     min_energy = np.max([np.min(en) for en in args])
     max_energy = np.min([np.max(en) for en in args])
@@ -39,9 +39,9 @@ def average_energy_scans(*args: tuple[np.ndarray]):
     return np.arange(min_energy, max_energy + min_step, min_step)
 
 
-def combine_energy_scans(energy, *args: tuple[np.ndarray, np.ndarray]):
+def average_energy_spectra(energy, *args: tuple[np.ndarray, np.ndarray]):
     """
-    Average energy scans, interpolating at given energy
+    Average energy spectra, interpolating at given energy
 
     E.G.
         energy = average_energy_scans(en1, en2)

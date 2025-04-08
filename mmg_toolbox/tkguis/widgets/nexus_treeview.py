@@ -196,6 +196,16 @@ class HdfNameSpace:
             for name, path in hdf_map.combined.items()
         }
 
+        datasets = self.tree.insert("", tk.END, text='Groups', values=('', ''))
+        for name, path_list in hdf_map.classes.items():
+            # path_list = list(set(path_list))  # remove duplicates
+            if len(path_list) == 1:
+                self.tree.insert(datasets, tk.END, text=name, values=(path_list[0], ''))
+            else:
+                grp = self.tree.insert(datasets, tk.END, text=name, values=('', ''))
+                for path in path_list:
+                    self.tree.insert(grp, tk.END, text=name, values=(path, ''))
+
         datasets = self.tree.insert("", tk.END, text='Combined', values=('', ''))
         for name, path in hdf_map.combined.items():
             value = data.get(name, 'NOT IN MAP')
