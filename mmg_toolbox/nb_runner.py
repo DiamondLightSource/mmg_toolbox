@@ -5,6 +5,7 @@ From /dls_sw/i16/software/python/jupyter_processor/jproc.py
 """
 
 import os
+import shutil
 import nbformat
 import webbrowser
 from nbconvert.preprocessors import ExecutePreprocessor
@@ -119,3 +120,26 @@ def view_jupyter_notebook(notebook_filename: str):
         run_jupyter_notebook(notebook_filename)
     elif notebook_filename.endswith('.html'):
         webbrowser.open_new_tab(notebook_filename)
+
+
+def reprocess_notebook(notebook_filename: str, output_folder: str | None = None):
+    """
+    Copy notebook and open jupyter for reprocessing of copied notebook in processing directory
+    """
+    path, name = os.path.split(notebook_filename)
+
+    if output_folder is None and path.endswith('/processed/notebooks'):
+        output_folder = path.replace('/processed/notebooks', 'processing')
+
+    if output_folder.endswith('.ipynb'):
+        new_filename = output_folder
+    else:
+        new_filename = os.path.join(output_folder, name)
+
+    if os.path.isfile(new_filename):
+        print(f"{new_filename} already exists, it won't be overwritten")
+    else:
+        print(f"Creating {new_filename}")
+        shutil.copy(notebook_filename, new_filename)
+    run_jupyter_notebook(new_filename)
+

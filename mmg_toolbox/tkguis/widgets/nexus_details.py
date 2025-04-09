@@ -4,11 +4,12 @@ a tkinter frame with a single plot
 import os
 import tkinter as tk
 from tkinter import ttk
+from tkinter.messagebox import askyesnocancel
 
 import hdfmap
 from hdfmap import create_nexus_map
 
-from ...env_functions import get_scan_notebooks
+from ...env_functions import get_scan_notebooks, TMPDIR
 from ..misc.functions import post_right_click_menu, show_error
 from ..misc.logging import create_logger
 from ..misc.config import get_config
@@ -102,6 +103,7 @@ class NexusDetails:
         menu = ttk.OptionMenu(frm, self.notebook)
         menu.pack(side=tk.LEFT)
         ttk.Button(frm, text='Open', command=self.run_notebook).pack(side=tk.LEFT)
+        ttk.Button(frm, text='Reprocess', command=self.reprocess_notebook).pack(side=tk.LEFT)
         return menu
 
     def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
@@ -145,6 +147,30 @@ class NexusDetails:
         else:
             # generate html in TMP
             view_notebook_html(filename)
+
+    def reprocess_notebook(self):
+        """Copy notebook to processing folder"""
+        from ...nb_runner import reprocess_notebook
+        from tkinter.messagebox import askokcancel, askquestion
+        notebook = self.notebook.get()
+        if notebook not in self.notebooks:
+            return
+        filename = self.notebooks[notebook]
+
+        response = askyesnocancel(
+            title="NeXus Data Viewer",
+            message=f"This will copy {notebook} and start a jupyter server\nYes will copy to processing, No to TMP",
+            parent=self.root,
+        )
+        if response:
+            print('Yes')
+            reprocess_notebook(filename)
+        elif response is None:
+            print('Cancel')
+            return
+        else:
+            print('No')
+            reprocess_notebook(filename, output_folder=TMPDIR)
 
     def fun_terminal(self, event=None):
         if self.filename is None:
