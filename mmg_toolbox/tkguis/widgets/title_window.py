@@ -65,7 +65,7 @@ class TitleWindow:
     def choose_beamline(self, beamline: str):
         bl_config = get_config(beamline=beamline)
         self.config.update(bl_config)
-        self.beamline.set(beamline)
+        self.beamline.set('MMG Toolbox: ' + beamline)
         self.visits = get_dls_visits(beamline)
         self.visits.update({'default': self.config.get(C.default_directory, '.')})
         current_visit = next(iter(self.visits.keys()))

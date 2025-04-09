@@ -23,7 +23,6 @@ logger = create_logger(__name__)
 
 AWTHEMES_PATH = '/dls/science/users/grp66007/tkinter/awthemes-10.4.0'
 DEFAULT_THEME = 'clam'
-ALT_THEME = 'awlight'
 
 
 def create_style(root):
@@ -40,7 +39,8 @@ def extra_styles(style: ttk.Style):
     """
     Add additional styles to use on individual ttk components
     """
-    style.configure("Red.TLabel", foreground='red', font='TkDefaultFont 24 bold')
+    # style.configure("Red.TLabel", foreground='red', font='TkDefaultFont 24 bold')
+    style.configure("Red.TLabel", foreground='red', font='times 24 bold')
 
 
 def use_theme(style: ttk.Style, theme_name: str):
