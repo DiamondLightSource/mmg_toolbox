@@ -8,6 +8,7 @@ import os
 SCRIPTS = {
     # name: (filename, description)
     'example': ('example_script.py', 'a simple example'),
+    'spectra': ('spectra_script.py', 'normalise spectra and subtract polarisations')
 }
 
 NOTEBOOKS = {

@@ -1,12 +1,14 @@
 """
 a tkinter frame with a single plot
 """
+import os
 import tkinter as tk
 from tkinter import ttk
 
 import hdfmap
 from hdfmap import create_nexus_map
 
+from ...env_functions import get_scan_notebooks
 from ..misc.functions import post_right_click_menu, show_error
 from ..misc.logging import create_logger
 from ..misc.config import get_config
@@ -27,15 +29,19 @@ class NexusDetails:
 
         self._text_expression = self.config.get('metadata_string', '')
         self.terminal_entry = tk.StringVar(self.root, '')
+        self.notebook = tk.StringVar(self.root, 'None')
+        self.notebooks = {}  # notebook: filepath
 
-        self.textbox, self.terminal = self.ini_textbox(self.root)
+        self.textbox = self.ini_textbox(self.root)
+        self.combo_notebook = self.ini_notebooks(self.root)
+        self.terminal = self.ini_terminal(self.root)
 
         if hdf_filename:
             self.update_data_from_file(hdf_filename)
 
     def ini_textbox(self, frame: tk.Misc):
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.LEFT)
+        frm.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
 
         xfrm = ttk.Frame(frm)
         xfrm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
@@ -49,7 +55,21 @@ class NexusDetails:
         var.config(command=text.xview)
         text.configure(xscrollcommand=var.set)
 
+        # right-click menu
+        m = tk.Menu(frame, tearoff=0)
+        m.add_command(label="edit Text", command=self.edit_expression)
+        # m.add_command(label="open Namespace", command=self.view_namespace)
+
+        def menu_popup(event):
+            post_right_click_menu(m, event.x_root, event.y_root)
+        text.bind("<Button-3>", menu_popup)
+        return text
+
+    def ini_terminal(self, frame: tk.Misc):
         # Terminal
+        frm = ttk.Frame(frame)
+        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+
         tfrm = tk.Frame(frm, relief=tk.RIDGE)
         tfrm.pack(side=tk.TOP, fill=tk.BOTH)
 
@@ -73,21 +93,29 @@ class NexusDetails:
 
         var = ttk.Button(efrm, text='CLS', command=self.fun_terminal_cls)
         var.pack(side=tk.LEFT)
+        return terminal
 
-        # right-click menu
-        m = tk.Menu(frame, tearoff=0)
-        m.add_command(label="edit Text", command=self.edit_expression)
-        # m.add_command(label="open Namespace", command=self.view_namespace)
+    def ini_notebooks(self, frame: tk.Misc):
+        frm = ttk.Frame(frame)
+        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=6)
 
-        def menu_popup(event):
-            post_right_click_menu(m, event.x_root, event.y_root)
-        text.bind("<Button-3>", menu_popup)
-        return text, terminal
+        menu = ttk.OptionMenu(frm, self.notebook)
+        menu.pack(side=tk.LEFT)
+        ttk.Button(frm, text='Open', command=self.run_notebook).pack(side=tk.LEFT)
+        return menu
 
     def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
         self.filename = filename
         self.map = create_nexus_map(self.filename) if hdf_map is None else hdf_map
         self.update_text()
+        self.notebooks = {
+            os.path.basename(file): file
+            for file in get_scan_notebooks(filename)
+        }
+        if self.notebooks:
+            self.combo_notebook.set_menu(*self.notebooks.keys())
+        else:
+            self.combo_notebook.set_menu('None')
 
     def update_text(self):
         try:
@@ -105,10 +133,18 @@ class NexusDetails:
         self._text_expression = EditText(self._text_expression, self.root).show()
         self.update_text()
 
-    def view_namespace(self, event=None):
-        """Open HDFMapView gui"""
-        pass
-        # HDFMapView(self.filename, parent=self.root)
+    def run_notebook(self):
+        from ...nb_runner import view_jupyter_notebook, view_notebook_html
+        notebook = self.notebook.get()
+        if notebook not in self.notebooks:
+            return
+        filename = self.notebooks[notebook]
+        html = filename.replace('.ipynb', '.html')
+        if os.path.isfile(html):
+            view_jupyter_notebook(html)
+        else:
+            # generate html in TMP
+            view_notebook_html(filename)
 
     def fun_terminal(self, event=None):
         if self.filename is None:

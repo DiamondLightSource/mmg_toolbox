@@ -3,9 +3,10 @@ Main front ends
 """
 
 import tkinter as tk
+from ..env_functions import get_notebook_directory
 from .misc.styles import create_root, RootWithStyle
 from .misc.functions import topmenu
-from .misc.config import get_config
+from .misc.config import get_config, C
 
 
 def create_file_browser(parent: tk.Misc | None = None, initial_directory: str | None = None) -> RootWithStyle:
@@ -85,7 +86,7 @@ def select_scans(folder: str, parent: tk.Misc | None = None, config: dict | None
     config = get_config() if config is None else config
     if metadata_list:
         # replace config
-        config = {'metadata_list': {name: f"{{{name}}}" for name in metadata_list}}
+        config = {C.metadata_list: {name: f"{{{name}}}" for name in metadata_list}}
     return ScanSelector(root, folder, config).show()
 
 
@@ -100,7 +101,7 @@ def list_scans(*file_list: str, parent: tk.Misc | None = None, config: dict | No
     config = get_config() if config is None else config
     if metadata_list:
         # replace config
-        config = {'metadata_list': {name: f"{{{name}}}" for name in metadata_list}}
+        config = {C.metadata_list: {name: f"{{{name}}}" for name in metadata_list}}
     return ScanViewer(root, *file_list, config=config).show()
 
 
@@ -157,16 +158,15 @@ def create_data_viewer(initial_folder: str | None = None,
             item = next(iter(widget.selector_widget.tree.get_children()))
         if item:
             filepath = widget.selector_widget.tree.set(item, 'filepath')
-            print(item, filepath)
-            filepath += '/processed'
+            filepath = get_notebook_directory(filepath)
         else:
-            filepath = config.get('default_directory', None)
+            filepath = config.get(C.default_directory, None)
         return filepath
 
     menu = {
         'File': {
             'Add Folder': widget.selector_widget.browse_folder,
-            'Folder Browser': lambda: create_file_browser(root, config.get('default_directory', None)),
+            'Folder Browser': lambda: create_file_browser(root, config.get(C.default_directory, None)),
             'Jupyter Browser': lambda: create_jupyter_browser(root, get_processed()),
             'Size widget': lambda: WindowSize(root),
             'Range selector': lambda: create_range_selector(initial_folder, root, config)
@@ -205,6 +205,7 @@ def create_title_window():
             'Edit Config.': lambda: ConfigEditor(root, config),
         }
     }
+    menu.update(widget.menu_items())
 
     topmenu(root, menu, add_themes=True, add_about=True)
 

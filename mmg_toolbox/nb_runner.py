@@ -4,32 +4,9 @@ Jupyter notebook runner
 From /dls_sw/i16/software/python/jupyter_processor/jproc.py
 """
 
-"""
-Jupyter Notebook Processor
-
-Copy a notebook, switch the filename in the first cell, process the notebook
-and export a html.
-
-Command line operation:
-$ module load python/3
-$ python jproc.py some/processing/notebook.ipynb some/nexus/file.nxs
-
-Script operation:
-    from jproc import process_notebook
-    process_notebook('some/processing/notebook.ipynb', 'some/nexus/file.nxs')
-
-The first argument ('processing-notebook.ipynb') can take several shortcuts:
-    'scan': scan processor file
-    'mapper': msmapper processor file
-
-By Dan Porter
-Beamline I16
-Diamond Light Source Ltd
-16/2/2022
-"""
-
 import os
 import nbformat
+import webbrowser
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert import HTMLExporter
 
@@ -46,13 +23,6 @@ def save_notebook(nb: nbformat.NotebookNode, filename: str):
 
 
 def add_code_cell(nb: nbformat.NotebookNode, source: str, index=-1):
-    # cell = {
-    #     'cell_type': "code",
-    #     'execution_count': None,
-    #     'metadata': {},
-    #     'outputs': [],
-    #     'source': source,
-    # }
     cell = nbformat.v4.new_code_cell(source)
     nb.cells.insert(index, cell)
 
@@ -80,6 +50,27 @@ def html_processor(nb: nbformat.NotebookNode) -> tuple[str, dict]:
     print('\n'.join(str(cell) for cell in nb.cells))
     processor.preprocess(nb, resources={'metadata': {}})
     return html_exporter.from_notebook_node(nb)
+
+
+def generate_notebook_html(nb: nbformat.NotebookNode) -> tuple[str, dict]:
+    """
+    Generate html of the notebook without running it
+     return (html, resources)
+    """
+    html_exporter = HTMLExporter()
+    return html_exporter.from_notebook_node(nb)
+
+
+def view_notebook_html(notebook_filename: str):
+    """
+    Convert a notebook to html and open it in a web-browser
+    """
+    out_html = os.path.join(TMPDIR, 'tmp_notebook.ipynb')
+    nb = read_notebook(notebook_filename)
+    (body, resources) = generate_notebook_html(nb)
+    with open(out_html, 'w') as f:
+        f.write(body)
+    webbrowser.open_new_tab(notebook_filename)
 
 
 def process_template(template: str, nexus_filename: str, output_folder: str | None = None) -> tuple[str, str]:
@@ -127,5 +118,4 @@ def view_jupyter_notebook(notebook_filename: str):
     if notebook_filename.endswith('.ipynb'):
         run_jupyter_notebook(notebook_filename)
     elif notebook_filename.endswith('.html'):
-        import webbrowser
         webbrowser.open_new_tab(notebook_filename)

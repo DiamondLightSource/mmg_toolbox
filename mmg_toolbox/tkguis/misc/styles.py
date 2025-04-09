@@ -76,6 +76,13 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
     else:
         root = tk.Tk()
 
+    def update(event):
+        root.update()
+        print(root.winfo_reqwidth(), root.winfo_screenheight())
+        print(root.winfo_screenwidth(), root.winfo_screenheight())
+
+    # root.bind('<Configure>', update)
+
     if not hasattr(root, 'style'):
         style = create_style(root)
         root.style = style
@@ -83,7 +90,7 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
     root.wm_title(window_title)
     # self.root.minsize(width=640, height=480)
     # root.maxsize(width=root.winfo_screenwidth() * 3 // 4, height=root.winfo_screenheight() * 3 // 4)
-    # root.maxsize(width=int(root.winfo_screenwidth() * 0.9), height=int(root.winfo_screenheight() * 0.8))
+    root.maxsize(width=int(root.winfo_screenwidth() - 50), height=int(root.winfo_screenheight()) - 100)
     return root
 
 

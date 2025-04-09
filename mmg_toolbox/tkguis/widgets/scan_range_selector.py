@@ -11,8 +11,6 @@ from ...env_functions import (get_scan_numbers, get_last_scan_number, get_first_
 from ..misc.logging import create_logger
 from ..misc.config import get_config
 
-from .script_runner import ScriptRunner
-
 logger = create_logger(__file__)
 
 

@@ -3,8 +3,6 @@ widget for running scripts
 """
 
 import os
-import time
-import numpy as np
 import tkinter as tk
 from tkinter import ttk
 

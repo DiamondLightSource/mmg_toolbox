@@ -56,6 +56,16 @@ def get_data_directory():
     return os.path.expanduser('~')
 
 
+def get_processing_directory(data_directory: str):
+    """Return the processing directory of the visit"""
+    return os.path.join(data_directory, 'processing')
+
+
+def get_notebook_directory(data_directory: str):
+    """Return the notebook directory of the visit"""
+    return os.path.join(data_directory, 'processed', 'notebooks')
+
+
 def get_dls_visits(instrument: str | None = None, year: str | int | None = None) -> dict[str, ...]:
     """Return list of visits"""
     if instrument is None:
@@ -103,6 +113,21 @@ def get_scan_numbers(folder: str) -> list[int]:
 def get_last_scan_number(folder: str) -> int:
     """Return latest scan number"""
     return get_scan_numbers(folder)[-1]
+
+
+def get_scan_notebooks(scan: int | str, data_directory: str | None = None) -> list[str]:
+    """Return list of processed jupyter notebooks for scan"""
+    from mmg_toolbox.file_functions import list_files
+    try:
+        data_directory, filename = os.path.split(scan)
+        scan = get_scan_number(filename)
+    except TypeError:
+        pass
+    notebook_directory = get_notebook_directory(data_directory)
+    if os.path.isdir(notebook_directory):
+        notebooks = list_files(notebook_directory, '.ipynb')
+        return [notebook for notebook in notebooks if str(scan) in os.path.basename(notebook)]
+    return []
 
 
 def run_command(command: str):

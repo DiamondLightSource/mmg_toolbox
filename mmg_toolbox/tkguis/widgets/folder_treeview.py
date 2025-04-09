@@ -466,7 +466,7 @@ class JupyterFolderTreeViewFrame(FolderTreeViewFrame):
             run_jupyter_notebook(foldername)
 
     def open_jupyter_html(self):
-        from ...nb_runner import view_jupyter_notebook
+        from ...nb_runner import view_jupyter_notebook, view_notebook_html
 
         filename, foldername = self.get_filepath()
         if filename:
@@ -474,4 +474,5 @@ class JupyterFolderTreeViewFrame(FolderTreeViewFrame):
             if os.path.isfile(html):
                 view_jupyter_notebook(html)
             else:
-                print(f"{html} doesn't exist.")
+                # generate html in TMP
+                view_notebook_html(filename)

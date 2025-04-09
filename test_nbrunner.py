@@ -11,5 +11,5 @@ out = None #'/scratch/grp66007/'
 
 ipynb, html = process_template(template, nx_file, out)
 
-view_jupyter_notebook(ipynb)
+view_jupyter_notebook(html)
 

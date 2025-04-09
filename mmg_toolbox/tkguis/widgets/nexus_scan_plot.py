@@ -25,18 +25,6 @@ class NexusScanDetailsPlot:
         self.map = None
         self.config = get_config() if config is None else config
 
-        # scroll = ttk.Scrollbar(self.root, orient=tk.VERTICAL)
-        # scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        # canvas = tk.Canvas(self.root)#, #yscrollcommand=scroll.set)
-        # canvas.pack()
-        # scroll.config(command=canvas.yview)
-        # window = ttk.Frame(canvas)
-        # canvas.create_window(0, 0, window=window)
-        # # var.config(command=terminal.yview)
-        # # terminal.configure(yscrollcommand=var.set)
-        # canvas.config(yscrollcommand=scroll.set,
-        #               scrollregion=(0, 0, 100, 100))
-
         window = tk.Frame(self.root)
         window.pack()
         frm = ttk.LabelFrame(window, text='Files', width=50)

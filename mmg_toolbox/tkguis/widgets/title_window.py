@@ -5,9 +5,9 @@ import os
 import tkinter as tk
 from tkinter import ttk
 
-from ...env_functions import get_dls_visits
+from ...env_functions import get_dls_visits, MMG_BEAMLINES
 from ..misc.logging import create_logger
-from ..misc.config import get_config
+from ..misc.config import get_config, C
 from ..misc.functions import select_folder
 
 logger = create_logger(__file__)
@@ -18,19 +18,17 @@ class TitleWindow:
         self.root = root
         self.config = get_config() if config is None else config
 
-        self.beamline = self.config.get('beamline', 'i16')
-        self.visits = get_dls_visits(self.beamline)
-        self.visits.update({'default': self.config.get('default_directory', '.')})
-        current_visit = next(iter(self.visits))
-        self.visit = tk.StringVar(self.root, current_visit)
-        self.data_dir = tk.StringVar(self.root, self.visits[current_visit])
-        self.proc_dir = tk.StringVar(self.root, self.visits[current_visit])
-        self.notebook_dir = tk.StringVar(self.root, self.visits[current_visit])
-        self.dls_directories(self.visits[current_visit])
+        self.beamline = tk.StringVar(self.root, '')
+        self.visit = tk.StringVar(self.root, '')
+        self.data_dir = tk.StringVar(self.root, '')
+        self.proc_dir = tk.StringVar(self.root, '')
+        self.notebook_dir = tk.StringVar(self.root, '')
+        self.visits = {}
+        self.choose_beamline(self.config.get(C.beamline, 'i16'))
 
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
-        ttk.Label(frm, text=self.beamline, style="Red.TLabel").pack()
+        ttk.Label(frm, textvariable=self.beamline, style="Red.TLabel").pack(side=tk.RIGHT)
 
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
@@ -63,6 +61,30 @@ class TitleWindow:
         ttk.Button(frm, text='Notebook Browser', command=self.open_notebook_browser, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='Script Runner', command=self.open_script_runner, width=20).pack(side=tk.LEFT)
 
+    def choose_beamline(self, beamline: str):
+        self.beamline.set(beamline)
+        self.visits = get_dls_visits(beamline)
+        self.visits.update({'default': self.config.get(C.default_directory, '.')})
+        current_visit_path = next(iter(self.visits.values()))
+        self.visit.set(current_visit_path)
+        self.dls_directories(current_visit_path)
+
+    def menu_items(self):
+
+        menu = {
+            'DataDir': {
+                'Recent': {
+                    file: lambda: self.data_dir.set(file)
+                    for file in self.config.get(C.recent_data_directories)
+                }
+            },
+            'Beamline': {
+                bl: lambda: self.choose_beamline(bl)
+                for bl in MMG_BEAMLINES
+            },
+        }
+        return menu
+
     def dls_directories(self, data_dir: str):
         proc_dir = os.path.join(data_dir, 'processing')
         notebook_dir = os.path.join(data_dir, 'processed', 'notebooks')
@@ -70,6 +92,11 @@ class TitleWindow:
             self.proc_dir.set(proc_dir)
         if os.path.isdir(notebook_dir):
             self.notebook_dir.set(notebook_dir)
+
+    def update_config(self):
+        update = {
+            ''
+        }
 
     def choose_visit(self, event=None):
         visit_folder = self.visits[self.visit.get()]
