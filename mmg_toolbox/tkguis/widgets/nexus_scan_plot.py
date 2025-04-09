@@ -59,7 +59,14 @@ class NexusScanDetailsPlot:
             self.plot_widget.update_axes()
         self.image_widget.extra_plot_callbacks.append(update_index_line)  # runs on update_image
 
-        self._log_size()
+        if initial_folder:
+            # Open first scan
+            first_folder = next(iter(self.selector_widget.tree.get_children()))
+            first_scan = next(iter(self.selector_widget.tree.get_children(first_folder)))
+            self.selector_widget.tree.item(first_folder, open=True)
+            self.selector_widget.tree.selection_set(first_scan)
+
+        # self._log_size()
 
     def on_file_select(self, event=None):
         filename, folder = self.selector_widget.get_filepath()

@@ -22,7 +22,7 @@ from .logging import create_logger
 logger = create_logger(__name__)
 
 AWTHEMES_PATH = '/dls/science/users/grp66007/tkinter/awthemes-10.4.0'
-DEFAULT_THEME = 'awdark'
+DEFAULT_THEME = 'clam'
 ALT_THEME = 'awlight'
 
 

@@ -6,6 +6,7 @@ import os
 import json
 
 from ...env_functions import TMPDIR, YEAR, get_beamline
+from .beamline_metadata import BEAMLINE_META, META_STRING
 
 
 class C:
@@ -26,16 +27,6 @@ class C:
 # config name (saved in TMPDIR)
 TMPFILE = 'mmg_config.json'
 CONFIG_FILE = os.path.join(TMPDIR, TMPFILE)
-
-META_STRING = """
-{filename}
-{filepath}
-{start_time}
-cmd = {scan_command}
-axes = {_axes}
-signal = {_signal}
-shape = {axes.shape}
-"""
 
 META_LIST = {
     # scan number and start_time included by default
@@ -65,31 +56,38 @@ BEAMLINE_CONFIG = {
     'i06': {
         C.beamline: 'i06',
         C.default_directory: f"/dls/i06/data/{YEAR}/",
+        C.metadata_string: BEAMLINE_META['i06'],
     },
     'i06-1': {
         C.beamline: 'i06-1',
         C.default_directory: f"/dls/i06-1/data/{YEAR}/",
+        C.metadata_string: BEAMLINE_META['i06-1'],
     },
     'i06-2': {
         C.beamline: 'i06-2',
         C.default_directory: f"/dls/i06-2/data/{YEAR}/",
+        C.metadata_string: BEAMLINE_META['i06-2'],
     },
     'i10': {
         C.beamline: 'i10',
         C.default_directory: f"/dls/i10/data/{YEAR}/",
+        C.metadata_string: BEAMLINE_META['i10'],
     },
     'i10-1': {
         C.beamline: 'i10-1',
         C.default_directory: f"/dls/i10-1/data/{YEAR}/",
+        C.metadata_string: BEAMLINE_META['i10-1'],
     },
     'i16': {
         C.beamline: 'i16',
         C.default_directory: f"/dls/i16/data/{YEAR}/",
         C.normalise_factor: '/Transmission/count_time/(rc/300.)',
+        C.metadata_string: BEAMLINE_META['i16'],
     },
     'i21': {
         C.beamline: 'i21',
         C.default_directory: f"/dls/i21/data/{YEAR}/",
+        C.metadata_string: BEAMLINE_META['i21'],
     },
 }
 
@@ -101,9 +99,10 @@ def load_config(config_filename: str = CONFIG_FILE) -> dict:
     return {}
 
 
-def get_config(config_filename: str = CONFIG_FILE) -> dict:
+def get_config(config_filename: str = CONFIG_FILE, beamline: str | None = None) -> dict:
     config = CONFIG.copy()
-    beamline = get_beamline()
+    if beamline is None:
+        beamline = get_beamline()
     if beamline in BEAMLINE_CONFIG:
         config.update(BEAMLINE_CONFIG[beamline])
     user_config = load_config(config_filename)
