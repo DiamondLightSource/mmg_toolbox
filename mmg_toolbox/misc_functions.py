@@ -4,6 +4,7 @@ Miscellaneous functions
 
 import re
 import numpy as np
+from typing import Any
 from collections import defaultdict
 
 
@@ -186,4 +187,32 @@ def stfm(value: float, error: float) -> str:
 
     fmt = '{' + '0:0.{:1.0f}f'.format(dec + 0) + '} ({1:1.0f})'
     return fmt.format(rval, rerr)
+
+
+class DataHolder(dict):
+    """
+    Convert dict to object that looks like a class object with key names as attributes
+    Replicates slightly the old scisoftpy.dictutils.DataHolder class, also known as DLS dat format.
+        obj = DataHolder(**{'item1': 'value1'})
+        obj['item1'] -> 'value1'
+        obj.item1 -> 'value1'
+        obj.keys() -> dict.keys()
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        for name in kwargs:
+            setattr(self, name, kwargs[name])
+            self.update({name: kwargs[name]})
+
+
+def data_holder(scan_data: dict[str, np.ndarray], metadata: dict[str, Any]) -> DataHolder:
+    """
+    Create DataHolder object from scan data and metadata
+    Return object that slightly replicates the old scisoftpy.dictutils.DataHolder class, also known as DLS dat format.
+    """
+    d = DataHolder(**scan_data)
+    d.metadata = DataHolder(**metadata)
+    return d
 

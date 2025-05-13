@@ -244,3 +244,82 @@ def analyse_plot_scans(*filenames: str, signal_name=None, title=''):
     ax[2].set_xlabel('Energy [eV]')
     ax[2].set_title('Results')
     ax[2].legend()
+
+
+def orbital_angular_momentum(energy: np.ndarray, average: np.ndarray,
+                             difference: np.ndarray, nholes: float) -> float:
+    """
+    Calculate the sum rule for the angular momentum of the spectra
+    using the formula:
+    L = -2 * nholes * int[spectra d energy] / sum(spectra)
+
+    :param energy: Energy axis of the spectra
+    :param average: average XAS spectra (left + right) for both polarisations
+    :param difference: difference XAS spectra (right - left) for both polarisations
+    :param nholes: Number of holes in the system
+    :return: Angular momentum of the spectra
+    """
+    if len(energy) != len(average) or len(energy) != len(difference):
+        raise ValueError(f"Energy and spectra must have the same length: {len(energy)} != {len(average)}")
+    if nholes <= 0:
+        raise ValueError(f"Number of holes must be greater than 0: {nholes}")
+
+    # total intensity
+    tot = np.trapezoid(average, energy)
+
+    # Calculate the sum rule for the angular momentum
+    L = -2 * nholes * np.trapezoid(difference, energy) / tot
+    return L
+
+
+def spin_angular_momentum(energy: np.ndarray, average: np.ndarray,
+                          difference: np.ndarray, nholes: float,
+                          split_energy: int | None = None, dipole_term: float = 0) -> float:
+    """
+    Calculate the sum rule for the spin angular momentum of the spectra
+    using the formula:
+    S = -2 * nholes * int[spectra d energy] / sum(spectra)
+
+    :param energy: Energy axis of the spectra
+    :param average: average XAS spectra (left + right) for both polarisations
+    :param difference: difference XAS spectra (right - left) for both polarisations
+    :param nholes: Number of holes in the system
+    :param split_energy: energy to split the spectra between L3 and L2 (or None to use the middle of the spectra)
+    :param dipole_term: magnetic dopole term (T_z), defaults to 0 for effective spin
+    :return: Spin angular momentum of the spectra
+    """
+    if len(energy) != len(average) or len(energy) != len(difference):
+        raise ValueError(f"Energy and spectra must have the same length: {len(energy)} != {len(average)}")
+    if nholes <= 0:
+        raise ValueError(f"Number of holes must be greater than 0: {nholes}")
+    if split_energy is None:
+        split_energy = (energy[0] + energy[-1]) / 2
+
+    # total intensity
+    tot = np.trapezoid(average, energy)
+
+    # Calculate the sum rule for the spin angular momentum
+    split_index = np.argmin(np.abs(energy - split_energy))
+    l3_energy = energy[split_index:]  # L3 edge at lower energy
+    l3_difference = difference[split_index:]
+    l3_integral = np.trapezoid(l3_difference, l3_energy)
+    l2_energy = energy[:split_index]
+    l2_difference = difference[:split_index]
+    l2_integral = np.trapezoid(l2_difference, l2_energy)
+    S_eff = (3 / 2) * nholes * (l3_integral - 2 * l2_integral) / tot
+    S = S_eff - dipole_term
+    return S
+
+
+def magnetic_moment(orbital: float, spin: float) -> float:
+    """
+    Calculate the magnetic moment of the system using the formula:
+    M = -g * (L + 2 * S)  WHERE DOES THIS COME FROM?
+
+    :param orbital: Orbital angular momentum of the system
+    :param spin: Spin angular momentum of the system
+    :return: Magnetic moment of the system
+    """
+    print('magnetic moment is probably wrong!')
+    g = 2.0  # Landé g-factor for free electron
+    return -g * (orbital + 2 * spin)

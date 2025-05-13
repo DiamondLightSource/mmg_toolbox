@@ -2,16 +2,26 @@
 Try out Spectra
 """
 
+import os
 import matplotlib.pyplot as plt
 from mmg_toolbox.spectra_scan import SpectraScan, find_pol_pairs
 
-
-files = [
-    '/dls/i10-1/data/2025/cm40624-2/i10-1-26822.nxs',
-    '/dls/i10-1/data/2025/cm40624-2/i10-1-26823.nxs',
-    '/dls/i10-1/data/2025/cm40624-2/i10-1-26824.nxs',
-    '/dls/i10-1/data/2025/cm40624-2/i10-1-26825.nxs',
-]
+if os.path.isdir('/dls'):
+    files = [
+        '/dls/i10-1/data/2025/cm40624-2/i10-1-26822.nxs',
+        '/dls/i10-1/data/2025/cm40624-2/i10-1-26823.nxs',
+        '/dls/i10-1/data/2025/cm40624-2/i10-1-26824.nxs',
+        '/dls/i10-1/data/2025/cm40624-2/i10-1-26825.nxs',
+    ]
+else:
+    files = [
+        r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\DataAnalysis\I06\example_xmcd\i10-1-207.nxs",
+        r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\DataAnalysis\I06\example_xmcd\i10-1-208.nxs",
+        r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\DataAnalysis\I06\example_xmcd\i10-1-209.nxs",
+        r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\DataAnalysis\I06\example_xmcd\i10-1-210.nxs",
+        r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\DataAnalysis\I06\example_xmcd\i10-1-211.nxs",
+        r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\DataAnalysis\I06\example_xmcd\i10-1-212.nxs",
+    ]
 
 scans = [SpectraScan(file) for file in files]
 
@@ -35,7 +45,7 @@ pairs = find_pol_pairs(*scans)
 for pair in pairs:
     pair.create_figure()
 
-rem_bkg = [s.remove_background('flat').norm_to_jump() for s in scans]
+rem_bkg = [s.remove_background('flat').remove_background('exp').norm_to_jump() for s in scans]
 pairs = find_pol_pairs(*rem_bkg)
 
 for pair in pairs:

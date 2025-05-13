@@ -4,14 +4,14 @@ Spectra scan
 from __future__ import annotations
 
 import os
+from typing_extensions import Self
 import numpy as np
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 import h5py
 import hdfmap
-import mmg_toolbox.spectra_analysis as spa
-from typing_extensions import Self
 
+import mmg_toolbox.spectra_analysis as spa
 from .data_scan import Scan, Process
 
 
@@ -225,21 +225,27 @@ class SpectraScan(Scan, _SpectraContainer):
     def __init__(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
         scan_names = {
             'energy': '(fastEnergy|pgm_energy|energye|energyh)',
-            'monitor': '(C2|ca62sr|mcs16_data|mcse16_data|mcsh16_data?(1.0))',
-            'tey': '(C1|ca61sr|mcs17_data|mcse17_data|mcsh17_data)',
-            'tfy': '(C3|ca63sr|mcs18_data|mcse18_data|mcsh18_data|mcsd18_data)'
+            # 'monitor': '(C2|ca62sr|mcs16_data|mcse16_data|mcsh16_data?(1.0))',
+            'monitor': '(C2|ca62sr|mcs16|macr16|mcse16|macj316|mcsh16|macj216?(1.0))',
+            # 'tey': '(C1|ca61sr|mcs17_data|mcse17_data|mcsh17_data)',
+            # 'tfy': '(C3|ca63sr|mcs18_data|mcse18_data|mcsh18_data|mcsd18_data)'
+            'tey': '(C1|ca61sr|mcs17|macr17|mcse17|macj317|mcsh17|macj217)',
+            'tfy': '(C3|ca63sr|mcs18|macr18|mcse18|macj318|mcsh18|macaj218)',
         }
         metadata_names = {
-                "scan": '{filename}',
-                "cmd": '{(cmd|user_command|scan_command)}',
-                "title": '{title}',
-                "endstation": '{end_station}',
-                "sample": '{sample_name}',
-                "pol": '{polarisation?("lh")}',
-                "temperature": '{(T_sample|sample_temperature|lakeshore336_cryostat' +
-                               '|lakeshore336_sample|itc3_device_sensor_temp?(300)):.2f} K',
-                "field": '{(field_z|sample_field|magnet_field|ips_demand_field?(0)):.2f} T',
-            }
+            "scan": '{filename}',
+            "cmd": '{(cmd|user_command|scan_command)}',
+            "title": '{title}',
+            "endstation": '{end_station}',
+            "sample": '{sample_name}',
+            "pol": '{polarisation?("lh")}',
+            "temperature": '{(T_sample|sample_temperature|lakeshore336_cryostat' +
+                           '|lakeshore336_sample|itc3_device_sensor_temp?(300)):.2f} K',
+            "field": '{(field_z|sample_field|magnet_field|ips_demand_field?(0)):.2f} T',
+            'field_x': 'field_x?(0)',
+            'field_y': 'field_y?(0)',
+            'field_z': '(magnet_field|ips_demand_field|field_z?(0))',
+        }
         Scan.__init__(self, filename, hdf_map, scan_names=scan_names, metadata_names=metadata_names)
         if 'xas_entry' not in self.map.classes:
             raise Exception(f"{self.filename} does not include NXSubEntry 'xas_entry'")

@@ -6,6 +6,7 @@ import os
 import h5py
 import tkinter as tk
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 
 import hdfmap
 from hdfmap.eval_functions import generate_identifier
@@ -240,6 +241,39 @@ class HdfNameSpace:
         self.tree.delete(*self.tree.get_children())
 
 
+class HdfTreeStr:
+    """
+    HDF Tree String object
+    """
+
+    def __init__(self, root: tk.Misc):
+
+        frm = ttk.Frame(root)
+        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+
+        self.text = tk.Text(frm, wrap=tk.NONE)
+
+        vbar = ttk.Scrollbar(frm, orient=tk.VERTICAL, command=self.text.yview)
+        hbar = ttk.Scrollbar(frm, orient=tk.HORIZONTAL, command=self.text.xview)
+        self.text.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
+
+        hbar.pack(side=tk.BOTTOM, fill=tk.X)
+        vbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.text.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+
+        if hasattr(root, 'style'):
+            update_text_style(self.text, root.style)
+
+    def populate(self, hdf_filename: str):
+        """Load HDF file, populate ttk.treeview object"""
+        tree_str = hdfmap.hdf_tree_string(hdf_filename)
+        self.delete()
+        self.text.insert('1.0', tree_str)
+
+    def delete(self):
+        self.text.delete('1.0', tk.END)
+
+
 class HDFViewer:
     """
     HDF Viewer - display cascading hierarchical data within HDF file in ttk GUI
@@ -281,13 +315,16 @@ class HDFViewer:
         self.view_tabs = ttk.Notebook(frm)
         tab1 = ttk.Frame(self.view_tabs)
         tab2 = ttk.Frame(self.view_tabs)
+        tab3 = ttk.Frame(self.view_tabs)
 
         self.view_tabs.add(tab1, text='HDF Tree')
         self.view_tabs.add(tab2, text='HdfMap')
+        self.view_tabs.add(tab3, text='Tree String')
         self.view_tabs.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
         # treeviews
         self.hdf_tree = HdfTreeview(tab1)
         self.hdf_map = HdfNameSpace(tab2)
+        self.hdf_text = HdfTreeStr(tab3)
 
         self.hdf_tree.tree.bind('<<TreeviewSelect>>', self.tree_select)
         self.hdf_map.tree.bind('<<TreeviewSelect>>', self.tree_select)
@@ -422,6 +459,7 @@ class HDFViewer:
         self._delete_tree()
         self.hdf_tree.populate(hdf_obj, openstate=self.expandall.get())
         self.hdf_map.populate(hdf_obj, hdf_map)
+        self.hdf_text.populate(hdf_obj.filename)
 
     "======================================================"
     "================= event functions ===================="
