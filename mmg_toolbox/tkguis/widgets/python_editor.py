@@ -2,7 +2,6 @@
 A python editor window
 """
 
-import sys
 import re
 import datetime
 import sys
@@ -15,15 +14,17 @@ from ..misc.logging import create_logger
 logger = create_logger(__file__)
 
 
-# Define colors for the variouse types of tokens
-normal = '#eaeaea'  # rgb((234, 234, 234))
-keywords = '#ea5f5f'  # rgb((234, 95, 95))
-commands = '#54AAE3'
-comments = '#5feaa5'  # rgb((95, 234, 165))
-string = '#eaa25f'  # rgb((234, 162, 95))
-function = '#5fd3ea'  # rgb((95, 211, 234))
-background = '#2a2a2a'  # rgb((42, 42, 42))
-font = 'Consolas 15'
+# Define colors for the various types of tokens
+class Colours:
+    normal = '#eaeaea'  # rgb((234, 234, 234))
+    keywords = '#ea5f5f'  # rgb((234, 95, 95))
+    commands = '#54AAE3'
+    comments = '#5feaa5'  # rgb((95, 234, 165))
+    string = '#eaa25f'  # rgb((234, 162, 95))
+    function = '#5fd3ea'  # rgb((95, 211, 234))
+    background = '#2a2a2a'  # rgb((42, 42, 42))
+
+FONT = 'Consolas 15'
 TAB_WIDTH = 4
 INDENT = ' ' * TAB_WIDTH
 
@@ -34,12 +35,12 @@ REPL = [
         'break|class|continue|def|del|elif|else|except|finally|for|from|' +
         'global|if|import|in|is|lambda|nonlocal|not|or|pass|print|' +
         r'raise|return|try|while|with|yield)(?:$|\s|\W)',
-        keywords
+        Colours.keywords
     ],
     # [r'(?:^|\s|\W)(scan|scancn|cscan|frange|pos|inc|go)(?:$|\s|\W)', commands],
-    ['".*?"', string],
-    ['\'.*?\'', string],
-    ['#.*?$', comments],
+    ['".*?"', Colours.string],
+    ['\'.*?\'', Colours.string],
+    ['#.*?$', Colours.comments],
 ]
 
 SCRIPT = '''"""
@@ -83,7 +84,7 @@ class PythonEditor:
 
     def __init__(self, script_string=None, parent: tk.Tk | None = None):
         # Create Tk inter instance
-        self.root = create_root('Python Editor')
+        self.root = create_root('Python Editor', parent=parent)
 
         # Top menu
         menu = {
@@ -194,14 +195,25 @@ class PythonEditorFrame:
 
         # Text numbers
         border = 10
-        self.textno = tk.Text(txt, width=3, font=font, borderwidth=border, relief=tk.FLAT)
+        self.textno = tk.Text(txt, width=3, font=FONT, borderwidth=border, relief=tk.FLAT)
         self.textno.pack(side=tk.LEFT, fill=tk.Y, expand=tk.YES)
         self.textno.config(yscrollcommand=scany.set, state=tk.DISABLED)
 
         # TEXT box
         # Add a hefty border width so we can achieve a little bit of padding
-        self.text = tk.Text(txt, background=background, foreground=normal, insertbackground=normal, relief=tk.FLAT,
-                            borderwidth=border, font=font, undo=True, autoseparators=True, maxundo=-1, wrap=tk.NONE)
+        self.text = tk.Text(
+            txt,
+            background=Colours.background,
+            foreground=Colours.normal,
+            insertbackground=Colours.normal,
+            relief=tk.FLAT,
+            borderwidth=border,
+            font=FONT,
+            undo=True,
+            autoseparators=True,
+            maxundo=-1,
+            wrap=tk.NONE
+        )
         self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
         self.text.insert('1.0', self.script_string)
         self.text.bind('<KeyRelease>', self.changes)
@@ -248,7 +260,7 @@ class PythonEditorFrame:
             for match in re.finditer('\'{3}|\"{3}', line):
                 if start:
                     self.text.tag_add(f'{i}', start, f"{n + 1}.{match.end()}")
-                    self.text.tag_config(f'{i}', foreground=comments)
+                    self.text.tag_config(f'{i}', foreground=Colours.comments)
                     i += 1
                     start = None
                 else:
@@ -386,7 +398,7 @@ class PythonTerminalFrame:
 
         # Text numbers
         border = 10
-        self.textno = tk.Text(txt, width=3, font=font, borderwidth=border, relief=tk.FLAT)
+        self.textno = tk.Text(txt, width=3, font=FONT, borderwidth=border, relief=tk.FLAT)
         self.textno.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO)
         self.textno.config(yscrollcommand=scany.set, state=tk.DISABLED)
 
@@ -395,15 +407,37 @@ class PythonTerminalFrame:
         frm.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
         # history
         self.history_str = f"Python {sys.version} on {sys.platform}\n"
-        self.text = tk.Text(frm, background=background, foreground=normal, insertbackground=normal, relief=tk.FLAT,
-                            borderwidth=border, font=font, undo=True, autoseparators=True, maxundo=-1, wrap=tk.NONE)
+        self.text = tk.Text(
+            frm,
+            background=Colours.background,
+            foreground=Colours.normal,
+            insertbackground=Colours.normal,
+            relief=tk.FLAT,
+            borderwidth=border,
+            font=FONT,
+            undo=True,
+            autoseparators=True,
+            maxundo=-1,
+            wrap=tk.NONE
+        )
         self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
         self.text.insert('1.0', self.history_str)
         self.text.config(xscrollcommand=scanx.set, yscrollcommand=scany.set, state=tk.DISABLED)
         # entry
-        self.entry = tk.Text(frm, background=background, foreground=normal, insertbackground=normal, relief=tk.FLAT,
-                             borderwidth=border, font=font, undo=True, autoseparators=True, maxundo=-1, wrap=tk.NONE,
-                             height=2)
+        self.entry = tk.Text(
+            frm,
+            background=Colours.background,
+            foreground=Colours.normal,
+            insertbackground=Colours.normal,
+            relief=tk.FLAT,
+            borderwidth=border,
+            font=FONT,
+            undo=True,
+            autoseparators=True,
+            maxundo=-1,
+            wrap=tk.NONE,
+            height=2
+        )
         self.entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
         self.entry.insert('1.0', ">>> ")
         self.entry.bind('<KeyRelease>', self.changes)
@@ -450,7 +484,7 @@ class PythonTerminalFrame:
             for match in re.finditer('\'{3}|\"{3}', line):
                 if start:
                     self.text.tag_add(f'{i}', start, f"{n + 1}.{match.end()}")
-                    self.text.tag_config(f'{i}', foreground=comments)
+                    self.text.tag_config(f'{i}', foreground=Colours.comments)
                     i += 1
                     start = None
                 else:

@@ -26,15 +26,6 @@ if not os.access(TMPDIR, os.W_OK):
 
 # Initialise available beamlines
 YEAR = str(datetime.now().year)
-AVAILABLE_EXPIDS = {
-    beamline: {
-        os.path.basename(path): path for path in sorted(
-            (file.path for file in os.scandir(os.path.join(DLS, beamline, 'data', YEAR))
-             if file.is_dir() and os.access(file.path, os.R_OK)),
-            key=lambda x: os.path.getmtime(x)
-        )
-    } for beamline in MMG_BEAMLINES
-} if os.path.isdir(DLS) else {}
 
 
 def get_beamline():
@@ -75,7 +66,14 @@ def get_dls_visits(instrument: str | None = None, year: str | int | None = None)
 
     dls_dir = os.path.join(DLS, instrument.lower(), 'data', str(year))
     if os.path.isdir(dls_dir):
-        return {p.name: p.path for p in os.scandir(dls_dir) if p.is_dir()}
+        return {
+            os.path.basename(path): path
+            for path in sorted(
+                (file.path for file in os.scandir(os.path.join(DLS, instrument, 'data', YEAR))
+                 if file.is_dir() and os.access(file.path, os.R_OK)),
+                key=lambda x: os.path.getmtime(x), reverse=True
+            )
+        }
     return {}
 
 

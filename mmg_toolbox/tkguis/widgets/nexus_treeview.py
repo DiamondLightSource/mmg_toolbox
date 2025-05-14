@@ -14,32 +14,12 @@ from hdfmap.eval_functions import generate_identifier
 from ...file_functions import hdfobj_string
 from ..misc.styles import update_text_style
 from ..misc.functions import post_right_click_menu, open_close_all_tree, select_hdf_file
+from ..misc.search import search_tree
 from ..misc.logging import create_logger
 
 logger = create_logger(__file__)
 
 DETAILS_TAB_WIDTH = 30
-
-
-def search_tree(treeview, branch="", query="entry", match_case=False, whole_word=False):
-    """
-    Set selection of items in treeview based on search query
-    :param treeview: ttk.treeview
-    :param branch: ttk.treeview item (str)
-    :param query: str search query
-    :param match_case: if False, select items even if the case doesn't match
-    :param whole_word: if True, select only items where query matches final element of address
-    :return:
-    """
-    query = query if match_case else query.lower()
-    for child in treeview.get_children(branch):
-        search_tree(treeview, child, query, match_case, whole_word)
-        address = treeview.item(child)['text']
-        address = address if match_case else address.lower()
-        address = address.split('/')[-1] if whole_word else address
-        if (whole_word and query == address) or (not whole_word and query in address):
-            treeview.selection_add(child)
-            treeview.see(child)
 
 
 def right_click_menu(frame, tree):

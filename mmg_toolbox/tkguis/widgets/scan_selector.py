@@ -51,6 +51,7 @@ class _ScanSelector:
         self.columns += [
             (name, name, 200, True, None) for name in self.metadata_names
         ]
+        self.map = None
 
     "======================================================"
     "=============== populate functions ==================="
@@ -74,17 +75,19 @@ class _ScanSelector:
         filepath = self.tree.set(item, 'filepath')
         if os.path.isdir(filepath):
             return
-        file_map = hdfmap.create_nexus_map(filepath)
+        if self.map is None:
+            self.map = hdfmap.create_nexus_map(filepath)
         with hdfmap.load_hdf(filepath) as nxs:
             for name, fmt in self.config.get('metadata_list', {}).items():
                 if not self.tree.winfo_exists():
                     return
-                self.tree.set(item, name, file_map.format_hdf(nxs, fmt))
+                self.tree.set(item, name, self.map.format_hdf(nxs, fmt))
 
     def populate_files(self, item, *file_list: str):
         """Add list of files below folder on folder expand"""
         # remove old entries
         self.tree.delete(*self.tree.get_children(item))
+        self.map = None  # reset hdfmap
         start_time = time.time()
         for file in file_list:
             self._add_file(item, file)

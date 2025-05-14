@@ -43,7 +43,7 @@ class FolderTreeViewFrame:
             ("#0", 'Folder', 200, False, None),
             ("modified", 'Modified', 150, True, "modified_time"),
             ('modified_time', 'Modified', 0, False, None),
-            ("files", 'Files', 15, False, None),
+            ("files", 'Files', 30, False, None),
             ("data", 'Data', 200, False, None),
             ("filepath", 'File Path', 0, False, None),
         ]

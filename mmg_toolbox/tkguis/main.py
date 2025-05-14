@@ -188,6 +188,7 @@ def create_title_window():
     """Title Window"""
     from .widgets.title_window import TitleWindow
     from .widgets.config_editor import ConfigEditor
+    from .widgets.log_viewer import create_gda_terminal_log_viewer
 
     root = create_root(window_title='Beamline Data Viewer')
     config = get_config()
@@ -199,7 +200,8 @@ def create_title_window():
             'Folder Browser': lambda: create_file_browser(root, config.get('default_directory')),
             'Jupyter Browser': lambda: create_jupyter_browser(root, widget.notebook_dir.get()),
             'Data Viewer': lambda: create_data_viewer(widget.data_dir.get(), root, config),
-            'Range selector': lambda: create_range_selector(widget.data_dir.get(), root, config)
+            'Range selector': lambda: create_range_selector(widget.data_dir.get(), root, config),
+            'Log viewer': lambda: create_gda_terminal_log_viewer(widget.data_dir.get(), root)
         },
         'Config.': {
             'Edit Config.': lambda: ConfigEditor(root, config),
