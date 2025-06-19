@@ -17,14 +17,14 @@ logger = create_logger(__file__)
 
 
 """
-'xlabel': str label of first axes
-'ylabel': str label of first signal
+'xlabel': str mode of first axes
+'ylabel': str mode of first signal
 'xdata': flattened array of first axes
 'ydata': flattend array of first signal
 'axes_names': list of axes names,
 'signal_names': list of signal + auxilliary signal names,
 'axes_data': list of ND arrays of data for axes,
-'signal_data': list of ND array of data for signal + auxilliary signals,
+'signal_data': list of ND array of data for signal + auxilliary raw_signals,
 'axes_labels': list of axes labels as 'name [units]',
 'signal_labels': list of signal labels,
 'data': dict of all scannables axes,

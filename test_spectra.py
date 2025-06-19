@@ -5,6 +5,7 @@ Try out Spectra
 import os
 import matplotlib.pyplot as plt
 from mmg_toolbox.spectra_scan import SpectraScan, find_pol_pairs
+from mmg_toolbox.nexus_writer import create_xmcd_nexus
 
 if os.path.isdir('/dls'):
     files = [
@@ -22,10 +23,22 @@ else:
         r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\DataAnalysis\I06\example_xmcd\i10-1-211.nxs",
         r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\DataAnalysis\I06\example_xmcd\i10-1-212.nxs",
     ]
+    # files = [
+    #     r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\PythonProjects\xmcd_analysis\data\i10-1-26822.nxs",
+    #     r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\PythonProjects\xmcd_analysis\data\i10-1-26823.nxs",
+    #     r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\PythonProjects\xmcd_analysis\data\i10-1-26824.nxs",
+    #     r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\PythonProjects\xmcd_analysis\data\i10-1-26825.nxs",
+    # ]
 
 scans = [SpectraScan(file) for file in files]
 
 print(scans)
+
+from mmg_toolbox.spectra_analysis import fit_double_edge_step_background
+
+scan = scans[0]
+# scan.create_figure()
+signal, bkg = fit_double_edge_step_background(scan.tey.energy, scan.tey.signal, 709, 722, 10)
 
 # pol1 = scans[0] + scans[3]
 # pol2 = scans[1] + scans[2]
@@ -39,7 +52,7 @@ print(scans)
 #
 # diff.create_figure()
 
-
+"""
 pairs = find_pol_pairs(*scans)
 
 for pair in pairs:
@@ -58,6 +71,6 @@ av_pol2 = sum(pol2[1:], pol2[0])
 diff = av_pol1 - av_pol2
 diff.create_figure()
 print(diff)
-
+"""
 
 plt.show()

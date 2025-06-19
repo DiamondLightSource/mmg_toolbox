@@ -161,15 +161,15 @@ class _ScanSelector:
         m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
         m_file.add_command(label="open Plot", command=self.open_nexus_plot)
         m_file.add_command(label="open Image", command=self.open_nexus_image)
-        # m_file.add_command(label="open Namespace", command=self.menu_namespace_gui)
-        # m_file.add_command(label="open Nexus Classes", command=self.menu_class_gui)
+        # m_file.add_command(mode="open Namespace", command=self.menu_namespace_gui)
+        # m_file.add_command(mode="open Nexus Classes", command=self.menu_class_gui)
         # right-click menu - folder options
         m_folder = tk.Menu(self.root, tearoff=0)
         m_folder.add_command(label="Copy path", command=self.copy_path)
-        # m_folder.add_command(label="Open Folder Datasets", command=self.menu_folder_files)
-        # m_folder.add_command(label="Open Folder Plots", command=self.menu_folder_plot)
-        # # m_folder.add_command(label="Display Contents", command=self.menu_folder_plot)
-        # m_folder.add_command(label="Display Summary", command=self.menu_folder_summary)
+        # m_folder.add_command(mode="Open Folder Datasets", command=self.menu_folder_files)
+        # m_folder.add_command(mode="Open Folder Plots", command=self.menu_folder_plot)
+        # # m_folder.add_command(mode="Display Contents", command=self.menu_folder_plot)
+        # m_folder.add_command(mode="Display Summary", command=self.menu_folder_summary)
 
         def menu_popup(event):
             # select item

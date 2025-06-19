@@ -838,7 +838,7 @@ def generate_model_script(xvals, yvals, yerrors=None,
     out += "ax1, ax2 = fig.axes\n"
     out += "comps = res.eval_components()\n"
     out += "for component in comps.keys():\n"
-    out += "    ax2.plot(xdata, comps[component], label=component)\n"
+    out += "    ax2.plot(xdata, comps[component], mode=component)\n"
     out += "    ax2.legend()\n\n"
     return out
 
