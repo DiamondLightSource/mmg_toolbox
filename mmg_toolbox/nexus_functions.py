@@ -1,11 +1,8 @@
 """
 Various utilities for reading and writing nexus files
 """
-from __future__ import annotations
 
 import os
-
-import hdfmap
 import numpy as np
 import h5py
 
@@ -205,23 +202,3 @@ def get_metadata(group: h5py.Group, name_paths_default: list[tuple[str, tuple, s
     }
     return metadata
 
-
-def get_xas_group(nxs: h5py.File) -> h5py.Group | None:
-    """Return an open HDF group object, or None if it doesn't exist"""
-    entry = next(group for path, group in nxs.items() if group.attrs.get('NX_class', b'') == b'NXentry')
-    nx_xas = next((
-        group for path, group in entry.items()
-        if group.attrs.get('NX_class', b'') == b'NXsubentry'
-           and group.get('definition').asstr()[()] == 'NXxas'
-    ), None)
-    return nx_xas
-
-
-def is_nxxas(filename: str):
-    """Returns True is scan contains NXXas subentry, False otherwise"""
-    if os.path.isfile(filename):
-        with hdfmap.load_hdf(filename) as nxs:
-            nx_xas = get_xas_group(nxs)
-            if nx_xas:
-                return True
-    return False

@@ -4,7 +4,7 @@ Try out Spectra
 
 import os
 import matplotlib.pyplot as plt
-from mmg_toolbox.spectra_scan import SpectraScan, find_pol_pairs
+from mmg_toolbox.spectra import SpectraScan, find_pol_pairs
 from mmg_toolbox.nexus_writer import create_xmcd_nexus
 
 if os.path.isdir('/dls'):

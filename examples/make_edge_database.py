@@ -7,7 +7,7 @@ import numpy as np
 import json
 from Dans_Diffraction.functions_crystallography import atom_properties
 
-EDGE_FILE = 'mmg_toolbox/data/xray_edges.json'
+EDGE_FILE = '../mmg_toolbox/data/xray_edges.json'
 
 edges = ['K', 'L1', 'L2', 'L3', 'M1', 'M2', 'M3', 'M4', 'M5', 'N1', 'N2', 'N3']
 orbitals = ['1s', '2s', '2p1/2', '2p3/2', '3s', '3p1/2', '3p3/2', '3d3/2', '3d5/2', '4s', '4p1/2', '4p3/2']

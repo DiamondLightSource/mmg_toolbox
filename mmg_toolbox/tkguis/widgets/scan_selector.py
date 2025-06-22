@@ -10,8 +10,7 @@ from threading import Thread, current_thread
 
 import hdfmap
 
-from ...file_functions import list_files, display_timestamp
-from ...env_functions import get_scan_number
+from ...file_functions import list_files, display_timestamp, get_scan_number
 from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
 from ..misc.logging import create_logger
 from ..misc.config import get_config

@@ -4,13 +4,13 @@ Set of functions for analysing x-ray absorption spectra
 
 import json
 
-import lmfit.model
+import os
 import numpy as np
 from lmfit.model import ModelResult
 from lmfit.models import LinearModel, QuadraticModel, ExponentialModel, StepModel, PolynomialModel
 
 
-EDGE_FILE = 'mmg_toolbox/data/xray_edges.json'
+EDGE_FILE = os.path.join(os.path.dirname(__file__), 'data', 'xray_edges.json')
 SEARCH_EDGES = ('L3', 'L2')
 
 
@@ -33,7 +33,7 @@ def load_edge_energies(edges=SEARCH_EDGES) -> tuple[np.ndarray, np.ndarray]:
 
 
 def xray_edges_in_range(min_energy_ev: float, max_energy_ev: float | None = None,
-                        energy_range_ev: float = 10., search_edges: tuple[str] = SEARCH_EDGES) -> list[tuple[str, float]]:
+                        energy_range_ev: float = 10., search_edges: None | tuple[str] = SEARCH_EDGES) -> list[tuple[str, float]]:
     """
     Return all x-ray absorption edges within the range
     :param min_energy_ev: energy to find x-ray absorption edges within

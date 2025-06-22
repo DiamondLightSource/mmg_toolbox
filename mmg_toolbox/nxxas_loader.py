@@ -2,22 +2,23 @@
 Functions to load data from i06-1 and i10-1 beamline XAS measurements
 """
 
+import os
 import numpy as np
 import h5py
 import datetime
-from collections import defaultdict
-from mmg_toolbox.env_functions import get_scan_number
-from mmg_toolbox.dat_file_reader import read_dat_file
-from mmg_toolbox.polarisation import check_polarisation
-from mmg_toolbox.spectra_analysis import energy_range_edge_label
-from mmg_toolbox.nexus_functions import nx_find, nx_find_all, nx_find_data
-from mmg_toolbox.spectra_scan import Spectra, SpectraContainer, XasMetadata
+from .file_functions import get_scan_number, replace_scan_number
+from .dat_file_reader import read_dat_file
+from .polarisation import check_polarisation
+from .spectra_analysis import energy_range_edge_label
+from .nexus_functions import nx_find, nx_find_all, nx_find_data
+from .spectra import Spectra
+from .spectra_container import SpectraContainer, XasMetadata
 
 
-def create_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
-                filename: str = '', beamline: str = '', scan_no: int = 0, start_date_iso: str = '',
-                end_date_iso: str = '', cmd: str = '', default_mode: str = 'tey', pol: str = 'pc',
-                sample_name: str = '', temp: float = 300, mag_field: float = 0):
+def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
+                    filename: str = '', beamline: str = '', scan_no: int = 0, start_date_iso: str = '',
+                    end_date_iso: str = '', cmd: str = '', default_mode: str = 'tey', pol: str = 'pc',
+                    sample_name: str = '', temp: float = 300, mag_field: float = 0):
     """
     Function to load data from i06-1 and i10-1 beamline XAS measurements
     """
@@ -63,15 +64,6 @@ def create_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict
     return SpectraContainer(name, spectra, metadata=m)
 
 
-def convert_to_nxxas(filename: str, nexus_filename: str, alt_nexus=False):
-    """Create NeXus file from nxs for dat file"""
-    if filename.endswith('.dat'):
-        scan = load_from_dat(filename)
-    else:
-        scan = load_from_nxs(filename)
-    scan.write_nexus(nexus_filename)
-
-
 def load_from_dat(filename: str, sample_name='') -> SpectraContainer:
     # read file
     scan = read_dat_file(filename)
@@ -108,7 +100,7 @@ def load_from_dat(filename: str, sample_name='') -> SpectraContainer:
     date_iso = date.isoformat()
     scan_no = metadata.get('SRSRUN', get_scan_number(filename))
 
-    return create_scan(
+    return create_xas_scan(
         name=str(scan_no),
         energy=energy,
         raw_signals=signals,
@@ -127,7 +119,7 @@ def load_from_dat(filename: str, sample_name='') -> SpectraContainer:
     )
 
 
-def load_from_nxs(filename: str):
+def load_from_nxs(filename: str, sample_name=None) -> SpectraContainer:
     # read file
     with h5py.File(filename, 'r') as hdf:
         # read Scan data
@@ -170,10 +162,12 @@ def load_from_nxs(filename: str):
         cmd = nx_find_data(hdf, 'scan_command', default='')
         start_date_iso = nx_find_data(hdf, 'start_time', default='')
         end_date_iso = nx_find_data(hdf, 'end_time', default=start_date_iso)
-        sample_name = nx_find_data(hdf, 'NXsample', 'name', default='')
         scan_no = nx_find_data(hdf, 'entry_identifier', default=get_scan_number(filename))
 
-    return create_scan(
+        if sample_name is None:
+            sample_name = nx_find_data(hdf, 'NXsample', 'name', default='')
+
+    return create_xas_scan(
         name=str(scan_no),
         energy=energy,
         raw_signals=signals,
@@ -192,14 +186,133 @@ def load_from_nxs(filename: str):
     )
 
 
-def load_polarised_scans(*filenames: str, sample_name='') -> dict[str, list[SpectraContainer]]:
+def load_from_nxs_using_hdfmap(filename: str, sample_name=None) -> SpectraContainer:
+    """Load ScanContainer"""
+    import hdfmap
+    from beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
+
+    with h5py.File(filename, 'r') as hdf:
+        # HdfMap creates data-path namespace
+        m = hdfmap.NexusMap()
+        m.populate(hdf)
+
+        # scan data
+        scan_no = m.eval(hdf, 'entry_identifier', default=get_scan_number(filename))
+        energy = m.eval(hdf, Md.energy)
+        monitor = m.eval(hdf, Md.monitor)
+        mode = 'tey'
+        signals = {
+            'tey': m.eval(hdf, Md.tey),
+            'tfy': m.eval(hdf, Md.tfy),
+        }
+        # metadata
+        beamline = m.eval(hdf, 'f"{beamline}_{end_station}" if end_station else instrument_name')
+        start_date_iso = m.eval(hdf, 'str(start_time)')
+        end_date_iso = m.eval(hdf, 'str(end_time)')
+        cmd = m.eval(hdf, Md.cmd)
+        pol = check_polarisation(m.eval(hdf, Md.pol))
+        if sample_name is None:
+            sample_name = m.eval(hdf, 'sample_name', '')
+        temp = m.eval(hdf, Md.temp)
+        mag_field = m.eval(hdf, Md.field_z)
+    return create_xas_scan(
+        name=str(scan_no),
+        energy=energy,
+        raw_signals=signals,
+        monitor=monitor,
+        filename=filename,
+        beamline=beamline,
+        scan_no=scan_no,
+        start_date_iso=start_date_iso,
+        end_date_iso=end_date_iso,
+        cmd=cmd,
+        default_mode=mode,
+        pol=pol,
+        sample_name=sample_name,
+        temp=temp,
+        mag_field=mag_field
+    )
+
+
+def load_xas_scans(*filenames: str, sample_name='') -> list[SpectraContainer]:
     """Load scans from a list of filenames, return {'pol': [scan1, scan2, ...]}"""
     scans = [
         load_from_dat(filename, sample_name=sample_name)
-        if filename.endswith('.dat') else load_from_nxs(filename)
+        if filename.endswith('.dat') else load_from_nxs_using_hdfmap(filename)
         for filename in filenames
     ]
-    pol_scans = defaultdict(list)
+    return scans
+
+
+def find_matching_scans(filename: str, match_field: str = 'scan_command',
+                        search_scans_before: int = 10, search_scans_after: int | None = None) -> list[str]:
+    """
+    Find scans with scan numbers close to the current file with matching scan command
+
+    :param filename: nexus file to start at (must include scan number in filename)
+    :param match_field: nexus field to compare between scan files
+    :param search_scans_before: number of scans before current scan to look for
+    :param search_scans_after: number of scans after current scan to look for (None==before)
+    :returns: list of scan files that exist and have matching field values
+    """
+    import hdfmap
+    nexus_map = hdfmap.create_nexus_map(filename)
+    field_value = nexus_map.eval(nexus_map.load_hdf(), match_field)
+    scanno = get_scan_number(filename)
+    if search_scans_after is None:
+        search_scans_after = search_scans_before
+    matching_files = []
+    for scn in range(scanno - search_scans_before, scanno + search_scans_after):
+        new_filename = replace_scan_number(filename, scn)
+        if os.path.isfile(new_filename):
+            new_field_value = nexus_map.eval(hdfmap.load_hdf(new_filename), match_field)
+            if field_value == new_field_value:
+                matching_files.append(new_filename)
+    return matching_files
+
+
+def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> list[SpectraContainer]:
+    """
+    Find similar measurements based on energy, temperature and field.
+
+    Each measurement is compared to the first one in the list, using energy, temperature and field tolerances.
+
+    The polarisation is also checked to be similar (lh, lv or cl, cr).
+
+    Scans with different or missing metadata are removed from the list.
+
+    :param filenames: List of filenames to compare
+    :param temp_tol: Tolerance for temperature comparison (default: 0.1 K)
+    :param field_tol: Tolerance for field comparison (default: 0.1 T)
+    :return: List of similar measurements
+    """
+    if len(filenames) == 1:
+        filenames = find_matching_scans(filenames[0])
+    scans = load_xas_scans(*filenames)
+    element = scans[0].metadata.element
+    edge = scans[0].metadata.edge
+    temperature = scans[0].metadata.temp
+    field_z = scans[0].metadata.mag_field
+    pol = scans[0].metadata.pol
+    if pol in ['lh', 'lv']:
+        similar_pols = ['lh', 'lv']
+    elif pol in ['cl', 'cr']:
+        similar_pols = ['cl', 'cr']
+    elif pol in ['nc', 'pc']:
+        similar_pols = ['nc', 'pc']
+    else:
+        raise ValueError(f"Unknown polarisation: {pol}")
+    similar = []
     for scan in scans:
-        pol_scans[scan.metadata.pol].append(scan)
-    return pol_scans
+        m = scan.metadata
+        if (
+            m.element == element and
+            m.edge == edge and
+            abs(m.temp - temperature) < temp_tol and
+            abs(m.mag_field - field_z) < field_tol and
+            m.pol in similar_pols
+        ):
+            similar.append(scan)
+        else:
+            print(f"Measurement {m} is not similar to {scans[0]}")
+    return similar

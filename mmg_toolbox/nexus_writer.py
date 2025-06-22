@@ -8,7 +8,7 @@ import datetime
 
 from hdfmap.nexus import default_nxentry
 
-from mmg_toolbox.env_functions import get_scan_number
+from mmg_toolbox.file_functions import get_scan_number
 from mmg_toolbox.polarisation import polarisation_label_to_stokes
 from mmg_toolbox.xray_utils import photon_wavelength
 
