@@ -13,19 +13,23 @@ from .spectra_analysis import energy_range_edge_label
 from .nexus_functions import nx_find, nx_find_all, nx_find_data
 from .spectra import Spectra
 from .spectra_container import SpectraContainer, XasMetadata
+from .beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
 
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
                     filename: str = '', beamline: str = '', scan_no: int = 0, start_date_iso: str = '',
                     end_date_iso: str = '', cmd: str = '', default_mode: str = 'tey', pol: str = 'pc',
-                    sample_name: str = '', temp: float = 300, mag_field: float = 0):
+                    sample_name: str = '', temp: float = 300, mag_field: float = 0, element_edge: str | None = None):
     """
     Function to load data from i06-1 and i10-1 beamline XAS measurements
     """
     # Check spectra
     if default_mode not in raw_signals:
         raise KeyError(f"mode '{default_mode}' is not available in {list(raw_signals.keys())}")
-    element, edge = energy_range_edge_label(energy.min(), energy.max())
+    if element_edge is None:
+        element, edge = energy_range_edge_label(energy.min(), energy.max())
+    else:
+        element, edge = element_edge.split()
 
     for detector, array in raw_signals.items():
         if len(array) != len(energy):
@@ -64,7 +68,7 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
     return SpectraContainer(name, spectra, metadata=m)
 
 
-def load_from_dat(filename: str, sample_name='') -> SpectraContainer:
+def load_from_dat(filename: str, sample_name='', element_edge=None) -> SpectraContainer:
     # read file
     scan = read_dat_file(filename)
 
@@ -115,11 +119,12 @@ def load_from_dat(filename: str, sample_name='') -> SpectraContainer:
         pol=pol,
         sample_name=sample_name,
         temp=temp,
-        mag_field=mag_field
+        mag_field=mag_field,
+        element_edge=element_edge
     )
 
 
-def load_from_nxs(filename: str, sample_name=None) -> SpectraContainer:
+def load_from_nxs(filename: str, sample_name=None, element_edge=None) -> SpectraContainer:
     # read file
     with h5py.File(filename, 'r') as hdf:
         # read Scan data
@@ -182,14 +187,14 @@ def load_from_nxs(filename: str, sample_name=None) -> SpectraContainer:
         pol=pol,
         sample_name=sample_name,
         temp=temp,
-        mag_field=mag_field
+        mag_field=mag_field,
+        element_edge=element_edge
     )
 
 
-def load_from_nxs_using_hdfmap(filename: str, sample_name=None) -> SpectraContainer:
+def load_from_nxs_using_hdfmap(filename: str, sample_name=None, element_edge=None) -> SpectraContainer:
     """Load ScanContainer"""
     import hdfmap
-    from beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
     with h5py.File(filename, 'r') as hdf:
         # HdfMap creates data-path namespace
@@ -230,7 +235,8 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name=None) -> SpectraContai
         pol=pol,
         sample_name=sample_name,
         temp=temp,
-        mag_field=mag_field
+        mag_field=mag_field,
+        element_edge=element_edge
     )
 
 

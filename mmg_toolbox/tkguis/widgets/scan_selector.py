@@ -57,7 +57,7 @@ class _ScanSelector:
 
     def _add_row(self, parent="", name="", timestamp=0.0, time_str="", filepath="", *args, **kwargs):
         values = (time_str, timestamp, filepath) + args
-        iid = self.tree.insert(parent, tk.END, text=name, values=values)
+        iid = self.tree.insert(parent, 0, text=name, values=values)
         for name, value in kwargs.items():
             self.tree.set(iid, column=name, value=value)
         return iid
@@ -327,7 +327,7 @@ class FolderScanSelector(_ScanSelector):
 
             logger.info(f"Updating {len(files)} in '{os.path.basename(folder)}'")
             logger.debug(f"update_files: Current thread: {current_thread()}, in process pid: {os.getpid()}")
-            for file in files:
+            for file in reversed(files):
                 if not self.tree.winfo_exists():
                     return
                 iid = self._add_file(branch, file)
