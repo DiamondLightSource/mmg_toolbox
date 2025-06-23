@@ -2,8 +2,8 @@
 Magnetic Materials Group Toolbox
 """
 
-__version__ = '0.1'
-__date__ = '08/04/2025'
+__version__ = '0.2.0'
+__date__ = '19/06/2025'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui']

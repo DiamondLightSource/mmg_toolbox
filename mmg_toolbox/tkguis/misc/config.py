@@ -77,6 +77,7 @@ BEAMLINE_CONFIG = {
         C.beamline: 'i10-1',
         C.default_directory: f"/dls/i10-1/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i10-1'],
+        C.normalise_factor: '/(mcs16|macr16|mcse16|macj316|mcsh16|macj216)',
     },
     'i16': {
         C.beamline: 'i16',

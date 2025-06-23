@@ -10,8 +10,7 @@ from threading import Thread, current_thread
 
 import hdfmap
 
-from ...file_functions import list_files, display_timestamp
-from ...env_functions import get_scan_number
+from ...file_functions import list_files, display_timestamp, get_scan_number
 from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
 from ..misc.logging import create_logger
 from ..misc.config import get_config
@@ -59,7 +58,7 @@ class _ScanSelector:
 
     def _add_row(self, parent="", name="", timestamp=0.0, time_str="", filepath="", *args, **kwargs):
         values = (time_str, timestamp, filepath) + args
-        iid = self.tree.insert(parent, tk.END, text=name, values=values)
+        iid = self.tree.insert(parent, 0, text=name, values=values)
         for name, value in kwargs.items():
             self.tree.set(iid, column=name, value=value)
         return iid
@@ -164,15 +163,15 @@ class _ScanSelector:
         m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
         m_file.add_command(label="open Plot", command=self.open_nexus_plot)
         m_file.add_command(label="open Image", command=self.open_nexus_image)
-        # m_file.add_command(label="open Namespace", command=self.menu_namespace_gui)
-        # m_file.add_command(label="open Nexus Classes", command=self.menu_class_gui)
+        # m_file.add_command(mode="open Namespace", command=self.menu_namespace_gui)
+        # m_file.add_command(mode="open Nexus Classes", command=self.menu_class_gui)
         # right-click menu - folder options
         m_folder = tk.Menu(self.root, tearoff=0)
         m_folder.add_command(label="Copy path", command=self.copy_path)
-        # m_folder.add_command(label="Open Folder Datasets", command=self.menu_folder_files)
-        # m_folder.add_command(label="Open Folder Plots", command=self.menu_folder_plot)
-        # # m_folder.add_command(label="Display Contents", command=self.menu_folder_plot)
-        # m_folder.add_command(label="Display Summary", command=self.menu_folder_summary)
+        # m_folder.add_command(mode="Open Folder Datasets", command=self.menu_folder_files)
+        # m_folder.add_command(mode="Open Folder Plots", command=self.menu_folder_plot)
+        # # m_folder.add_command(mode="Display Contents", command=self.menu_folder_plot)
+        # m_folder.add_command(mode="Display Summary", command=self.menu_folder_summary)
 
         def menu_popup(event):
             # select item
@@ -331,7 +330,7 @@ class FolderScanSelector(_ScanSelector):
 
             logger.info(f"Updating {len(files)} in '{os.path.basename(folder)}'")
             logger.debug(f"update_files: Current thread: {current_thread()}, in process pid: {os.getpid()}")
-            for file in files:
+            for file in reversed(files):
                 if not self.tree.winfo_exists():
                     return
                 iid = self._add_file(branch, file)

@@ -139,7 +139,7 @@ Version History:
 26/04/22 4.8.5  Corrected error in CheckScan for python3
 03/05/22 4.8.6  Corrected error for merlinroi1 in getdata
 30/07/22 4.8.7  Corrected error in polflip plotting, remove plt.show from plotscan
-13/09/22 4.8.8  Corrected detector slits label in several functions, added phaseplate_normalisation, added fig_size parameter
+13/09/22 4.8.8  Corrected detector slits mode in several functions, added phaseplate_normalisation, added fig_size parameter
 19/06/23 4.8.9  Changed [...] to [()] in nexus reader
 03/07/23 4.9.0  Changed latest() to work with scans >1000000
 
@@ -3059,7 +3059,7 @@ def example_script(scanno=None):
 
     outstr += 'x,y,dy, varx, vary, ttl, d = pp.getdata({}, varx=\'Auto\', vary=\'Auto\', norm=True) # automatic axes and normalisation\n\n'.format(scanno)
 
-    outstr += 'pp.newplot(x, y, label={})\npp.labels(ttl, varx, vary, legend=True)\n\n'.format(scanno)
+    outstr += 'pp.newplot(x, y, mode={})\npp.labels(ttl, varx, vary, legend=True)\n\n'.format(scanno)
 
     outstr += 'x2,y2,dy2, varx2, vary2, ttl2, d2 = pp.getdata({}, varx=\'Auto\', vary=\'Auto\', norm=True) \n'.format(scanno-1)    
     outstr += 'pp.multiplot([x,x2], [y,y2], labels=[{},{}])\npp.labels(ttl, varx, vary, legend=True)\n\n'.format(scanno,scanno-1)
@@ -4326,7 +4326,7 @@ def plotscan(num=None,vary='',varx='',fit=None,norm=True,sum=False,subtract=Fals
             x2,y2,dy2,varx2,vary2,ttl2,dn = getdata(rn,vary=vary,varx=varx,norm=norm)
             mn = dn.metadata
             
-            " Generate label"
+            " Generate mode"
             if labels is None:
                 lbl = str(mn.SRSRUN)
             else:
@@ -4413,7 +4413,7 @@ def plotscan(num=None,vary='',varx='',fit=None,norm=True,sum=False,subtract=Fals
             x2,y2,dy2,varx2,vary2,ttl2,dn = getdata(num,vary=nvary,varx=varx,norm=norm)
             mn = dn.metadata
             
-            " Generate label"
+            " Generate mode"
             if labels is None:
                 lbl = '{}'.format(nvary)
             else:
@@ -6901,7 +6901,7 @@ def newplot(*args, **kwargs):
     E.G.
       x = np.arange(-5,5,0.1)
       y = x**2
-      newplot(x,y,'r-',lw=2,label='Line')
+      newplot(x,y,'r-',lw=2,mode='Line')
     """
 
     if 'linewidth' and 'lw' not in kwargs.keys():
@@ -7128,9 +7128,9 @@ def labels(ttl=None, xvar=None, yvar=None, zvar=None, legend=False, size='Normal
     """
     Add formatted labels to current plot, also increases the tick size
     :param ttl: title
-    :param xvar: x label
-    :param yvar: y label
-    :param zvar: z label (3D plots only)
+    :param xvar: x mode
+    :param yvar: y mode
+    :param zvar: z mode (3D plots only)
     :param legend: False/ True, adds default legend to plot 
     :param size: 'Normal' or 'Big'
     :param font: str font name, 'Times New Roman'
