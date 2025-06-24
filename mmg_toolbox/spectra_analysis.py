@@ -9,6 +9,12 @@ import numpy as np
 from lmfit.model import ModelResult
 from lmfit.models import LinearModel, QuadraticModel, ExponentialModel, StepModel, PolynomialModel
 
+# trapz replaced by trapezoid in Numpy 2.0
+try:
+    from numpy import trapezoid as trapz
+except ImportError:
+    from numpy import trapz
+
 
 EDGE_FILE = os.path.join(os.path.dirname(__file__), 'data', 'xray_edges.json')
 SEARCH_EDGES = ('L3', 'L2')
@@ -379,10 +385,10 @@ def orbital_angular_momentum(energy: np.ndarray, average: np.ndarray,
         raise ValueError(f"Number of holes must be greater than 0: {nholes}")
 
     # total intensity
-    tot = np.trapezoid(average, energy)
+    tot = trapz(average, energy)
 
     # Calculate the sum rule for the angular momentum
-    L = -2 * nholes * np.trapezoid(difference, energy) / tot
+    L = -2 * nholes * trapz(difference, energy) / tot
     return L
 
 
@@ -410,16 +416,16 @@ def spin_angular_momentum(energy: np.ndarray, average: np.ndarray,
         split_energy = (energy[0] + energy[-1]) / 2
 
     # total intensity
-    tot = np.trapezoid(average, energy)
+    tot = trapz(average, energy)
 
     # Calculate the sum rule for the spin angular momentum
     split_index = np.argmin(np.abs(energy - split_energy))
     l3_energy = energy[split_index:]  # L3 edge at lower energy
     l3_difference = difference[split_index:]
-    l3_integral = np.trapezoid(l3_difference, l3_energy)
+    l3_integral = trapz(l3_difference, l3_energy)
     l2_energy = energy[:split_index]
     l2_difference = difference[:split_index]
-    l2_integral = np.trapezoid(l2_difference, l2_energy)
+    l2_integral = trapz(l2_difference, l2_energy)
     S_eff = (3 / 2) * nholes * (l3_integral - 2 * l2_integral) / tot
     S = S_eff - dipole_term
     return S
