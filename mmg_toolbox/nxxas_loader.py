@@ -292,14 +292,14 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
     :param field_tol: Tolerance for field comparison (default: 0.1 T)
     :return: List of similar measurements
     """
+    ini_scan = load_xas_scans(filenames[0])[0]
     if len(filenames) == 1:
         filenames = find_matching_scans(filenames[0])
-    scans = load_xas_scans(*filenames)
-    element = scans[0].metadata.element
-    edge = scans[0].metadata.edge
-    temperature = scans[0].metadata.temp
-    field_z = scans[0].metadata.mag_field
-    pol = scans[0].metadata.pol
+    element = ini_scan.metadata.element
+    edge = ini_scan.metadata.edge
+    temperature = ini_scan.metadata.temp
+    field_z = abs(ini_scan.metadata.mag_field)  # allow +/- field
+    pol = ini_scan.metadata.pol
     if pol in ['lh', 'lv']:
         similar_pols = ['lh', 'lv']
     elif pol in ['cl', 'cr']:
@@ -308,6 +308,8 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
         similar_pols = ['nc', 'pc']
     else:
         raise ValueError(f"Unknown polarisation: {pol}")
+
+    scans = load_xas_scans(*filenames)
     similar = []
     for scan in scans:
         m = scan.metadata
@@ -315,10 +317,10 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
             m.element == element and
             m.edge == edge and
             abs(m.temp - temperature) < temp_tol and
-            abs(m.mag_field - field_z) < field_tol and
+            abs(abs(m.mag_field) - field_z) < field_tol and
             m.pol in similar_pols
         ):
             similar.append(scan)
         else:
-            print(f"Measurement {m} is not similar to {scans[0]}")
+            print(f"Measurement {repr(scan)} is not similar to {repr(scans[0])}")
     return similar
