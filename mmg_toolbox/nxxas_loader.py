@@ -19,7 +19,8 @@ from .beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
                     filename: str = '', beamline: str = '', scan_no: int = 0, start_date_iso: str = '',
                     end_date_iso: str = '', cmd: str = '', default_mode: str = 'tey', pol: str = 'pc',
-                    sample_name: str = '', temp: float = 300, mag_field: float = 0, element_edge: str | None = None):
+                    sample_name: str = '', temp: float = 300, mag_field: float = 0, pitch: float = 0,
+                    element_edge: str | None = None):
     """
     Function to load data from i06-1 and i10-1 beamline XAS measurements
     """
@@ -58,6 +59,7 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
         'sample_name': sample_name,
         'temp': temp,
         'mag_field': mag_field,
+        'pitch': pitch,
         'element': element,
         'edge': edge,
         'energy': energy,
@@ -159,7 +161,7 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None) -> Spectra
             else:
                 raise ValueError(f'Unknown data fields: {list(nx_find(hdf, 'NXdata').keys())}')
 
-        # read Metadata
+        # read Metadata - currently only works for i06-1!
         beamline = nx_find_data(hdf, 'NXinstrument', 'name', default='?')
         pol = nx_find_data(hdf, 'NXinsertion_device', 'polarisation', default='?')
         temp = nx_find_data(hdf, '/entry/instrument/scm/T_sample', default=300)
@@ -220,6 +222,7 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name=None, element_edge=Non
             sample_name = m.eval(hdf, 'sample_name', '')
         temp = m.eval(hdf, Md.temp)
         mag_field = m.eval(hdf, Md.field_z)
+        pitch = m.eval(hdf, Md.rot)
     return create_xas_scan(
         name=str(scan_no),
         energy=energy,
@@ -236,6 +239,7 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name=None, element_edge=Non
         sample_name=sample_name,
         temp=temp,
         mag_field=mag_field,
+        pitch=pitch,
         element_edge=element_edge
     )
 

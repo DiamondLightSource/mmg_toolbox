@@ -13,7 +13,7 @@ class HdfMapXASMetadata:
     endstation = 'end_station|instrument_name'
     mode = '"tey"'  # currently grabs the last NXdata.mode, not the first
     temp = '(T_sample|itc3_device_sensor_temp|lakeshore336_cryostat|lakeshore336_sample?(300))'
-    rot = '(scmth|xabs_theta|ddiff_theta?(0))'
+    rot = '(scmth|xabs_theta|ddiff_theta|em_pitch|hfm_pitch?(0))'
     field = 'np.sqrt(field_x?(0)**2 + field_y?(0)**2 + field_z?(0)**2)'
     field_x = 'field_x?(0)'
     field_y = 'field_y?(0)'

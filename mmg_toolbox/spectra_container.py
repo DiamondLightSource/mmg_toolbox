@@ -36,6 +36,7 @@ class Metadata:
     sample_name: str = ''
     temp: float = 300
     mag_field: float = 0
+    pitch: float = 0  # 0 == sample surface normal to beam
 
     def __init__(self, **kwargs):
         for name, value in kwargs.items():
