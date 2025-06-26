@@ -96,7 +96,7 @@ class NexusDetectorImage:
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
-        # axis label
+        # axis mode
         var = ttk.Label(frm, textvariable=self.axis_name)
         var.pack(side=tk.LEFT)
         var = ttk.Label(frm, textvariable=self.axis_value)
@@ -232,7 +232,7 @@ class NexusDetectorImage:
         self.colorbar.update_normal(self.ax_image)
         self.toolbar.update()
         self.fig.canvas.draw()
-        # Load axis label
+        # Load axis mode
         self.axis_value.set(value)
         # Run additional callbacks
         for function in self.extra_plot_callbacks:

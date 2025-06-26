@@ -761,7 +761,7 @@ def calc_XMCD_Nexus(scanlist, sample_name, mode='TEY', bkg_type='', post_edge_no
 
             "plotting positive polarisation"
             ax0.plot(energy, y, label='%d' % scanno)
-            # ax0.plot(energy,y-background_fit,label='%d'%scanno)
+            # ax0.plot(energy,y-background_fit,mode='%d'%scanno)
             ax0.legend(loc=0, frameon=False)
             ax0.set_title('pol=%s' % (pol), fontsize=14)
 
@@ -771,7 +771,7 @@ def calc_XMCD_Nexus(scanlist, sample_name, mode='TEY', bkg_type='', post_edge_no
 
             "plotting positive polarisation"
             ax1.plot(energy, y, label='%d' % scanno)
-            # ax1.plot(energy,y-background_fit,label='%d'%scanno)
+            # ax1.plot(energy,y-background_fit,mode='%d'%scanno)
             # ax1.plot(energy,background_fit,'--',color='black')
             ax1.legend(loc=0, frameon=False)
             ax1.set_title('pol=%s' % (pol), fontsize=14)
@@ -1351,7 +1351,7 @@ def calc_XMLD_Nexus(scanlist, sample_name, mode='TEY', bkg_type='', post_edge_no
 
             "plotting positive polarisation"
             ax0.plot(energy, y, label='%d' % scanno)
-            # ax0.plot(energy,y-background_fit,label='%d'%scanno)
+            # ax0.plot(energy,y-background_fit,mode='%d'%scanno)
             ax0.legend(loc=0, frameon=False)
             ax0.set_title('pol=%s' % (pol), fontsize=14)
 
@@ -1361,7 +1361,7 @@ def calc_XMLD_Nexus(scanlist, sample_name, mode='TEY', bkg_type='', post_edge_no
 
             "plotting positive polarisation"
             ax1.plot(energy, y, label='%d' % scanno)
-            # ax1.plot(energy,y-background_fit,label='%d'%scanno)
+            # ax1.plot(energy,y-background_fit,mode='%d'%scanno)
             # ax1.plot(energy,background_fit,'--',color='black')
             ax1.legend(loc=0, frameon=False)
             ax1.set_title('pol=%s' % (pol), fontsize=14)
@@ -1972,7 +1972,7 @@ def calc_XMLD_arbitrary_Nexus(scanlist1, scanlist2, sample_name, mode='TEY', bkg
 
         "plotting positive polarisation"
         ax0.plot(energy, y, label='%d' % scanno)
-        # ax0.plot(energy,y-background_fit,label='%d'%scanno)
+        # ax0.plot(energy,y-background_fit,mode='%d'%scanno)
         ax0.legend(loc=0, frameon=False)
         ax0.set_title('rowphase1=%5.3f' % (rowphase1))
 
@@ -2076,7 +2076,7 @@ def calc_XMLD_arbitrary_Nexus(scanlist1, scanlist2, sample_name, mode='TEY', bkg
 
         "plotting positive polarisation"
         ax1.plot(energy, y, label='%d' % scanno)
-        # ax1.plot(energy,y-background_fit,label='%d'%scanno)
+        # ax1.plot(energy,y-background_fit,mode='%d'%scanno)
         # ax1.plot(energy,background_fit,'--',color='black')
         ax1.legend(loc=0, frameon=False)
         ax1.set_title('rowphase2=%5.3f' % (rowphase2))
@@ -2371,7 +2371,7 @@ def calc_XMLD_Hxy_Nexus(scanlist, sample_name, mode='TEY', bkg_type='', post_edg
 
             "plotting positive polarisation"
             ax0.plot(energy, y, label='%d' % scanno)
-            # ax0.plot(energy,y-background_fit,label='%d'%scanno)
+            # ax0.plot(energy,y-background_fit,mode='%d'%scanno)
             ax0.legend(loc=0, frameon=False)
             ax0.set_title('field=%s' % (field), fontsize=14)
 
@@ -2382,7 +2382,7 @@ def calc_XMLD_Hxy_Nexus(scanlist, sample_name, mode='TEY', bkg_type='', post_edg
 
             "plotting positive polarisation"
             ax1.plot(energy, y, label='%d' % scanno)
-            # ax1.plot(energy,y-background_fit,label='%d'%scanno)
+            # ax1.plot(energy,y-background_fit,mode='%d'%scanno)
             # ax1.plot(energy,background_fit,'--',color='black')
             ax1.legend(loc=0, frameon=False)
             ax1.set_title('field=%s' % (field), fontsize=14)

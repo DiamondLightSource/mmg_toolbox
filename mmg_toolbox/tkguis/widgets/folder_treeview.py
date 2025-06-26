@@ -43,7 +43,7 @@ class FolderTreeViewFrame:
             ("#0", 'Folder', 200, False, None),
             ("modified", 'Modified', 150, True, "modified_time"),
             ('modified_time', 'Modified', 0, False, None),
-            ("files", 'Files', 15, False, None),
+            ("files", 'Files', 30, False, None),
             ("data", 'Data', 200, False, None),
             ("filepath", 'File Path', 0, False, None),
         ]
@@ -270,9 +270,9 @@ class FolderTreeViewFrame:
         m_folder = tk.Menu(self.root, tearoff=0)
         m_folder.add_command(label="Copy path", command=self.copy_path)
         m_folder.add_command(label="Open Terminal", command=self.open_terminal)
-        # m_folder.add_command(label="Open Folder Datasets", command=self.menu_folder_files)
-        # m_folder.add_command(label="Open Folder Plots", command=self.menu_folder_plot)
-        # # m_folder.add_command(label="Display Contents", command=self.menu_folder_plot)
+        # m_folder.add_command(mode="Open Folder Datasets", command=self.menu_folder_files)
+        # m_folder.add_command(mode="Open Folder Plots", command=self.menu_folder_plot)
+        # # m_folder.add_command(mode="Display Contents", command=self.menu_folder_plot)
         m_folder.add_command(label="Display Summary", command=self.open_folder_summary)
         return m_folder
 
@@ -280,11 +280,11 @@ class FolderTreeViewFrame:
         # right-click menu - file options
         m_file = tk.Menu(self.root, tearoff=0)
         m_file.add_command(label="Copy path", command=self.copy_path)
-        # m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
-        # m_file.add_command(label="open Plot", command=self.open_nexus_plot)
-        # m_file.add_command(label="open Image", command=self.open_nexus_image)
-        # m_file.add_command(label="open Namespace", command=self.menu_namespace_gui)
-        # m_file.add_command(label="open Nexus Classes", command=self.menu_class_gui)
+        # m_file.add_command(mode="open Treeview", command=self.open_nexus_treeview)
+        # m_file.add_command(mode="open Plot", command=self.open_nexus_plot)
+        # m_file.add_command(mode="open Image", command=self.open_nexus_image)
+        # m_file.add_command(mode="open Namespace", command=self.menu_namespace_gui)
+        # m_file.add_command(mode="open Nexus Classes", command=self.menu_class_gui)
         return m_file
 
     def right_click_menu(self):
@@ -405,8 +405,8 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
         m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
         m_file.add_command(label="open Plot", command=self.open_nexus_plot)
         m_file.add_command(label="open Image", command=self.open_nexus_image)
-        # m_file.add_command(label="open Namespace", command=self.menu_namespace_gui)
-        # m_file.add_command(label="open Nexus Classes", command=self.menu_class_gui)
+        # m_file.add_command(mode="open Namespace", command=self.menu_namespace_gui)
+        # m_file.add_command(mode="open Nexus Classes", command=self.menu_class_gui)
         return m_file
 
     def on_double_click(self, event=None):

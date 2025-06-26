@@ -11,7 +11,7 @@ import numpy as np
 from hdfmap.eval_functions import dataset2str, dataset2data
 from PIL import Image
 
-from mmg_toolbox.misc_functions import consolidate_numeric_strings
+from mmg_toolbox.misc_functions import consolidate_numeric_strings, regex_number
 
 
 def list_files(folder_directory: str, extension='.nxs') -> list[str]:
@@ -175,3 +175,19 @@ def read_tiff(image_filename: str) -> np.ndarray:
     """Read a tiff image, returning numpy array"""
     image = Image.open(image_filename)
     return np.array(image)
+
+
+def get_scan_number(filename: str) -> int:
+    """Return scan number from scan filename"""
+    filename = os.path.basename(filename)
+    match = regex_number.search(filename)
+    if match:
+        return int(match[0])
+    return 0
+
+
+def replace_scan_number(filename: str, new_number: int) -> str:
+    """Replace scan number in filename"""
+    path, filename = os.path.split(filename)
+    new_filename = regex_number.sub(str(new_number), filename)
+    return os.path.join(path, new_filename)

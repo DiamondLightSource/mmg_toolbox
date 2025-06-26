@@ -162,7 +162,7 @@ class ImageViewer:
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
-        # axis label
+        # axis mode
         var = ttk.Label(frm, textvariable=self.axis_name)
         var.pack(side=tk.LEFT)
         var = ttk.Label(frm, textvariable=self.axis_value)
@@ -257,7 +257,7 @@ class ImageViewer:
         self.cb1.update_normal(self.ax1_image)
         self.toolbar.update()
         self.fig.canvas.draw()
-        # Load axis label
+        # Load axis mode
         value = get_hdf_array_value(
             hdf_filename=self.filepath.get(),
             address=self.axis_address.get(),

@@ -59,7 +59,7 @@ class NexusDetails:
         # right-click menu
         m = tk.Menu(frame, tearoff=0)
         m.add_command(label="edit Text", command=self.edit_expression)
-        # m.add_command(label="open Namespace", command=self.view_namespace)
+        # m.add_command(mode="open Namespace", command=self.view_namespace)
 
         def menu_popup(event):
             post_right_click_menu(m, event.x_root, event.y_root)

@@ -3,89 +3,117 @@ Example Script
 {{description}}
 """
 
-import sys, os
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-import hdfmap
-from mmg_toolbox.spectra_scan import SpectraScan, find_pol_pairs, is_nxxas
-from mmg_toolbox.nexus_writer import create_xmcd_nexus
+from mmg_toolbox.nxxas_loader import load_xas_scans
+from mmg_toolbox.spectra_container import average_polarised_scans
 
-hdfmap.set_all_logging_level('error')
 
 scan_files = [
     # {{filenames}}
     'file.nxs'
 ]
+output_folder = '{{output_path}}'
 
 # Load spectra from scans
-scans = [SpectraScan(file) for file in scan_files]
+scans = load_xas_scans(*scan_files)
 
 # Plot raw spectra
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[12, 6], dpi=100)
+fig, axes = plt.subplots(1, 2, figsize=(12, 6), dpi=80)
+fig.suptitle('raw scan files')
 for scan in scans:
-    print(scan, '\n')
-    scan.tey.plot(ax1)
-    scan.tfy.plot(ax2)
+    for n, (mode, spectra) in enumerate(scan.spectra.items()):
+        spectra.plot(ax=axes[n], label=scan.name)
+        axes[n].set_ylabel(mode)
 
-ax1.set_xlabel('E [eV]')
-ax1.set_ylabel('TEY / monitor')
-ax2.set_xlabel('E [eV]')
-ax2.set_ylabel('TFY / monitor')
-ax1.legend()
-ax2.legend()
+for ax in axes.flat:
+    ax.set_xlabel('E [eV]')
+    ax.legend()
 
-# Subtract background and normalise
-# background options: flat, norm, linear, curve, exp
-# normalisation option: .norm_to_jump(), .norm_to_peak()
-rem_bkg = [s.remove_background('flat').norm_to_jump() for s in scans]
-pairs = find_pol_pairs(*rem_bkg)
+print('Normalise by pre-edge')
+for scan in scans:
+    scan.divide_by_preedge()
+    print(scan)
 
-for pair in pairs:
-    # pair.create_figure()
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[12, 6], dpi=100)
-    fig.suptitle(pair.description)
+# plot scan normalised scan files
+fig, axes = plt.subplots(1, 2, figsize=(12, 6), dpi=80)
+fig.suptitle('Normalise by pre-edge')
+for scan in scans:
+    for n, (mode, spectra) in enumerate(scan.spectra.items()):
+        spectra.plot(ax=axes[n], label=scan.name)
+        axes[n].set_ylabel(mode)
 
-    pair.spectra1.tey.plot_parents(ax1)  # background subtracted spectra
-    pair.spectra2.tey.plot_parents(ax1)
-    pair.tey.plot(ax1)  # XMCD/XMLD
+for ax in axes.flat:
+    ax.set_xlabel('E [eV]')
+    ax.legend()
 
-    pair.spectra1.tey.plot_parents(ax2)
-    pair.spectra2.tey.plot_parents(ax2)
-    pair.tey.plot(ax2)
+print('Fit and subtract background')
+for scan in scans:
+    scan.auto_edge_background(peak_width_ev=3.)
+    print(scan)
+    new_filename = f"{os.path.splitext(scan.metadata.filename)[0]}_auto_edge_background.nxs"
+    scan.write_nexus(os.path.join(output_folder, new_filename))
 
-    ax1.set_xlabel('E [eV]')
-    ax1.set_ylabel('TEY / monitor')
-    ax2.set_xlabel('E [eV]')
-    ax2.set_ylabel('TFY / monitor')
-    ax1.legend()
-    ax2.legend()
+# Plot background subtracted scans
+for scan in scans:
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10), dpi=80)
+    fig.suptitle(scan.name)
+    for n, (mode, spectra) in enumerate(scan.spectra.items()):
+        spectra.plot_parents(ax=axes[0, n])
+        spectra.plot_bkg(ax=axes[0, n])
+        axes[0, n].set_ylabel(mode)
 
-# Average each polarisation of all scans
-pol1 = [pair.spectra1 for pair in pairs]
-pol2 = [pair.spectra2 for pair in pairs]
-av_pol1 = sum(pol1[1:], pol1[0])
-av_pol2 = sum(pol2[1:], pol2[0])
-diff = av_pol1 - av_pol2
-print(diff)
+        spectra.plot(ax=axes[1, n], label=scan.name)
+        axes[1, n].set_ylabel(mode)
 
-# diff.create_figure()
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[12, 6], dpi=100)
-fig.suptitle(diff.description)
+    for ax in axes.flat:
+        ax.set_xlabel('E [eV]')
+        ax.legend()
 
-diff.spectra1.tey.plot_parents(ax1)
-diff.spectra2.tey.plot_parents(ax1)
-diff.tey.plot(ax1)
+print('\n\nAverage polarised scans')
+# Scan polarisations
+for scan in scans:
+    print(f"{scan.name}: {scan.metadata.pol}")
+pol1, pol2 = average_polarised_scans(*scans)
+print(pol1)
+print(pol2)
 
-diff.spectra1.tey.plot_parents(ax2)
-diff.spectra2.tey.plot_parents(ax2)
-diff.tey.plot(ax2)
+# Plot averaged scans
+fig, axes = plt.subplots(1, 2, figsize=(12, 6), dpi=80)
+fig.suptitle('Averaged polarised scans')
+for scan in [pol1, pol2]:
+    for n, (mode, spectra) in enumerate(scan.spectra.items()):
+        spectra.plot(ax=axes[n], label=scan.name)
+        axes[n].set_ylabel(mode)
 
-ax1.set_xlabel('E [eV]')
-ax1.set_ylabel('TEY / monitor')
-ax2.set_xlabel('E [eV]')
-ax2.set_ylabel('TFY / monitor')
-ax1.legend()
-ax2.legend()
+for ax in axes.flat:
+    ax.set_xlabel('E [eV]')
+    ax.legend()
+
+
+print('\n\nCalculate XMCD')
+xmcd = pol1 - pol2
+print(xmcd)
+
+for name, spectra in xmcd.spectra.items():
+    print(spectra)
+    print(spectra.process)
+    print(spectra.sum_rules_report(1))
+
+# Save xmcd file
+xmcd_filename = f"{scans[0].metadata.scan_no}-{scans[-1].metadata.scan_no}_{xmcd.name}.nxs"
+xmcd.write_nexus(os.path.join(output_folder, xmcd_filename))
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 6), dpi=80)
+fig.suptitle(xmcd.name.upper())
+for n, (mode, spectra) in enumerate(xmcd.spectra.items()):
+    spectra.plot(ax=axes[n])
+    axes[n].set_ylabel(mode)
+
+for ax in axes.flat:
+    ax.set_xlabel('E [eV]')
+    ax.legend()
 
 plt.show()
