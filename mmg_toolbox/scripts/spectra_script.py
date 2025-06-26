@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 
 import hdfmap
 from mmg_toolbox.spectra_scan import SpectraScan, find_pol_pairs, is_nxxas
+from mmg_toolbox.nexus_writer import create_xmcd_nexus
+
 hdfmap.set_all_logging_level('error')
 
 scan_files = [

@@ -12,16 +12,20 @@ import h5py
 import hdfmap
 
 import mmg_toolbox.spectra_analysis as spa
+from .nexus_writer import create_xmcd_nexus
 from .data_scan import Scan, Process
 
 
 BACKGROUND_FUNCTIONS = {
     # description: (en, sig, *args, **kwargs) -> spectra, bkg
-    'flat': spa.subtract_flat_background,
-    'norm': spa.normalise_background,
-    'linear': spa.fit_linear_background,
-    'curve': spa.fit_curve_background,
-    'exp': spa.fit_exp_background,
+    'flat': spa.subtract_flat_background,  # ev_from_start
+    'norm': spa.normalise_background,  # ev_from_start
+    'linear': spa.fit_linear_background,  # ev_from_start
+    'curve': spa.fit_curve_background,  # ev_from_start
+    'exp': spa.fit_exp_background,  # ev_from_start, ev_from_end
+    'step': spa.fit_step_background,  # ev_from_start
+    'double_edge_step': spa.fit_double_edge_step_background,  # l3_energy, l2_energy, peak_width_ev
+    'poly_double_edge': spa.fit_poly_double_edge_step_background,  # l3_energy, l2_energy, peak_width_ev
 }
 
 
@@ -85,19 +89,54 @@ class Spectra:
         # subtract new spectra from this spectra
         return subtract_spectra(self, other)
 
+    def signal_at_energy(self, energy1: float, energy2: float | None = None) -> float:
+        """Return averaged signal between energy values"""
+        idx1 = np.argmin(np.abs(self.energy - energy1))
+        if energy2 is None:
+            idx2 = idx1 + 1
+        else:
+            idx2 = np.argmin(np.abs(self.energy - energy2))
+        return float(np.mean(self.signal[idx1:idx2]))
+
+    def divide_by_signal_at_energy(self, energy1: float, energy2: float | None = None) -> Spectra:
+        """Divide spectra by signal"""
+        value = self.signal_at_energy(energy1, energy2)
+        sig = self.signal / value
+        bkg = self.background / value if self.background is not None else None
+        proc = f'norm to {energy1:.0f} eV'
+        return Spectra(self.energy, sig, parents=[self], background=bkg, process=proc, label=self.label)
+
+    def divide_by_preedge(self, ev_from_start: float):
+        """Divide by average of signals at start"""
+        value = spa.preedge_signal(self.energy, self.signal, ev_from_start)
+        sig = self.signal / value
+        bkg = self.background / value if self.background is not None else None
+        proc = f'norm to pre-edge'
+        return Spectra(self.energy, sig, parents=[self], background=bkg, process=proc, label=self.label)
+
+    def divide_by_postedge(self, ev_from_end: float):
+        """Divide by average of signals at start"""
+        value = spa.postedge_signal(self.energy, self.signal, ev_from_end)
+        sig = self.signal / value
+        bkg = self.background / value if self.background is not None else None
+        proc = f'norm to post-edge'
+        return Spectra(self.energy, sig, parents=[self], background=bkg, process=proc, label=self.label)
+
     def remove_background(self, name='flat', *args, **kwargs) -> Spectra:
         sig, bkg = BACKGROUND_FUNCTIONS[name](self.energy, self.signal, *args, **kwargs)
-        return Spectra(self.energy, sig, parents=[self], background=bkg, process=name)
+        return Spectra(self.energy, sig, parents=[self], background=bkg, process=name, label=self.label)
 
     def norm_to_peak(self) -> Spectra:
         peak = self.signal_peak()
         bkg = self.background / peak if self.background is not None else None
-        return Spectra(self.energy, self.signal / peak, parents=[self], background=bkg, process='norm to peak')
+        return Spectra(self.energy, self.signal / peak,
+                       parents=[self], background=bkg, process='norm to peak', label=self.label)
 
     def norm_to_jump(self, ev_from_start=5., ev_from_end=None) -> Spectra:
         jump = abs(self.signal_jump(ev_from_start, ev_from_end))
         bkg = self.background / jump if self.background is not None else None
-        return Spectra(self.energy, self.signal / jump, parents=[self], background=bkg, process='norm to jump')
+        return Spectra(self.energy, self.signal / jump,
+                       parents=[self], background=bkg, process='norm to jump', label=self.label)
 
     def signal_peak(self) -> float:
         return np.max(abs(self.signal))
@@ -109,7 +148,7 @@ class Spectra:
         if ax is None:
             ax = plt.gca()
         if 'label' not in kwargs:
-            kwargs['label'] = self.label
+            kwargs['label'] = f"{self.label} {self.process}"
         return ax.plot(self.energy, self.signal, *args, **kwargs)
 
     def plot_bkg(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
@@ -118,7 +157,7 @@ class Spectra:
         if ax is None:
             ax = plt.gca()
         if 'label' not in kwargs:
-            kwargs['label'] = self.label + ' bkg'
+            kwargs['label'] = f"{self.label} {self.process} bkg"
         return ax.plot(self.energy, self.background, *args, **kwargs)
 
     def plot_parents(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
@@ -132,6 +171,40 @@ class Spectra:
                 kwargs['label'] = parent.label + label
                 pl += ax.plot(parent.energy, parent.signal, *args, **kwargs)
         return pl
+
+    def create_figure(self) -> plt.Figure:
+        """Create figure with spectra plot"""
+        fig, ax1 = plt.subplots(1, 1)
+        print(self.label)
+        self.plot_parents(ax1)
+        self.plot_bkg(ax1)
+        self.plot(ax1)
+
+        ax1.set_xlabel('E [eV]')
+        ax1.set_ylabel('signal')
+        ax1.legend()
+        return fig
+
+
+def xas_process(spectra: Spectra, ev_from_start=5., ev_from_end=None) -> Spectra:
+    """
+    1. interpolate energy, signals
+    2. divide by average of pre-edge signal
+    3. divide each signal by linear background of pre-edge, subtract 1
+    5. divide by average of pos-edge signal
+    6. create a step-function with steps at defined L2 and L3 position.
+    7. Subtract step-function from signal
+    """
+    # 1. interpolate - done beforehand
+    # 2. divide by pre-edge
+    spectra2 = spectra.divide_by_preedge(ev_from_start)
+    # 3. divide by pre-edge linear background
+    spectra3 = spectra2.remove_background('linear', ev_from_start=ev_from_start)
+    # 4. divide by post-edge
+    spectra4 = spectra3.divide_by_postedge(ev_from_end)
+    # 5. subtract double-step function
+
+
 
 
 def average_spectra(*spectra: Spectra) -> Spectra:
@@ -247,8 +320,8 @@ class SpectraScan(Scan, _SpectraContainer):
             'field_z': '(magnet_field|ips_demand_field|field_z?(0))',
         }
         Scan.__init__(self, filename, hdf_map, scan_names=scan_names, metadata_names=metadata_names)
-        if 'xas_entry' not in self.map.classes:
-            raise Exception(f"{self.filename} does not include NXSubEntry 'xas_entry'")
+        # if 'xas_entry' not in self.map.classes:
+        #     raise Exception(f"{self.filename} does not include NXSubEntry 'xas_entry'")
         tey_norm = self.scan_data['tey'] / self.scan_data['monitor']
         tfy_norm = self.scan_data['tfy'] / self.scan_data['monitor']
         pol = self.metadata.get('pol', '')
@@ -324,6 +397,18 @@ class SpectraDifference(SpectraProcess):
         ax2.set_ylabel('TFY / monitor')
         ax1.legend()
         ax2.legend()
+
+    def write_nexus(self, filename: str):
+        """Create nexus file"""
+        create_xmcd_nexus(
+            filename=filename,
+            scan_files=[],
+            energy=self.tey.energy,
+            pol1=self.spectra1.tey.signal,
+            pol2=self.spectra2.tey.signal,
+            xmcd=self.tey.signal,
+            details=f'TEY {self.description}'
+        )
 
 
 def find_pol_pairs(*scans: SpectraScan):

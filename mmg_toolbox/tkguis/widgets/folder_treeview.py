@@ -210,7 +210,7 @@ class FolderTreeViewFrame:
         var.pack(side=tk.LEFT)
         var = ttk.Label(frm, text=' | Extension: ')
         var.pack(side=tk.LEFT)
-        var = ttk.OptionMenu(frm, self.extension, None, *('.nxs', '.hdf', '.hdf5'))
+        var = ttk.OptionMenu(frm, self.extension, None, *('.nxs', '.hdf', '.hdf5', '.h5', ''))
         var.pack(side=tk.LEFT)
 
         def close():

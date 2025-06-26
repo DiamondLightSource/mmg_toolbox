@@ -6,7 +6,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
-from lmfit.models import LinearModel, QuadraticModel, ExponentialModel, StepModel
+from lmfit.models import LinearModel, QuadraticModel, ExponentialModel, StepModel, PolynomialModel
 from itertools import islice
 from collections import defaultdict
 
@@ -57,11 +57,21 @@ def average_energy_spectra(energy, *args: tuple[np.ndarray, np.ndarray]):
     return data.mean(axis=0)
 
 
+def preedge_signal(energy, signal, ev_from_start=5.) -> float:
+    """Return pre-edge signal"""
+    return np.mean(signal[energy < np.min(energy) + ev_from_start])
+
+
+def postedge_signal(energy, signal, ev_from_end=5.) -> float:
+    """Return post-edge signal"""
+    return np.mean(signal[energy > np.max(energy) - ev_from_end])
+
+
 def signal_jump(energy, signal, ev_from_start=5., ev_from_end=None) -> float:
     """Return signal jump from start to end"""
     ev_from_end = ev_from_end or ev_from_start
-    ini_signal = np.mean(signal[energy < np.min(energy) + ev_from_start])
-    fnl_signal = np.mean(signal[energy > np.max(energy) - ev_from_end])
+    ini_signal = preedge_signal(energy, signal, ev_from_start)
+    fnl_signal = postedge_signal(energy, signal, ev_from_end)
     return fnl_signal - ini_signal
 
 
@@ -116,6 +126,60 @@ def fit_exp_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, np
     return signal - bkg, bkg
 
 
+def fit_step_background(energy, signal, ev_from_start=5.)  -> tuple[np.ndarray, np.ndarray]:  # good?
+    """Use lmfit to detemine edge background"""
+    model = LinearModel(prefix='bkg_') + StepModel(form='arctan', prefix='edge_')
+    region = (energy < np.min(energy) + ev_from_start) + (energy > np.max(energy) - ev_from_start)
+    en_region = energy[region]
+    sig_region = signal[region]
+
+    guess_jump = signal_jump(energy, signal)
+    pars = model.make_params(
+        bkg_slope=0.0,
+        bkg_intercept=np.min(sig_region),
+        edge_amplitude=guess_jump,
+        edge_center=np.mean(energy),
+        edge_sigma=1.0,
+    )
+    # bkg_ini = model.eval(pars, x=energy)
+    fit_output = model.fit(sig_region, pars, x=en_region)
+    bkg = fit_output.eval(x=energy)
+    return (signal - bkg), bkg
+
+
+def fit_double_edge_step_background(energy, signal, l3_energy, l2_energy, peak_width_ev=5.) -> tuple[np.ndarray, np.ndarray]:
+    """Use lmfit to determine sloping background"""
+    model = StepModel(form='arctan', prefix='l3_') + StepModel(form='arctan', prefix='l2_')  # form='linear'
+    region = (
+            (energy < l3_energy - peak_width_ev / 2) +
+            np.logical_and(energy > l3_energy + peak_width_ev / 2, energy < l2_energy - peak_width_ev / 2) +
+            (energy > l2_energy + peak_width_ev / 2)
+    )
+    en_region = energy[region]
+    sig_region = signal[region]
+
+    guess_jump = signal_jump(energy, signal)
+    pars = model.make_params(
+        l3_amplitude=0.667 * guess_jump,
+        l3_center=l3_energy,
+        l3_sigma=2,
+        l2_amplitude=0.333 * guess_jump,
+        l2_center=l2_energy,
+        l2_sigma=2,
+    )
+    pars['l3_center'].set(min=l3_energy - 1.0, max=l3_energy + 1.0)
+    pars['l2_center'].set(min=l2_energy - 1.0, max=l2_energy + 1.0)
+    pars['l3_sigma'].set(min=1, max=5)
+    # pars['l2_sigma'].set(min=1, max=5)
+    pars['l2_sigma'].set(expr='l3_sigma')
+    pars['l3_amplitude'].set(min=0.6 * guess_jump, max=0.75 * guess_jump)
+    pars['l2_amplitude'].set(expr=f"{guess_jump}-l3_amplitude")
+    # bkg_ini = model.eval(pars, x=energy)
+    fit_output = model.fit(sig_region, pars, x=en_region)
+    bkg = fit_output.eval(x=energy)
+    return (signal - bkg), bkg
+
+
 def fit_exp_step(energy, signal, ev_from_start=5., ev_from_end=5.) -> tuple[np.ndarray, np.ndarray]:  # good?
     """Use lmfit to determine sloping background"""
     model = ExponentialModel(prefix='bkg_') + StepModel(form='arctan', prefix='jmp_')  # form='linear'
@@ -136,6 +200,47 @@ def fit_exp_step(energy, signal, ev_from_start=5., ev_from_end=5.) -> tuple[np.n
     jump = fit_output.params['jmp_amplitude']
     # print('fit_exp_step:\n', fit_output.fit_report())
     # print(jump)
+    return (signal - bkg) / jump, bkg / jump
+
+
+def fit_poly_double_edge_step_background(energy, signal, l3_energy, l2_energy, peak_width_ev=5.) -> tuple[np.ndarray, np.ndarray]:
+    """Use lmfit to determine sloping background"""
+    model = (
+            PolynomialModel(degree=2, prefix='bkg_') +
+            StepModel(form='arctan', prefix='l3_') +
+            StepModel(form='arctan', prefix='l2_')
+    )
+    region = (
+            (energy < l3_energy - peak_width_ev / 2) +
+            np.logical_and(energy > l3_energy + peak_width_ev / 2, energy < l2_energy - peak_width_ev / 2) +
+            (energy > l2_energy + peak_width_ev / 2)
+    )
+    en_region = energy[region]
+    sig_region = signal[region]
+
+    guess_jump = signal_jump(energy, signal)
+    pars = model.make_params(
+        bkg_c0=np.min(sig_region),
+        bkg_c1=0,
+        bkg_c2=0,
+        l3_amplitude=0.667 * guess_jump,
+        l3_center=l3_energy,
+        l3_sigma=2,
+        l2_amplitude=0.333 * guess_jump,
+        l2_center=l2_energy,
+        l2_sigma=2,
+    )
+    pars['l3_center'].set(min=l3_energy - 2.0, max=l3_energy + 2.0)
+    pars['l2_center'].set(min=l2_energy - 2.0, max=l2_energy + 2.0)
+    pars['l3_sigma'].set(min=1, max=5)
+    # pars['l2_sigma'].set(min=1, max=5)
+    pars['l2_sigma'].set(expr='l3_sigma')
+    pars['l3_amplitude'].set(min=0.6 * guess_jump, max=0.75 * guess_jump)
+    pars['l2_amplitude'].set(expr=f"{guess_jump}-l3_amplitude")
+    # bkg_ini = model.eval(pars, x=energy)
+    fit_output = model.fit(sig_region, pars, x=en_region)
+    bkg = fit_output.eval(x=energy)
+    jump = fit_output.params['l3_amplitude'] + fit_output.params['l2_amplitude']
     return (signal - bkg) / jump, bkg / jump
 
 
