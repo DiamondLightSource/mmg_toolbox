@@ -44,6 +44,9 @@ class NexusDefaultPlot(SimplePlot):
         self.axes_x = tk.StringVar(self.root, 'axes')
         self.axes_y = tk.StringVar(self.root, 'signal')
         self.normalise = tk.BooleanVar(self.root, False)
+        self.fix_x = tk.BooleanVar(self.root, False)
+        self.fix_y = tk.BooleanVar(self.root, False)
+        self.error_message = tk.StringVar(self.root, '')
 
         self.combo_x, self.combo_y = self.ini_axes_select()
 
@@ -58,6 +61,12 @@ class NexusDefaultPlot(SimplePlot):
         self.line = self.plot_list[0]
         if hdf_filename:
             self.update_data_from_file(hdf_filename)
+
+    def _clear_error(self):
+        self.error_message.set('')
+
+    def _set_error(self, msg: str):
+        self.error_message.set(msg)
 
     def ini_axes_select(self):
         selection_x = tk.StringVar(self.root, 'axes')
@@ -80,48 +89,64 @@ class NexusDefaultPlot(SimplePlot):
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
         var = ttk.Label(frm, text='X Axes:', width=10)
         var.pack(side=tk.LEFT)
+        combo_x = ttk.Combobox(frm, values=axes_options,
+                               textvariable=selection_x, width=20)
+        combo_x.pack(side=tk.LEFT)
+        combo_x.bind('<<ComboboxSelected>>', select_x)
         var = ttk.Entry(frm, textvariable=self.axes_x, width=30)
         var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
-        combo_x = ttk.Combobox(frm, values=axes_options,
-                               textvariable=selection_x, width=20)
-        combo_x.pack(side=tk.LEFT)
-        combo_x.bind('<<ComboboxSelected>>', select_x)
+        var = ttk.Checkbutton(frm, text='Fix', variable=self.fix_x)
+        var.pack(side=tk.LEFT)
 
         frm = ttk.Frame(section)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
         var = ttk.Label(frm, text='Y Axes:', width=10)
         var.pack(side=tk.LEFT)
+        combo_y = ttk.Combobox(frm, values=signal_options,
+                               textvariable=selection_y, width=20)
+        combo_y.pack(side=tk.LEFT)
+        combo_y.bind('<<ComboboxSelected>>', select_y)
         var = ttk.Entry(frm, textvariable=self.axes_y, width=30)
         var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
-        combo_y = ttk.Combobox(frm, values=signal_options,
-                                    textvariable=selection_y, width=20)
-        combo_y.pack(side=tk.LEFT)
-        combo_y.bind('<<ComboboxSelected>>', select_y)
+        var = ttk.Checkbutton(frm, text='Fix', variable=self.fix_y)
+        var.pack(side=tk.LEFT)
         var = ttk.Checkbutton(frm, text='Normalise', variable=self.normalise, command=self.normalise_signal)
         var.pack(side=tk.LEFT)
+
+        frm = ttk.Frame(section)
+        frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        ttk.Label(frm, textvariable=self.error_message, style='error.TLabel').pack()
         return combo_x, combo_y
 
     def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
+        self._clear_error()
         self.filename = filename
         self.map = create_nexus_map(self.filename) if hdf_map is None else hdf_map
         with hdfmap.load_hdf(self.filename) as hdf:
             self.update_data(hdf)
+        if 'data' not in self.data:
+            self._set_error('error loading plot data')
+            return
         self.combo_x['values'] = list(self.data['data'].keys())
         self.combo_y['values'] = list(reversed(self.data['data'].keys()))
-        if self.axes_x.get() not in self.combo_x['values']:
+        if not self.fix_x.get():
             self.axes_x.set(self.data['xlabel'])
-        if self.axes_y.get() not in self.combo_y['values']:
+        if not self.fix_y.get():
             self.axes_y.set(self.data['ylabel'])
         self.update_axis_choice()
 
     def update_data(self, hdf: h5py.File):
-        self.data = self.map.get_plot_data(hdf)
+        try:
+            self.data = self.map.get_plot_data(hdf)
+        except Exception as exc:
+            self._set_error(f"Error loading plot data: {exc}")
+            raise exc
 
     def normalise_signal(self, event=None):
         signal = self.axes_y.get()

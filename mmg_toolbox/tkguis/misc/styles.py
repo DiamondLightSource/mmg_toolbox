@@ -40,7 +40,8 @@ def extra_styles(style: ttk.Style):
     Add additional styles to use on individual ttk components
     """
     # style.configure("Red.TLabel", foreground='red', font='TkDefaultFont 24 bold')
-    style.configure("Red.TLabel", foreground='red', font='times 24 bold')
+    style.configure("title.TLabel", foreground='red', font='times 24 bold')
+    style.configure("error.TLabel", foreground='red')
 
 
 def use_theme(style: ttk.Style, theme_name: str):

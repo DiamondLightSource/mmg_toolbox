@@ -32,7 +32,7 @@ class ConfigEditor:
 
         frm = ttk.Frame(self.window)
         frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
-        var = ttk.Label(frm, text='Edit Config. Parameters', style="Red.TLabel")
+        var = ttk.Label(frm, text='Edit Config. Parameters', style="title.TLabel")
         var.pack(expand=tk.YES, fill=tk.X, padx=10, pady=10)
 
         # parameter entry boxes
