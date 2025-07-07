@@ -25,7 +25,7 @@ class NexusScanDetailsPlot:
         self.map = None
         self.config = get_config() if config is None else config
 
-        window = tk.Frame(self.root)
+        window = ttk.Frame(self.root)
         window.pack()
         frm = ttk.LabelFrame(window, text='Files', width=50)
         # frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)

@@ -69,8 +69,12 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     if figure_dpi is None:
         figure_dpi = FIGURE_DPI
 
+    # get the current background
+    style = ttk.Style()
+    bg = style.lookup('.', 'background')
+
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
-    fig.patch.set_facecolor('w')
+    fig.patch.set_facecolor(bg)
     # fig.subplots_adjust(left=0.2, bottom=0.2)
     # Amplitude
     ax1 = fig.add_subplot(111)
@@ -89,7 +93,7 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=5, pady=2)
 
     # Toolbar
-    frm2 = tk.Frame(frm)
+    frm2 = ttk.Frame(frm)
     frm2.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=5, pady=2)
     # toolbar = NavigationToolbar2Tk(canvas, frm)
     toolbar = CustomToolbar(canvas, frm2)
@@ -105,8 +109,12 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
     if figure_dpi is None:
         figure_dpi = FIGURE_DPI
 
+    # get the current background
+    style = ttk.Style()
+    bg = style.lookup('.', 'background')
+
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
-    fig.patch.set_facecolor('w')
+    fig.patch.set_facecolor(bg)
 
     ax1 = fig.add_subplot(111)
     # zeros = np.array([[0 for n in range(10)] for m in range(10)])
@@ -121,15 +129,16 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
     cb1 = fig.colorbar(ax1_image, ax=ax1)
     ax1.axis('image')
 
-    frm = tk.Frame(frame)
+    frm = ttk.Frame(frame)
     frm.pack(expand=tk.YES, fill=tk.BOTH, pady=2, padx=5)
+    # frm.configure(bg=bg)
     canvas = FigureCanvasTkAgg(fig, frm)
-    canvas.get_tk_widget().configure(bg='black')
+    # canvas.get_tk_widget().configure(bg=bg)
     canvas.draw()
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=5, pady=2)
 
     # Toolbar
-    frm2 = tk.Frame(frm)
+    frm2 = ttk.Frame(frm)
     frm2.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=5, pady=2)
     # toolbar = NavigationToolbar2Tk(canvas, frm)
     toolbar = CustomToolbar(canvas, frm2)

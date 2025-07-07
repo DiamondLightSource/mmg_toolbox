@@ -71,7 +71,7 @@ class NexusDetails:
         frm = ttk.Frame(frame)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
 
-        tfrm = tk.Frame(frm, relief=tk.RIDGE)
+        tfrm = ttk.Frame(frm, relief=tk.RIDGE)
         tfrm.pack(side=tk.TOP, fill=tk.BOTH)
 
         terminal = tk.Text(tfrm, state=tk.DISABLED, wrap=tk.NONE, height=3, width=TEXTWIDTH)
@@ -82,7 +82,7 @@ class NexusDetails:
         var.config(command=terminal.yview)
         terminal.configure(yscrollcommand=var.set)
 
-        efrm = tk.Frame(frm, relief=tk.GROOVE)
+        efrm = ttk.Frame(frm, relief=tk.GROOVE)
         efrm.pack(side=tk.TOP, fill=tk.BOTH)
 
         var = ttk.Label(efrm, text='>>')

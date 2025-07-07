@@ -177,7 +177,7 @@ class PythonEditorFrame:
     Editable textbox with numbers at side and key bindings for Python
     """
 
-    def __init__(self, root: tk.Frame, script_string=None):
+    def __init__(self, root: tk.Misc, script_string=None):
 
         # Variables
         self.script_string = script_string or default_script()
@@ -385,7 +385,7 @@ class PythonTerminalFrame:
     UNFINISHED
     """
 
-    def __init__(self, root: tk.Frame):
+    def __init__(self, root: tk.Misc):
 
         txt = ttk.Frame(root)
         txt.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)

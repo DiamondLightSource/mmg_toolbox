@@ -89,6 +89,9 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
         style = create_style(root)
         root.style = style
 
+    # Fix background (on windows)
+    root.configure(bg=root.style.lookup('.', 'background'))
+
     root.wm_title(window_title)
     # self.root.minsize(width=640, height=480)
     # root.maxsize(width=root.winfo_screenwidth() * 3 // 4, height=root.winfo_screenheight() * 3 // 4)
