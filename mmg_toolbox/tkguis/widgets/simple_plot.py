@@ -15,9 +15,15 @@ class SimplePlot:
     """
 
     def __init__(self, root: tk.Misc, xdata: list[float], ydata: list[float],
-                 xlabel: str = '', ylabel: str = '', title: str = ''):
+                 xlabel: str = '', ylabel: str = '', title: str = '', config: dict | None = None):
         self.root = root
-        self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(self.root)
+        self.config = config or {}
+
+        self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(
+            frame=self.root,
+            figure_size=self.config.get('figure_size'),
+            figure_dpi=self.config.get('figure_dpi'),
+        )
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
         self.ax1.set_title(title)

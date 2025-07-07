@@ -84,8 +84,6 @@ class NexusScanDetailsPlot:
                 self.image_widget.view_index.set(index)
                 self.image_widget.update_image()
                 self.image_frame.pack(side=tk.TOP, fill=tk.X)
-                print(f"image frame: {self.image_frame.master.winfo_reqwidth()}x{self.image_frame.master.winfo_reqheight()}")
-                print(f"image fig: {self.image_widget.fig.get_size_inches()}")
             else:
                 self.image_frame.pack_forget()
                 self.index_line.set_data([], [])

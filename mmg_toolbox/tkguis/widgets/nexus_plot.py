@@ -53,7 +53,8 @@ class NexusDefaultPlot(SimplePlot):
             ydata=[],
             xlabel=self.axes_x.get(),
             ylabel=self.axes_y.get(),
-            title=''
+            title='',
+            config=config
         )
         self.line = self.plot_list[0]
         if hdf_filename:

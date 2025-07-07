@@ -26,6 +26,7 @@ class FolderTreeViewFrame:
         self.search_time = time.time()
         self.search_reset = 3.0  # seconds
         self._prev_folder = ''
+        self.extensions = (extension, '.*')
 
         # Variables
         self.filepath = tk.StringVar(root, os.path.expanduser('~'))
@@ -33,9 +34,7 @@ class FolderTreeViewFrame:
         self.hdf_path = tk.StringVar(root, '')
         self.show_hidden = tk.BooleanVar(root, False)
         self.read_datasets = tk.BooleanVar(root, True)
-        self.search_box = tk.StringVar(root, '')
-        self.search_matchcase = tk.BooleanVar(root, False)
-        self.search_wholeword = tk.BooleanVar(root, True)
+        self.search_label = tk.StringVar(root, '')
 
         # Columns
         self.columns = [
@@ -54,8 +53,15 @@ class FolderTreeViewFrame:
         self.tree.configure(displaycolumns=('modified', 'files', 'data'))  # hide columns
         self.tree.bind("<<TreeviewOpen>>", self.populate_files)
         self.tree.bind("<Double-1>", self.on_double_click)
+        self.tree.bind("<Return>", self.on_double_click)
+        self.tree.bind("<KP_Enter>", self.on_double_click)
         self.tree.bind('<KeyPress>', self.on_key_press)
         self.tree.bind("<Button-3>", self.right_click_menu())
+
+        # search label
+        frm = ttk.Frame(self.root)
+        frm.pack(fill=tk.X, side=tk.TOP)
+        ttk.Label(frm, textvariable=self.search_label, style='smallMsg.TLabel').pack()
 
         # Populate
         if initial_directory:
@@ -78,15 +84,15 @@ class FolderTreeViewFrame:
         var.pack(side=tk.LEFT)
         var = ttk.Button(frm, text=u'\u2191', command=self.up_folder, width=3)
         var.pack(side=tk.LEFT)
-        var = ttk.Entry(frm, textvariable=self.filepath)
+        var = ttk.Entry(frm, textvariable=self.filepath, width=30)
         var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
         var.bind('<Return>', self.populate_folders)
         var.bind('<KP_Enter>', self.populate_folders)
 
-        var = ttk.Checkbutton(frm, text='Show hidden', variable=self.show_hidden, command=self.populate_folders)
-        var.pack(side=tk.LEFT)
+        # var = ttk.Checkbutton(frm, text='Show hidden', variable=self.show_hidden, command=self.populate_folders)
+        # var.pack(side=tk.LEFT)
 
-        var = ttk.Button(frm, text='Nexus Files', command=self.nexus_file_options)
+        var = ttk.Button(frm, text='Options', command=self.file_options)
         var.pack(side=tk.RIGHT)
         var = ttk.Button(frm, text='Search', command=self.search_options)
         var.pack(side=tk.RIGHT)
@@ -94,6 +100,10 @@ class FolderTreeViewFrame:
     "======================================================"
     "=============== populate functions ==================="
     "======================================================"
+
+    def _get_extension(self):
+        extension = self.extension.get()
+        return '' if extension.lower() in ['.*', 'any'] else extension
 
     def set_folder(self, folder_path: str):
         self.filepath.set(folder_path)
@@ -118,7 +128,7 @@ class FolderTreeViewFrame:
     def update_folder_nfiles(self, event=None):
         """Update the number of files in each directory, as a seperate process"""
 
-        extension = self.extension.get()
+        extension = self._get_extension()
 
         def fun():
             for branch in self.tree.get_children():  # folders
@@ -147,7 +157,7 @@ class FolderTreeViewFrame:
             self.tree.delete(*self.tree.get_children(item))
             # add hdf files
             path = self.tree.set(item, 'filepath')
-            files = list_files(path, self.extension.get())
+            files = list_files(path, self._get_extension())
             start_time = time.time()
             for file in files:
                 timestamp = os.stat(file).st_mtime
@@ -191,44 +201,57 @@ class FolderTreeViewFrame:
     "================= button functions ==================="
     "======================================================"
 
-    def nexus_file_options(self):
+    def file_options(self):
         window, fun_close = create_hover(self.root)
 
-        frm = ttk.Frame(window, borderwidth=10)
+        frm = ttk.Frame(window, borderwidth=2)
         frm.pack(side=tk.TOP, fill=tk.BOTH)
+        ttk.Label(frm, text='Extension: ').pack(side=tk.LEFT)
+        ttk.OptionMenu(frm, self.extension, self.extension.get(), *self.extensions).pack(side=tk.LEFT)
 
-        var = ttk.Button(frm, text='NeXus Dataset Path', command=self.select_dataset)
-        var.pack(side=tk.LEFT)
-        var = ttk.Entry(frm, textvariable=self.hdf_path)
-        var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-        var.bind('<Return>', self.update_datasets)
-        var.bind('<KP_Enter>', self.update_datasets)
-
-        frm = ttk.Frame(window, borderwidth=10)
+        frm = ttk.Frame(window, borderwidth=2)
         frm.pack(side=tk.TOP, fill=tk.BOTH)
-        var = ttk.Checkbutton(frm, text='Read dataset', variable=self.read_datasets)
-        var.pack(side=tk.LEFT)
-        var = ttk.Label(frm, text=' | Extension: ')
-        var.pack(side=tk.LEFT)
-        var = ttk.OptionMenu(frm, self.extension, None, *('.nxs', '.hdf', '.hdf5', '.h5', ''))
-        var.pack(side=tk.LEFT)
-
+        ttk.Checkbutton(
+            frm, text='Show hidden files', variable=self.show_hidden, command=self.populate_folders
+        ).pack(side=tk.LEFT)
+        
         def close():
             self.update_datasets()
             fun_close()
 
-        frm = ttk.Frame(window, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        var = ttk.Button(frm, text='Close', command=close)
-        var.pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
-
-    def select_dataset(self):
-        filename, foldername = self.get_filepath()
-        if filename:
-            print(filename)
+        frm = ttk.Frame(window, borderwidth=10)
+        frm.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        ttk.Button(frm, text='Close', command=close).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        
+        return window
 
     def search_options(self):
-        pass
+        window, fun_close = create_hover(self.root)
+
+        file_search = tk.StringVar(window, '')
+        match_case = tk.BooleanVar(window, False)
+        whole_word = tk.BooleanVar(window, False)
+
+        frm = ttk.Frame(window, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        ttk.Label(frm, text='Filename: ').pack(side=tk.LEFT)
+        ttk.Entry(frm, textvariable=file_search, width=20).pack(side=tk.LEFT)
+        ttk.Checkbutton(frm, text='Match case: ', variable=match_case).pack(side=tk.LEFT)
+        ttk.Checkbutton(frm, text='Whole word: ', variable=whole_word).pack(side=tk.LEFT)
+
+        def search():
+            self._search(
+                query=file_search.get(),
+                match_case=match_case.get(),
+                whole_word=whole_word.get(),
+            )
+
+        frm = ttk.Frame(window, borderwidth=10)
+        frm.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        ttk.Button(frm, text='Search', command=search).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES, padx=5)
+        ttk.Button(frm, text='Close', command=fun_close).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+
+        return window
 
     "======================================================"
     "================ general functions ==================="
@@ -320,10 +343,12 @@ class FolderTreeViewFrame:
         # reset search str after reset time
         ctime = time.time()
         if ctime > self.search_time + self.search_reset:
+            self.search_label.set('')
             self.search_str = ""
         # update search time, add key to query
         self.search_time = ctime
         self.search_str += event.char
+        self.search_label.set(self.search_str)
 
         self.tree.selection_remove(self.tree.selection())
         # search folder list
@@ -357,7 +382,8 @@ class FolderTreeViewFrame:
         filename, foldername = self.get_filepath()
         logger.info(f"Opening nexus image viewer for filename: {filename}")
         if filename:
-            pass
+            from ..main import create_nexus_image_plotter
+            create_nexus_image_plotter(filename, parent=self.root)
 
     def open_folder_summary(self):
         filename, foldername = self.get_filepath()
@@ -371,13 +397,8 @@ class FolderTreeViewFrame:
     "================= misc functions ====================="
     "======================================================"
 
-    def fun_search(self, event=None):
-        self.tree.selection_remove(self.tree.selection())
-        query = self.search_box.get()
-        match_case = self.search_matchcase.get()
-        whole_word = self.search_wholeword.get()
-        query = query if match_case else query.lower()
-
+    def _search(self, query: str, match_case: bool = False, whole_word: bool = False,
+                file_only: bool = False, data_only: bool = False):
         for branch in self.tree.get_children():  # folders
             # folder = self.tree.item(branch)['text']
             for leaf in self.tree.get_children(branch):  # files
@@ -385,8 +406,13 @@ class FolderTreeViewFrame:
                 if len(item['values']) < 3:
                     continue
                 file = item['text']
-                value = item['values'][2]
-                test = f"{file} {value}"
+                value = self.tree.set(leaf, 'data')
+                if file_only:
+                    test = file
+                elif data_only:
+                    test = value
+                else:
+                    test = f"{file} {value}"
                 test = test if match_case else test.lower()
                 test = test.split() if whole_word else test
                 if query in test:
@@ -398,6 +424,7 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
     def __init__(self, root: tk.Misc, initial_directory: str | None = None):
         logger.info('Creating NexusFolderTreeViewFrame')
         super().__init__('.nxs', root, initial_directory)
+        self.extensions = ('.nxs', '.hdf', '.hdf5', '.h5', '.*')
 
     def _right_click_file(self) -> tk.Menu:
         # right-click menu - file options
@@ -442,6 +469,112 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
         th = Thread(target=fn)
         th.start()  # will run until complete, may error if TreeView is destroyed
 
+    def file_options(self):
+        from hdfmap import create_nexus_map
+        window = super().file_options()
+
+        filename, foldername = self.get_filepath()
+        hdf_filename = tk.StringVar(window, filename if filename else '')
+        dataset_name = tk.StringVar(window, '')
+
+        def get_hdf_path(event):
+            _filename = hdf_filename.get()
+            _name = dataset_name.get()
+            if _filename and _name:
+                nexus_map = create_nexus_map(filename)
+                self.hdf_path.set(
+                    nexus_map.get_path(_name)
+                )
+
+        sec = ttk.LabelFrame(window, text='NeXus Files')
+        sec.pack(side=tk.TOP, fill=tk.BOTH)
+
+        frm = ttk.Frame(sec, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        ttk.Checkbutton(
+            frm, text='Read dataset', variable=self.read_datasets
+        ).pack(side=tk.LEFT)
+
+        frm = ttk.Frame(sec, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        ttk.Label(frm, text='File:', width=12).pack(side=tk.LEFT)
+        var = ttk.Entry(frm, textvariable=hdf_filename)
+        var.pack(side=tk.LEFT)
+        var.bind('<Return>', get_hdf_path)
+        var.bind('<KP_Enter>', get_hdf_path)
+
+        frm = ttk.Frame(sec, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        ttk.Label(frm, text='Name:', width=12).pack(side=tk.LEFT)
+        var = ttk.Entry(frm, textvariable=dataset_name)
+        var.pack(side=tk.LEFT)
+        var.bind('<Return>', get_hdf_path)
+        var.bind('<KP_Enter>', get_hdf_path)
+
+        frm = ttk.Frame(sec, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        # ttk.Button(frm, text='NeXus Dataset Path', command=self.select_dataset).pack(side=tk.LEFT)
+        ttk.Label(frm, text='Path:', width=12).pack(side=tk.LEFT)
+        var = ttk.Entry(frm, textvariable=self.hdf_path)
+        var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+        var.bind('<Return>', self.update_datasets)
+        var.bind('<KP_Enter>', self.update_datasets)
+
+    def search_options(self):
+        window, fun_close = create_hover(self.root)
+
+        file_search = tk.StringVar(window, '')
+        match_case = tk.BooleanVar(window, False)
+        whole_word = tk.BooleanVar(window, False)
+
+        dataset_search = tk.StringVar(window, '')
+        ds_match_case = tk.BooleanVar(window, False)
+        ds_whole_word = tk.BooleanVar(window, False)
+
+        frm = ttk.Frame(window, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        ttk.Label(frm, text='Filename: ', width=12).pack(side=tk.LEFT)
+        ttk.Entry(frm, textvariable=file_search, width=20).pack(side=tk.LEFT)
+        ttk.Checkbutton(frm, text='Match case: ', variable=match_case).pack(side=tk.LEFT)
+        ttk.Checkbutton(frm, text='Whole word: ', variable=whole_word).pack(side=tk.LEFT)
+
+        sec = ttk.LabelFrame(window, text='NeXus', borderwidth=4)
+        sec.pack(side=tk.TOP, fill=tk.BOTH)
+
+        frm = ttk.Frame(sec, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        ttk.Label(frm, text='Dataset: ', textvariable=self.hdf_path).pack(side=tk.LEFT)
+
+        frm = ttk.Frame(sec, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        ttk.Label(frm, text='Search: ', width=12).pack(side=tk.LEFT)
+        ttk.Entry(frm, textvariable=dataset_search, width=20).pack(side=tk.LEFT)
+        ttk.Checkbutton(frm, text='Match case: ', variable=ds_match_case).pack(side=tk.LEFT)
+        ttk.Checkbutton(frm, text='Whole word: ', variable=ds_whole_word).pack(side=tk.LEFT)
+
+        def search():
+            self._search(
+                query=file_search.get(),
+                match_case=match_case.get(),
+                whole_word=whole_word.get(),
+                file_only=True,
+            )
+
+        def ds_search():
+            self._search(
+                query=dataset_search.get(),
+                match_case=ds_match_case.get(),
+                whole_word=ds_whole_word.get(),
+                data_only=True,
+            )
+
+        frm = ttk.Frame(window, borderwidth=10)
+        frm.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        ttk.Button(frm, text='Dataset\nSearch', command=ds_search).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES, padx=5)
+        ttk.Button(frm, text='Search', command=search).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES, padx=5)
+        ttk.Button(frm, text='Close', command=fun_close).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+
+        return window
 
 class JupyterFolderTreeViewFrame(FolderTreeViewFrame):
     def __init__(self, root: tk.Misc, initial_directory: str | None = None):
@@ -476,3 +609,5 @@ class JupyterFolderTreeViewFrame(FolderTreeViewFrame):
             else:
                 # generate html in TMP
                 view_notebook_html(filename)
+
+
