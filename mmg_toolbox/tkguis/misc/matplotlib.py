@@ -15,7 +15,8 @@ from .styles import create_root
 # parameters
 FIGURE_SIZE = (6, 5)
 IMAGE_SIZE = (6, 4)
-FIGURE_DPI = 80
+FIGURE_DPI = 60
+SMALL_FIGURE_DPI = 40
 COLORMAPS = ['viridis', 'Spectral', 'plasma', 'inferno', 'Greys', 'Blues', 'winter', 'autumn',
              'hot', 'hot_r', 'hsv', 'rainbow', 'jet', 'twilight', 'hsv']
 DEFAULT_COLORMAP = 'twilight'
@@ -60,9 +61,14 @@ class CustomToolbar(NavigationToolbar2Tk):
         NavigationToolbar2Tk.__init__(self, canvas_, parent_)
 
 
-def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] = FIGURE_SIZE,
-             figure_dpi: int = FIGURE_DPI) -> tuple[Figure, Axes, list[Line2D], NavigationToolbar2Tk]:
+def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
+             figure_dpi: int | None = None) -> tuple[Figure, Axes, list[Line2D], NavigationToolbar2Tk]:
     """Create a lineplot on a tk canvas with toolbar"""
+    if figure_size is None:
+        figure_size = FIGURE_SIZE
+    if figure_dpi is None:
+        figure_dpi = FIGURE_DPI
+
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
     fig.patch.set_facecolor('w')
     # fig.subplots_adjust(left=0.2, bottom=0.2)
@@ -92,8 +98,13 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] = FIGURE_SIZE,
     return fig, ax1, plot_list, toolbar
 
 
-def ini_image(frame, figure_size=IMAGE_SIZE, figure_dpi=FIGURE_DPI):
+def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure_dpi: int | None = None):
     """Create an image plot on a tk canvas with toolbar"""
+    if figure_size is None:
+        figure_size = IMAGE_SIZE
+    if figure_dpi is None:
+        figure_dpi = FIGURE_DPI
+
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
     fig.patch.set_facecolor('w')
 

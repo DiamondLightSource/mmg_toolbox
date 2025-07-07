@@ -51,7 +51,11 @@ class NexusDetectorImage:
 
         frm = ttk.Frame(section)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
-        self.fig, self.ax, self.ax_image, self.colorbar, self.toolbar = ini_image(frm)
+        self.fig, self.ax, self.ax_image, self.colorbar, self.toolbar = ini_image(
+            frame=self.root,
+            figure_size=self.config.get('image_size'),
+            figure_dpi=self.config.get('figure_dpi'),
+        )
         self.ax.set_xlabel(None)
         self.ax.set_ylabel(None)
 

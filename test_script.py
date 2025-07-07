@@ -8,7 +8,7 @@ from mmg_toolbox.tkguis.misc.styles import create_root
 # # from mmg_toolbox.tkguis.widgets.folder_treeview import NexusFolderTreeViewFrame
 # from mmg_toolbox.tkguis.widgets.nexus_treeview import HDFViewer
 # from mmg_toolbox.tkguis.widgets.simple_plot import NexusDefaultPlot
-from mmg_toolbox.tkguis import create_file_browser
+from mmg_toolbox.tkguis import create_nexus_file_browser
 from mmg_toolbox.tkguis.widgets.scan_selector import FolderScanSelector
 # from mmg_toolbox.tkguis.widgets.nexus_details import NexusDetails
 from mmg_toolbox.tkguis.widgets.nexus_image import NexusDetectorImage

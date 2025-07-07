@@ -7,7 +7,7 @@ from tkinter import ttk
 
 from ...env_functions import get_dls_visits, MMG_BEAMLINES
 from ..misc.logging import create_logger
-from ..misc.config import get_config, C
+from ..misc.config import get_config, save_config, C
 from ..misc.functions import select_folder
 
 logger = create_logger(__file__)
@@ -34,6 +34,7 @@ class TitleWindow:
         ttk.Label(frm, text='Visit:').pack(side=tk.LEFT, padx=4)
         self.visit_menu = ttk.OptionMenu(frm, self.visit, *list(self.visits.keys()), command=self.choose_visit)
         self.visit_menu.pack(side=tk.LEFT, padx=4)
+        ttk.Button(frm, text='Check', command=self.open_file_browser, width=10).pack(side=tk.LEFT)
 
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
@@ -56,7 +57,8 @@ class TitleWindow:
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, pady=6)
         ttk.Button(frm, text='Data Viewer', command=self.open_data_viewer, width=20).pack(side=tk.LEFT)
-        ttk.Button(frm, text='NeXus Browser', command=self.open_file_browser, width=20).pack(side=tk.LEFT)
+        # ttk.Button(frm, text='NeXus Browser', command=self.open_file_browser, width=20).pack(side=tk.LEFT)
+        ttk.Button(frm, text='Log Viewer', command=self.open_log_viewer, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='Notebook Browser', command=self.open_notebook_browser, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='Script Runner', command=self.open_script_runner, width=20).pack(side=tk.LEFT)
 
@@ -97,9 +99,16 @@ class TitleWindow:
             self.notebook_dir.set(notebook_dir)
 
     def update_config(self):
-        update = {
-            ''
-        }
+        save_config(self.config)
+
+    def add_recent_directory(self, directory: str):
+        recent = self.config.get(C.recent_data_directories, [])
+        if directory in recent:
+            return
+        recent.insert(0, directory)
+        while len(recent) > 10:
+            recent.pop()
+        self.update_config()
 
     def choose_visit(self, event=None):
         visit_folder = self.visits[self.visit.get()]
@@ -122,11 +131,16 @@ class TitleWindow:
 
     def open_data_viewer(self):
         from ..main import create_data_viewer
+        self.add_recent_directory(self.data_dir.get())
         create_data_viewer(self.data_dir.get(), self.root, self.config)
 
     def open_file_browser(self):
-        from ..main import create_file_browser
-        create_file_browser(self.root, self.data_dir.get())
+        from ..main import create_nexus_file_browser
+        create_nexus_file_browser(self.root, self.data_dir.get())
+
+    def open_log_viewer(self):
+        from .log_viewer import create_gda_terminal_log_viewer
+        create_gda_terminal_log_viewer(self.data_dir.get(), self.root)
 
     def open_notebook_browser(self):
         from ..main import create_jupyter_browser

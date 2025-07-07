@@ -4,7 +4,7 @@ tk widget for editing the Config file
 
 from ..misc.styles import tk, ttk, create_root
 from ..misc.logging import create_logger
-from ..misc.config import get_config, save_config
+from ..misc.config import get_config, save_config, default_config
 from ..misc.matplotlib import COLORMAPS, DEFAULT_COLORMAP
 
 logger = create_logger(__file__)
@@ -35,10 +35,16 @@ class ConfigEditor:
         var = ttk.Label(frm, text='Edit Config. Parameters', style="title.TLabel")
         var.pack(expand=tk.YES, fill=tk.X, padx=10, pady=10)
 
+        # reset
+        ttk.Button(frm, text='Reset', command=self.reset_config).pack(side=tk.TOP, fill=tk.X)
+
         # parameter entry boxes
         self.create_param('config_file', 'Config File:')
         self.create_param('beamline', 'Beamline:')
         self.create_param('normalise_factor', 'Normalise:')
+        # self.create_param('figure_size', 'Plot Size:')
+        # self.create_param('image_size', 'Image Size:')
+        # self.create_param('figure_dpi', 'Figure DPI:')
 
         # Colormaps
         frm = ttk.Frame(self.window)
@@ -89,10 +95,23 @@ class ConfigEditor:
         self.config.update(updated_config)
         self.root.destroy()
 
+    def set_from_config(self, config: dict):
+        for name, var in self.config_vars.items():
+            if name in config:
+                var.set(config[name])
+        if 'metadata_string' in config:
+            self.text.delete('1.0', tk.END)
+            self.text.insert('1.0', config['metadata_string'])
+
+    def reset_config(self):
+        beamline = self.config_vars['beamline'].get()
+        default = default_config(beamline)
+        self.set_from_config(default)
+
     def save_config(self):
         config = {
             name: var.get() for name, var in self.config_vars.items()
         }
-        save_config(config['config_file'], **config)
+        save_config(config)
         self.root.destroy()
 

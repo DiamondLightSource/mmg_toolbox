@@ -100,21 +100,31 @@ def load_config(config_filename: str = CONFIG_FILE) -> dict:
     return {}
 
 
-def get_config(config_filename: str = CONFIG_FILE, beamline: str | None = None) -> dict:
+def default_config(beamline: str | None = None) -> dict:
     config = CONFIG.copy()
     if beamline is None:
         beamline = get_beamline()
     if beamline in BEAMLINE_CONFIG:
         config.update(BEAMLINE_CONFIG[beamline])
+    return config
+
+
+def get_config(config_filename: str = CONFIG_FILE, beamline: str | None = None) -> dict:
     user_config = load_config(config_filename)
+    config = default_config(beamline)
     config.update(user_config)
     return config
 
 
-def save_config(config_filename: str = CONFIG_FILE, **kwargs):
+def save_config(config: dict):
+    config_filename = config.get(C.conf_file, CONFIG_FILE)
+    with open(config_filename, 'w') as f:
+        json.dump(config, f)
+    print('Saved config to {}'.format(config_filename))
+
+
+def save_config_as(config_filename: str = CONFIG_FILE, **kwargs):
     config = get_config(config_filename)
     config.update(kwargs)
     config[C.conf_file] = config_filename
-    with open(config_filename, 'w') as f:
-        json.dump(config, f)
-
+    save_config(config)

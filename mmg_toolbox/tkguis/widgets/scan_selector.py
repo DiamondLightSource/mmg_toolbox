@@ -74,13 +74,17 @@ class _ScanSelector:
         filepath = self.tree.set(item, 'filepath')
         if os.path.isdir(filepath):
             return
-        if self.map is None:
-            self.map = hdfmap.create_nexus_map(filepath)
-        with hdfmap.load_hdf(filepath) as nxs:
-            for name, fmt in self.config.get('metadata_list', {}).items():
-                if not self.tree.winfo_exists():
-                    return
-                self.tree.set(item, name, self.map.format_hdf(nxs, fmt))
+        try:
+            if self.map is None:
+                self.map = hdfmap.create_nexus_map(filepath)
+            with hdfmap.load_hdf(filepath) as nxs:
+                for name, fmt in self.config.get('metadata_list', {}).items():
+                    if not self.tree.winfo_exists():
+                        return
+                    self.tree.set(item, name, self.map.format_hdf(nxs, fmt))
+        except Exception as exception:
+            name = next(iter(self.config.get('metadata_list', {})), 'data')
+            self.tree.set(item, name, str(exception))
 
     def populate_files(self, item, *file_list: str):
         """Add list of files below folder on folder expand"""
