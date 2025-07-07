@@ -27,7 +27,7 @@ class TitleWindow:
 
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
-        ttk.Label(frm, textvariable=self.beamline, style="Red.TLabel").pack(side=tk.RIGHT)
+        ttk.Label(frm, textvariable=self.beamline, style="title.TLabel").pack(side=tk.RIGHT)
 
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)

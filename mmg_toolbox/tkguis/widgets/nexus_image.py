@@ -205,6 +205,7 @@ class NexusDetectorImage:
         except Exception as e:
             self._show_error(f'Error loading image: {e}')
             image = np.zeros([10, 10])
+            value = np.nan
         return image, value
 
     def update_image(self, event=None):
