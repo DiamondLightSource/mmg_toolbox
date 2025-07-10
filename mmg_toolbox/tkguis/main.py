@@ -198,7 +198,7 @@ def create_data_viewer(initial_folder: str | None = None,
     """
     Create a Data Viewer showing all scans in an experiment folder
     """
-    from .widgets.nexus_scan_plot import NexusScanDetailsPlot
+    from .widgets.nexus_data_viewer import NexusDataViewer
     from .widgets.log_viewer import create_gda_terminal_log_viewer
     from .widgets.config_editor import ConfigEditor
     from .misc.matplotlib import FIGURE_SIZE, IMAGE_SIZE, FIGURE_DPI, SMALL_FIGURE_DPI
@@ -209,20 +209,15 @@ def create_data_viewer(initial_folder: str | None = None,
     config['image_size'] = IMAGE_SIZE
     config['figure_dpi'] = FIGURE_DPI if root.winfo_screenheight() >= 800 else SMALL_FIGURE_DPI
 
-    widget = NexusScanDetailsPlot(root, initial_folder=initial_folder, config=config)
+    widget = NexusDataViewer(root, initial_folder=initial_folder, config=config)
 
     def get_filepath():
-        item = widget.selector_widget.tree.selection()
-        if not item:
-            item = next(iter(widget.selector_widget.tree.get_children()))
-        if item:
-            filepath = widget.selector_widget.tree.set(item, 'filepath')
-        else:
-            filepath = config.get(C.default_directory, None)
-        return filepath
+        filename, folder = widget.selector_widget.get_filepath()
+        return folder
 
     menu = {
         'File': {
+            'New Data Viewer': lambda: create_data_viewer(parent=root, config=config),
             'Add Folder': widget.selector_widget.browse_folder,
             'File Browser': lambda: create_file_browser(root, config.get(C.default_directory, None)),
             'NeXus File Browser': lambda: create_nexus_file_browser(root, config.get(C.default_directory, None)),

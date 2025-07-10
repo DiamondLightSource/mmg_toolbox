@@ -151,6 +151,18 @@ class _ScanSelector:
         logger.debug(f"Selected item: filename='{filename}', foldername='{foldername}'")
         return filename, foldername
 
+    def get_multi_filepath(self) -> list[str]:
+        """
+        Return list of filepaths for all files in current selection
+        :returns filename: list[str] of full filepaths
+        """
+        filenames = []
+        for iid in self.tree.selection():
+            filepath = self.tree.set(iid, 'filepath')
+            if os.path.isfile(filepath):
+                filenames.append(filepath)
+        return filenames
+
     def copy_path(self):
         filepath, folderpath = self.get_filepath()
         self.root.clipboard_clear()
@@ -182,12 +194,12 @@ class _ScanSelector:
             iid = self.tree.identify_row(event.y)
             if iid:
                 self.tree.selection_set(iid)
-                filename, foldername = self.get_filepath()
+                filename, folderpath = self.get_filepath()
                 if filename:
                     logger.debug(f"Right click menu created for file: {filename}")
                     menu = m_file
                 else:
-                    logger.debug(f"Right click menu created for folder: {foldername}")
+                    logger.debug(f"Right click menu created for folder: {folderpath}")
                     menu = m_folder
                 post_right_click_menu(menu, event.x_root, event.y_root)
         return menu_popup
@@ -228,24 +240,25 @@ class _ScanSelector:
     "======================================================"
 
     def open_nexus_treeview(self):
-        filename, foldername = self.get_filepath()
+        filename, folderpath = self.get_filepath()
         logger.info(f"Opening nexus viewer for filename: {filename}")
         if filename:
             from ..main import create_nexus_viewer
             create_nexus_viewer(filename, parent=self.root)
 
     def open_nexus_plot(self):
-        filename, foldername = self.get_filepath()
+        filename, folderpath = self.get_filepath()
         logger.info(f"Opening nexus plot viewer for filename: {filename}")
         if filename:
             from ..main import create_nexus_plotter
-            create_nexus_plotter(filename, parent=self.root)
+            create_nexus_plotter(filename, parent=self.root, config=self.config)
 
     def open_nexus_image(self):
-        filename, foldername = self.get_filepath()
+        filename, folderpath = self.get_filepath()
         logger.info(f"Opening nexus image viewer for filename: {filename}")
         if filename:
-            pass
+            from ..main import create_nexus_image_plotter
+            create_nexus_image_plotter(filename, parent=self.root, config=self.config)
 
     "======================================================"
     "================= misc functions ====================="

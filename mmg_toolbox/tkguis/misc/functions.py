@@ -5,6 +5,7 @@ Various tkinter functions
 import tkinter
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from PIL import ImageGrab
 
 from .styles import RootWithStyle, theme_menu
 
@@ -181,3 +182,37 @@ def folder_treeview(parent: tk.Misc, columns: list[tuple[str, str, int, bool, st
         tree.column(name, width=width, stretch=False)  # stretch stops columns from stretching when resized
     return tree
 
+
+def capture(root: tk.Misc, filename='img.png'):
+    """Take screenshot of the passed widget. Untested!"""
+
+    x0 = root.winfo_rootx()
+    y0 = root.winfo_rooty()
+    x1 = x0 + root.winfo_width()
+    y1 = y0 + root.winfo_height()
+
+    im = ImageGrab.grab(bbox=(x0, y0, x1, y1))  # bbox means boundingbox, which is shown in the image below
+    im.save(filename)  # Can also say im.show() to display it
+
+
+def copy_image_to_clipboard(root: tk.Misc, canvas: tk.Canvas):
+    """copy tk canvas to clipboard. Untested!"""
+
+    # https://www.tutorialspoint.com/how-to-copy-a-picture-from-tkinter-canvas-to-clipboard
+    import io
+    from PIL import Image
+
+    # Retrieve the image from the canvas
+    canvas_image = canvas.postscript()
+
+    # Create an in-memory file-like object
+    image_buffer = io.BytesIO()
+
+    # Save the canvas image to the buffer in PNG format
+    image = Image.open(canvas_image)
+    image.save(image_buffer, format="PNG")
+    image_buffer.seek(0)
+
+    # Copy the image to the clipboard
+    root.clipboard_clear()
+    root.clipboard_append(image_buffer, format="image/png")

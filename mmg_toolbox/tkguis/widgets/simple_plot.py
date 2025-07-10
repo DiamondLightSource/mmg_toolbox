@@ -34,18 +34,46 @@ class SimplePlot:
         self.plot_list.extend(lines)
         self.update_axes()
 
+    def remove_lines(self):
+        for obj in self.plot_list:
+            obj.remove()
+        self.plot_list.clear()
+
     def reset_plot(self):
         # self.ax1.set_xlabel(self.xaxis.get())
         # self.ax1.set_ylabel(self.yaxis.get())
         self.ax1.set_title('')
         self.ax1.set_prop_cycle(None)  # reset colours
         self.ax1.legend([]).set_visible(False)
-        for obj in self.ax1.lines:
-            obj.remove()
+        self.remove_lines()
+
+    def _relim(self):
+        if not any(len(line.get_xdata()) for line in self.plot_list):
+            return
+        max_x_val = max(max(line.get_xdata()) for line in self.plot_list)
+        min_x_val = min(min(line.get_xdata()) for line in self.plot_list)
+        max_y_val = max(max(line.get_ydata()) for line in self.plot_list)
+        min_y_val = min(min(line.get_ydata()) for line in self.plot_list)
+        x_diff = max_x_val - min_x_val
+        y_diff = max_y_val - min_y_val
+        y_axis_max = max_y_val + 0.1 * y_diff
+        y_axis_min = min_y_val - 0.1 * y_diff
+        # max_y_val = 1.05 * max_y_val if max_y_val > 0 else max_y_val * 0.98
+        # min_y_val = 0.95 * min_y_val if min_y_val > 0 else min_y_val * 1.02
+        self.ax1.axis((min_x_val, max_x_val, y_axis_min, y_axis_max))
+        self.ax1.autoscale_view()
 
     def update_axes(self):
-        self.ax1.relim()
-        self.ax1.autoscale(True)
-        self.ax1.autoscale_view()
+        # self.ax1.relim()
+        # self.ax1.autoscale(True)
+        # self.ax1.autoscale_view()
+        self._relim()
         self.fig.canvas.draw()
         self.toolbar.update()
+
+
+class MultiAxisPlot(SimplePlot):
+    def __init__(self, root: tk.Misc, xdata: list[float], ydata: dict[str, float],
+                 xlabel: str = '', ylabel: str = '', title: str = '', config: dict | None = None):
+        #TODO: Complete multi-axis plot, use ideas from nexus_plot.py
+        super().__init__(root, xdata, ydata, xlabel, ylabel, title, config)
