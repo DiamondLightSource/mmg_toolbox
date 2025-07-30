@@ -8,7 +8,7 @@ from tkinter import ttk
 from ...env_functions import get_dls_visits, MMG_BEAMLINES
 from ..misc.logging import create_logger
 from ..misc.config import get_config, save_config, C
-from ..misc.functions import select_folder
+from ..misc.functions import select_folder, show_error
 
 logger = create_logger(__file__)
 
@@ -90,12 +90,14 @@ class TitleWindow:
         return menu
 
     def dls_directories(self, data_dir: str):
+        if not os.access(data_dir, os.R_OK):
+            show_error(f"Warning path is not readable: '{data_dir}'", self.root, raise_exception=False)
         self.data_dir.set(data_dir)
         proc_dir = os.path.join(data_dir, 'processing')
         notebook_dir = os.path.join(data_dir, 'processed', 'notebooks')
-        if os.path.isdir(proc_dir):
+        if os.path.isdir(proc_dir) and os.access(proc_dir, os.W_OK):
             self.proc_dir.set(proc_dir)
-        if os.path.isdir(notebook_dir):
+        if os.path.isdir(notebook_dir) and os.access(notebook_dir, os.R_OK):
             self.notebook_dir.set(notebook_dir)
 
     def update_config(self):
@@ -149,9 +151,9 @@ class TitleWindow:
     def open_script_runner(self):
         from ..main import create_script_runner
         folders = {
-            'default_directory': self.data_dir.get(),
-            'processing_directory': self.proc_dir.get(),
-            'notebook_directory': self.notebook_dir.get(),
+            C.default_directory: self.data_dir.get(),
+            C.processing_directory: self.proc_dir.get(),
+            C.notebook_directory: self.notebook_dir.get(),
         }
         self.config.update(folders)
         create_script_runner(self.root, self.config)

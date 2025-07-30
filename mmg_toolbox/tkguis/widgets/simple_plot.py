@@ -28,6 +28,7 @@ class SimplePlot:
         self.ax1.set_ylabel(ylabel)
         self.ax1.set_title(title)
         self.plot(xdata, ydata)
+        self._y_axis_expansion_factor = 0.1
 
     def plot(self, *args, **kwargs):
         lines = self.ax1.plot(*args, **kwargs)
@@ -54,10 +55,12 @@ class SimplePlot:
         min_x_val = min(min(line.get_xdata()) for line in self.plot_list)
         max_y_val = max(max(line.get_ydata()) for line in self.plot_list)
         min_y_val = min(min(line.get_ydata()) for line in self.plot_list)
-        x_diff = max_x_val - min_x_val
+        # expand y-axis slightly beyond data
         y_diff = max_y_val - min_y_val
-        y_axis_max = max_y_val + 0.1 * y_diff
-        y_axis_min = min_y_val - 0.1 * y_diff
+        if y_diff == 0:
+            y_diff = max_y_val
+        y_axis_max = max_y_val + self._y_axis_expansion_factor * y_diff
+        y_axis_min = min_y_val - self._y_axis_expansion_factor * y_diff
         # max_y_val = 1.05 * max_y_val if max_y_val > 0 else max_y_val * 0.98
         # min_y_val = 0.95 * min_y_val if min_y_val > 0 else min_y_val * 1.02
         self.ax1.axis((min_x_val, max_x_val, y_axis_min, y_axis_max))

@@ -5,7 +5,7 @@ Configuration Options
 import os
 import json
 
-from ...env_functions import TMPDIR, YEAR, get_beamline
+from ...env_functions import TMPDIR, YEAR, get_beamline, check_file_access
 from .beamline_metadata import BEAMLINE_META, META_STRING
 
 
@@ -93,6 +93,13 @@ BEAMLINE_CONFIG = {
 }
 
 
+def check_config_filename(config_filename: str | None) -> str:
+    """Check config filename is writable, raise OSError if not"""
+    if config_filename is None:
+        config_filename = CONFIG_FILE
+    return check_file_access(config_filename)
+
+
 def load_config(config_filename: str = CONFIG_FILE) -> dict:
     if os.path.isfile(config_filename):
         with open(config_filename, 'r') as f:
@@ -109,7 +116,8 @@ def default_config(beamline: str | None = None) -> dict:
     return config
 
 
-def get_config(config_filename: str = CONFIG_FILE, beamline: str | None = None) -> dict:
+def get_config(config_filename: str | None = None, beamline: str | None = None) -> dict:
+    config_filename = check_config_filename(config_filename)
     user_config = load_config(config_filename)
     config = default_config(beamline)
     config.update(user_config)
@@ -123,7 +131,7 @@ def save_config(config: dict):
     print('Saved config to {}'.format(config_filename))
 
 
-def save_config_as(config_filename: str = CONFIG_FILE, **kwargs):
+def save_config_as(config_filename: str | None = None, **kwargs):
     config = get_config(config_filename)
     config.update(kwargs)
     config[C.conf_file] = config_filename

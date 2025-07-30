@@ -38,7 +38,7 @@ def about_menu():
     menu = {
         'Help': {
             'Docs': lambda: print('None'),
-            'About': lambda: print('None'),
+            'About': popup_about
         }
     }
     return menu
@@ -122,6 +122,21 @@ def show_error(message, parent=None, raise_exception=True):
     )
     if raise_exception:
         raise Exception(message)
+
+
+def popup_about(root=None):
+    """Create about message"""
+    from mmg_toolbox import version_info, module_info, title
+    msg = "%s\n\n" \
+          "A selection of useful functions and methods for the mmg beamlines at Diamond" \
+          "\n\n" \
+          "Module Info:\n%s\n\n" \
+          "By Dan Porter, Diamond Light Source Ltd" % (version_info(), module_info())
+    messagebox.showinfo(
+        title=f"About: {title()}",
+        message=msg,
+        parent=root,
+    )
 
 
 def post_right_click_menu(menu: tkinter.Menu, xpos: int, ypos: int):

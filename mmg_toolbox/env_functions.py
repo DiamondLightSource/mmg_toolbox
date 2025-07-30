@@ -3,7 +3,6 @@ Environment functions
 """
 
 import os
-import re
 import subprocess
 import tempfile
 from datetime import datetime
@@ -26,6 +25,30 @@ if not os.access(TMPDIR, os.W_OK):
 
 # Initialise available beamlines
 YEAR = str(datetime.now().year)
+
+
+def check_file_access(filepath: str, append: str = '_new') -> str:
+    """Check path has write access, if not, return appended path with write access"""
+    # return filepath if it already exists and is writable
+    if os.path.exists(filepath) and os.access(filepath, os.W_OK):
+        return filepath
+    tries = 0
+    max_tries = 3
+
+    path, name = os.path.split(filepath)
+    if not os.access(path, os.W_OK):
+        raise OSError(f"new file cannot be written as path is not writable: '{path}'")
+
+    if os.path.exists(filepath):
+        # filepath is not writeable, amend name
+        name, ext = os.path.splitext(name)
+        while os.path.exists(filepath) and not os.access(filepath, os.W_OK):
+            if tries > max_tries:
+                raise Exception(f"File is not writable: {filepath}")
+            name += append
+            filepath = os.path.join(path, name + ext)
+            tries += 1
+    return filepath
 
 
 def get_beamline():

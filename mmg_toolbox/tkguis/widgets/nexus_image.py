@@ -10,7 +10,6 @@ import hdfmap
 from hdfmap import create_nexus_map
 
 from ...file_functions import read_tiff
-from ..misc.functions import show_error
 from ..misc.styles import create_hover
 from ..misc.matplotlib import ini_image, COLORMAPS, DEFAULT_COLORMAP
 from ..misc.logging import create_logger
@@ -202,6 +201,8 @@ class NexusDetectorImage:
                 if not os.path.isfile(image_filename):
                     raise FileNotFoundError(f"File not found: {image_filename}")
                 image = read_tiff(image_filename)
+            elif image.ndim > 2:
+                raise Exception(f"detector image[{index}] is the wrong shape: {image.shape}")
         except Exception as e:
             self._show_error(f'Error loading image: {e}')
             image = np.zeros([10, 10])
@@ -227,9 +228,11 @@ class NexusDetectorImage:
         # Add plot
         self.ax_image.remove()
         colormap = self.colormap.get()
-        blah = 5
-        # clim = [image.max()/(blah * 5), image.max()/blah]# [cmin, cmax]
-        clim = [0, image.max()/2]
+        if self.fixclim.get():
+            clim = [cmin, cmax]
+        else:
+            # clim = [image.max()/(blah * 5), image.max()/blah]# [cmin, cmax]
+            clim = [0, 1 + image.max()/2]
         self.ax_image = self.ax.pcolormesh(image, shading='auto', clim=clim, cmap=colormap)
         self.ax_image.set_clim(clim)
         self.ax.set_xlim([0, image.shape[1]])

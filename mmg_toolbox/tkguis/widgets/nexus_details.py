@@ -28,8 +28,10 @@ class NexusDetails:
         self.map: hdfmap.NexusMap | None = None
         self.config = get_config() if config is None else config
 
+        self.terminal_history = ['']
+        self.terminal_history_index = 0
         self._text_expression = self.config.get('metadata_string', '')
-        self.terminal_entry = tk.StringVar(self.root, '')
+        self.terminal_entry = tk.StringVar(self.root, self.terminal_history[self.terminal_history_index])
         self.notebook = tk.StringVar(self.root, 'None')
         self.notebooks = {}  # notebook: filepath
 
@@ -91,6 +93,8 @@ class NexusDetails:
         var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
         var.bind('<Return>', self.fun_terminal)
         var.bind('<KP_Enter>', self.fun_terminal)
+        var.bind('<Up>', self.fun_terminal_history_up)
+        var.bind('<Down>', self.fun_terminal_history_down)
 
         var = ttk.Button(efrm, text='CLS', command=self.fun_terminal_cls)
         var.pack(side=tk.LEFT)
@@ -172,15 +176,21 @@ class NexusDetails:
             print('No')
             reprocess_notebook(filename, output_folder=TMPDIR)
 
+    def set_terminal(self):
+        self.terminal_entry.set(self.terminal_history[self.terminal_history_index])
+
     def fun_terminal(self, event=None):
         if self.filename is None:
             return
         expression = self.terminal_entry.get()
         out_str = f"\n>>> {expression}\n"
         try:
+            # TODO: replace with asteval.Interpreter (maybe in hdfmap V1.1)
             with hdfmap.load_hdf(self.filename) as hdf:
                 out = self.map.eval(hdf, expression)
-            self.terminal_entry.set('')
+            self.terminal_history.insert(1, expression)
+            self.terminal_history_index = 0
+            self.set_terminal()
         except NameError as ne:
             out = ne
         out_str += f"{out}\n"
@@ -194,3 +204,12 @@ class NexusDetails:
         self.terminal.configure(state=tk.NORMAL)
         self.terminal.delete('1.0', tk.END)
         self.terminal.configure(state=tk.DISABLED)
+
+    def fun_terminal_history_up(self, event=None):
+        if len(self.terminal_history) > self.terminal_history_index:
+            self.terminal_history_index += 1
+            self.set_terminal()
+
+    def fun_terminal_history_down(self, event=None):
+        self.terminal_history_index -= 1
+        self.set_terminal()
