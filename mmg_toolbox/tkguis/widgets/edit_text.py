@@ -1,5 +1,5 @@
 """
-Simple window with editable text box
+Simple roi_table with editable text box
 """
 
 from ..misc.styles import tk, ttk, create_root
@@ -38,12 +38,12 @@ class EditText:
         var.pack(side=tk.TOP, fill=tk.X)
 
     def fun_update(self, event=None):
-        """Launches window, returns selection"""
+        """Launches roi_table, returns selection"""
         self.output = self.text.get('1.0', tk.END)
         self.root.destroy()  # trigger wait_window
 
     def show(self):
-        """Launches window, returns selection"""
-        self.root.wait_window()  # wait for window
+        """Launches roi_table, returns selection"""
+        self.root.wait_window()  # wait for roi_table
         self.root.destroy()
         return self.output

@@ -1,5 +1,5 @@
 """
-A python editor window
+A python editor roi_table
 """
 
 import re
@@ -213,7 +213,7 @@ def create_log_viewer(filename: str, parent: tk.Misc | None = None):
 
 
 def create_gda_terminal_log_viewer(data_directory: str, parent: tk.Misc | None = None):
-    """Create Log Viewer window using data directory"""
+    """Create Log Viewer roi_table using data directory"""
     import os
     gda_terminal_log = os.path.join(data_directory, 'gdaterminal.log')
     if os.path.isfile(gda_terminal_log):

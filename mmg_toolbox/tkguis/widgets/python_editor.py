@@ -1,5 +1,5 @@
 """
-A python editor window
+A python editor roi_table
 """
 
 import re
@@ -89,7 +89,7 @@ class PythonEditor:
         # Top menu
         menu = {
             'File': {
-                'New window': self.menu_new_window,
+                'New roi_table': self.menu_new_window,
                 'New script': self.menu_new,
                 'Open': self.menu_open,
                 'Save As...': self.menu_saveas,

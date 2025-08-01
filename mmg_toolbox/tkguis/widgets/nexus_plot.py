@@ -78,6 +78,15 @@ class NexusDefaultPlot(SimplePlot):
     def _set_error(self, msg: str):
         self.error_message.set(msg)
 
+    def plot(self, *args, **kwargs):
+        lines = self.ax1.plot(*args, **kwargs)
+        self.plot_list.extend(lines)
+
+    def remove_lines(self):
+        for obj in self.plot_list:
+            obj.remove()
+        self.plot_list.clear()
+
     def ini_axes_select(self):
         selection_x = tk.StringVar(self.root, 'axes')
         selection_y = tk.StringVar(self.root, 'signal')

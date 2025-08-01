@@ -22,6 +22,7 @@ class C:
     metadata_list = 'metadata_list'
     default_colormap = 'default_colormap'
     beamline = 'beamline'
+    roi = 'roi'
 
 
 # config name (saved in TMPDIR)
@@ -39,6 +40,10 @@ REPLACE_NAMES = {
     '_t': '(count_time|counttime|t?(1.0))',
 }
 
+ROIs: list[tuple[str, str | int, str | int, int, int, str]] = [
+    # (name, cen_i, cen_j, wid_i, wid_j, det_name)
+]
+
 CONFIG = {
     C.conf_file: CONFIG_FILE,
     C.default_directory: os.path.expanduser('~'),
@@ -46,7 +51,8 @@ CONFIG = {
     C.notebook_directory: os.path.expanduser('~'),
     C.recent_data_directories: [os.path.expanduser('~')],
     C.normalise_factor: '',
-    C.replace_names: {},
+    C.replace_names: REPLACE_NAMES,
+    C.roi: ROIs,
     C.metadata_string: META_STRING,
     C.metadata_list: META_LIST,
     C.default_colormap: 'twilight',
@@ -84,6 +90,9 @@ BEAMLINE_CONFIG = {
         C.default_directory: f"/dls/i16/data/{YEAR}/",
         C.normalise_factor: '/Transmission/count_time/(rc/300.)',
         C.metadata_string: BEAMLINE_META['i16'],
+        C.roi: [
+            ('pilroi1', 'pil3_centre_j', 'pil3_centre_i', 30, 30, 'IMAGE'),
+        ]
     },
     'i21': {
         C.beamline: 'i21',

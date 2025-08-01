@@ -6,6 +6,7 @@ from ..misc.styles import tk, ttk, create_root
 from ..misc.logging import create_logger
 from ..misc.config import get_config, save_config, default_config
 from ..misc.matplotlib import COLORMAPS, DEFAULT_COLORMAP
+from .roi_editor import RoiEditor
 
 logger = create_logger(__file__)
 
@@ -14,7 +15,7 @@ TEXTWIDTH = 50
 
 class ConfigEditor:
     """
-    Edit the Configuration File in an inset window
+    Edit the Configuration File in an inset roi_table
     """
 
     def __init__(self, parent: tk.Misc, config: dict | None = None):
@@ -71,6 +72,8 @@ class ConfigEditor:
         # Buttons at bottom
         frm = ttk.Frame(self.window)
         frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        var = ttk.Button(frm, text='ROIs', command=self.roi_window)
+        var.pack(side=tk.LEFT, expand=tk.YES)
         var = ttk.Button(frm, text='Save', command=self.save_config)
         var.pack(side=tk.LEFT, expand=tk.YES)
         var = ttk.Button(frm, text='Update', command=self.save_config)
@@ -114,4 +117,8 @@ class ConfigEditor:
         }
         save_config(config)
         self.root.destroy()
+
+    def roi_window(self):
+        window = create_root('Regions of Interest (ROIs)', self.root)
+        RoiEditor(window, self.config)
 

@@ -22,7 +22,7 @@ class SimpleImage:
 
     def __init__(self, root: tk.Misc, xdata, ydata, xlabel='', ylabel='', title=''):
         self.root = root
-        self.fig, self.ax1, self.ax1_image, self.cb1, self.toolbar = ini_image(self.root)
+        self.fig, self.ax1, self.plot_list, self.ax1_image, self.cb1, self.toolbar = ini_image(self.root)
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
         self.ax1.set_title(title)
@@ -32,6 +32,11 @@ class SimpleImage:
         lines = self.ax1.imshow(*args, **kwargs)
         self.plot_list.extend(lines)
         self.update_plot()
+
+    def remove_lines(self):
+        for obj in self.plot_list:
+            obj.remove()
+        self.plot_list.clear()
 
     def reset_plot(self):
         # self.ax1.set_xlabel(self.xaxis.get())
@@ -90,7 +95,7 @@ class ImageViewer:
         self.tkscale = self.ini_slider()
 
         "----------- Image -----------"
-        self.fig, self.ax1, self.ax1_image, self.cb1, self.toolbar = ini_image(self.root)
+        self.fig, self.ax1, self.plot_list, self.ax1_image, self.cb1, self.toolbar = ini_image(self.root)
 
         "-------- Start Mainloop ------"
         if parent is None:

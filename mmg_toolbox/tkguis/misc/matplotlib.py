@@ -1,6 +1,7 @@
 """
 Useful tkinter functions that use matplotlib
 """
+import matplotlib.pyplot as plt
 import numpy as np
 import tkinter as tk
 from tkinter import ttk
@@ -39,7 +40,7 @@ class CustomToolbar(NavigationToolbar2Tk):
         self.master.clipboard_append(io_buffer.getvalue(), format="image/png")  # adds byte array to buffer but isn't interpreted
 
     def popout_figure(self):
-        """Create a new tk window and display figure"""
+        """Create a new tk roi_table and display figure"""
         root = create_root('Figure', parent=self.master)
         fig, ax1, plot_list, toolbar = ini_plot(root, FIGURE_SIZE, FIGURE_DPI)
 
@@ -83,7 +84,7 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     ax1.set_xlabel(u'Axis 0')
     ax1.set_ylabel(u'Axis 1')
     ax1.set_title('filename')
-    plot_list = []
+    plot_list: list[plt.Line2D] = []
 
     frm = ttk.Frame(frame)
     frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH, pady=2, padx=5)
@@ -128,6 +129,7 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
     ax1.set_ylim([0, 100])
     cb1 = fig.colorbar(ax1_image, ax=ax1)
     ax1.axis('image')
+    plot_list: list[plt.Line2D] = []
 
     frm = ttk.Frame(frame)
     frm.pack(expand=tk.YES, fill=tk.BOTH, pady=2, padx=5)
@@ -144,5 +146,5 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
     toolbar = CustomToolbar(canvas, frm2)
     toolbar.update()
     toolbar.pack(fill=tk.X, expand=tk.YES)
-    return fig, ax1, ax1_image, cb1, toolbar
+    return fig, ax1, plot_list, ax1_image, cb1, toolbar
 

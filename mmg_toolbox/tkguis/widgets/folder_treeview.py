@@ -194,7 +194,7 @@ class FolderTreeViewFrame:
         self.set_folder(os.path.abspath(os.path.join(self.filepath.get(), '..')))
 
     def on_double_click(self, event=None):
-        """Open a folder or open a file in a new window"""
+        """Open a folder or open a file in a new roi_table"""
         pass
 
     "======================================================"
@@ -437,7 +437,7 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
         return m_file
 
     def on_double_click(self, event=None):
-        """Open a folder or open a file in a new window"""
+        """Open a folder or open a file in a new roi_table"""
         if not self.tree.focus():
             return
         iid = self.tree.focus()
