@@ -13,7 +13,7 @@ from hdfmap import create_nexus_map
 from ...file_functions import read_tiff
 from ...nexus_reader import add_roi
 from ..misc.styles import create_hover, create_root
-from ..misc.matplotlib import ini_image, COLORMAPS, DEFAULT_COLORMAP
+from ..misc.matplotlib import ini_image, COLORMAPS, DEFAULT_COLORMAP, add_rectangle
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
 from .roi_editor import RoiEditor
@@ -264,7 +264,8 @@ class NexusDetectorImage:
         self.ax_image = self.ax.pcolormesh(image, shading='auto', clim=[cmin, cmax], cmap=cmap)
         self.ax.set_xlim([0, image.shape[1]])
         self.ax.set_ylim([0, image.shape[0]])
-        self.rectangle = self.ax.axvspan(0, 0, alpha=0.9, facecolor='k')
+        # self.rectangle = self.ax.axvspan(0, 0, alpha=0.9, facecolor='k', zorder=2)
+        self.rectangle = add_rectangle(self.ax, 0, 0, 0, 0)
         self.plot_config_rois()
         self.colorbar.update_normal(self.ax_image)
         self.toolbar.update()
@@ -367,7 +368,6 @@ class NexusDetectorImage:
             if event.inaxes and ipress[0]:
                 x_end = event.xdata
                 y_end = event.ydata
-                print(x_start[0], y_start[0], x_end - x_start[0], y_end - y_start[0])
                 self.rectangle.set_bounds(x_start[0], y_start[0], x_end - x_start[0], y_end - y_start[0])
                 self.fig.canvas.draw()
 

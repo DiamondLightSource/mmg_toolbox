@@ -9,6 +9,7 @@ from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 from .styles import create_root
@@ -148,3 +149,9 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
     toolbar.pack(fill=tk.X, expand=tk.YES)
     return fig, ax1, plot_list, ax1_image, cb1, toolbar
 
+
+def add_rectangle(ax: Axes, left: float, bottom: float, width: float, height: float) -> Rectangle:
+    """Add rectangle to axes"""
+    rect = Rectangle((left, bottom), width, height, fill=False, edgecolor='black', facecolor='white', zorder=2)
+    ax.add_patch(rect)
+    return rect
