@@ -2,12 +2,14 @@
 requires = ["setuptools >= 61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = ["mmg_toolbox"]
+[tool.setuptools.packages.find]
+where = ["."]  # Search within the "src" directory
+include = ["mmg_toolbox*"] # Include packages starting with "my_package"
+exclude = []
 
 [project]
 name = "mmg_toolbox"
-version = "0.1"
+dynamic = ['version']
 dependencies = [
   "numpy",
   "h5py",
@@ -39,3 +41,5 @@ classifiers = [
   'Development Status :: 3 - Alpha',
 ]
 
+[tool.setuptools.dynamic]
+version = {attr = "mmg_toolbox.__version__"}
