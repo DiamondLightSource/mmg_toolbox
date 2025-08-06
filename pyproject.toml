@@ -2,10 +2,11 @@
 requires = ["setuptools >= 61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["."]  # Search within the "src" directory
-include = ["mmg_toolbox*"] # Include packages starting with "my_package"
-exclude = []
+[tool.setuptools]
+packages = [
+  'mmg_toolbox', 'mmg_toolbox.beamline_metadata', 'mmg_toolbox.data', 'mmg_toolbox.scripts',
+  'mmg_toolbox.tkguis', 'mmg_toolbox.tkguis.misc', 'mmg_toolbox.tkguis.widgets'
+]
 
 [project]
 name = "mmg_toolbox"
