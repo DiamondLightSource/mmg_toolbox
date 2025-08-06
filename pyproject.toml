@@ -8,6 +8,9 @@ packages = [
   'mmg_toolbox.tkguis', 'mmg_toolbox.tkguis.misc', 'mmg_toolbox.tkguis.widgets'
 ]
 
+[tool.setuptools.package-data]
+mmg_toolbox = ["*.json"]
+
 [project]
 name = "mmg_toolbox"
 dynamic = ['version']
