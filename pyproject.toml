@@ -9,7 +9,7 @@ packages = [
 ]
 
 [tool.setuptools.package-data]
-mmg_toolbox = ["*.json"]
+"mmg_toolbox.data" = ["*.json"]
 
 [project]
 name = "mmg_toolbox"
