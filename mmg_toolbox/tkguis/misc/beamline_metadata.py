@@ -15,7 +15,7 @@ shape = {axes.shape}
 I06_1_META_STRING = META_STRING + """
 endstation: {endstation}
 sample = {sample_name}
-energy = {np.mean(energyh?(0)):.0f} eV
+energy = {mean(energyh?(0)):.0f} eV
 pol = {polarisation}
 field = {field_x?(0)**2 + field_y?(0)**2 + field_z?(0)**2:.2f} T
 temp = {(lakeshore336_cryostat|itc3_device_sensor_temp?(300)):.2f} K
@@ -26,7 +26,7 @@ pitch = {m7_pitch?(0):.2f}
 I10_1_META_STRING = META_STRING + """
 endstation: {endstation}
 sample = {sample_name}
-energy = {np.mean(energyh?(0)):.0f} eV
+energy = {mean(energyh?(0)):.0f} eV
 pol = {polarisation}
 field = {(magnet_field|ips_demand_field?(0)):.2f} T
 temp = {(lakeshore336_cryostat|itc3_device_sensor_temp?(300)):.2f} K

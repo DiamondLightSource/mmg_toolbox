@@ -104,6 +104,14 @@ def folder_summary(directory: str) -> str:
     return summary
 
 
+def folder_summary_line(directory: str, extention='.nxs') -> str:
+    """Generate summary of folder on a single line"""
+    files = list_files(directory, extension=extention)
+    ini = display_timestamp(os.path.getmtime(next(iter(files), directory)))
+    fnl = display_timestamp(os.path.getmtime(next(reversed(files), directory)))
+    return f"Files: {len(files)}, {ini} -> {fnl}"
+
+
 def get_hdf_value(hdf_filename: str, hdf_address: str, default_value: typing.Any = '') -> typing.Any:
     """
     Open HDF file and return value from single dataset

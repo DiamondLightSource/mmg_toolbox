@@ -329,18 +329,21 @@ class NexusDetectorImage:
         self.remove_lines()
         rois = self.config.get(C.roi)
         if rois:
-            with hdfmap.load_hdf(self.filename) as hdf:
-                for name, cen_i, cen_j, wid_i, wid_j, det_name in rois:
-                    cen_i, cen_j, wid_i, wid_j = self.map.eval(hdf, f"{cen_i},{cen_j},{wid_i},{wid_j}")
-                    roi_square = np.array([
-                        # x, y
-                        [cen_i - wid_i // 2, cen_j - wid_j // 2],
-                        [cen_i - wid_i // 2, cen_j + wid_j // 2],
-                        [cen_i + wid_i // 2, cen_j + wid_j // 2],
-                        [cen_i + wid_i // 2, cen_j - wid_j // 2],
-                        [cen_i - wid_i // 2, cen_j - wid_j // 2],
-                    ])
-                    self.plot(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
+            try:
+                with hdfmap.load_hdf(self.filename) as hdf:
+                    for name, cen_i, cen_j, wid_i, wid_j, det_name in rois:
+                        cen_i, cen_j, wid_i, wid_j = self.map.eval(hdf, f"{cen_i},{cen_j},{wid_i},{wid_j}")
+                        roi_square = np.array([
+                            # x, y
+                            [cen_i - wid_i // 2, cen_j - wid_j // 2],
+                            [cen_i - wid_i // 2, cen_j + wid_j // 2],
+                            [cen_i + wid_i // 2, cen_j + wid_j // 2],
+                            [cen_i + wid_i // 2, cen_j - wid_j // 2],
+                            [cen_i - wid_i // 2, cen_j - wid_j // 2],
+                        ])
+                        self.plot(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
+            except Exception as e:
+                self._show_error(f'Error plotting ROIs: {e}')
         self.fig.canvas.draw()
 
     def mouse_select_roi(self):

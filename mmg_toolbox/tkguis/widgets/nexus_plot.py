@@ -155,9 +155,9 @@ class NexusDefaultPlot(SimplePlot):
         self.combo_x['values'] = list(self.data['data'].keys())
         self.combo_y['values'] = list(reversed(self.data['data'].keys()))
         if not self.fix_x.get():
-            self.axes_x.set(self.data['xlabel'])
+            self.axes_x.set(next(iter(self.data['axes_names']), f'arange({self.map.scannables_length()})'))
         if not self.fix_y.get():
-            self.axes_y.set(self.data['ylabel'])
+            self.axes_y.set(next(iter(self.data['signal_names']), f'zeros({self.map.scannables_length()})'))
         self.update_axis_choice()
 
     def update_data(self, hdf: h5py.File):
