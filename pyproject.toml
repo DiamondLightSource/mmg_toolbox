@@ -2,9 +2,18 @@
 requires = ["setuptools >= 61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = [
+  'mmg_toolbox', 'mmg_toolbox.beamline_metadata', 'mmg_toolbox.data', 'mmg_toolbox.scripts',
+  'mmg_toolbox.tkguis', 'mmg_toolbox.tkguis.misc', 'mmg_toolbox.tkguis.widgets'
+]
+
+[tool.setuptools.package-data]
+"mmg_toolbox.data" = ["*.json"]
+
 [project]
 name = "mmg_toolbox"
-version = "0.1"
+dynamic = ['version']
 dependencies = [
   "numpy",
   "h5py",
@@ -36,3 +45,5 @@ classifiers = [
   'Development Status :: 3 - Alpha',
 ]
 
+[tool.setuptools.dynamic]
+version = {attr = "mmg_toolbox.__version__"}

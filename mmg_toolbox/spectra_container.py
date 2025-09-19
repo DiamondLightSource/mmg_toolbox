@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import inspect
 from functools import wraps
-from typing_extensions import Self
 import datetime
 import numpy as np
 import h5py
@@ -84,7 +83,7 @@ class SpectraContainer:
     """
 
     def __init__(self, name: str, spectra: dict[str, Spectra | SpectraSubtraction],
-                 *parents: Self, metadata: XasMetadata = XasMetadata()):
+                 *parents: SpectraContainer, metadata: XasMetadata = XasMetadata()):
         self.name = name
         self.process_label = next(iter(spectra.values())).process_label
         self.parents = parents
