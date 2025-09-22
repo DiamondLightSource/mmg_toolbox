@@ -99,6 +99,7 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     frm2.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=5, pady=2)
     # toolbar = NavigationToolbar2Tk(canvas, frm)
     toolbar = CustomToolbar(canvas, frm2)
+    toolbar.config(background=bg)
     toolbar.update()
     toolbar.pack(fill=tk.X, expand=tk.YES)
     return fig, ax1, plot_list, toolbar

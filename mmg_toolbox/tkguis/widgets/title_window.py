@@ -145,7 +145,7 @@ class TitleWindow:
         create_nexus_file_browser(self.root, self.data_dir.get())
 
     def open_log_viewer(self):
-        from .log_viewer import create_gda_terminal_log_viewer
+        from ..apps.log_viewer import create_gda_terminal_log_viewer
         create_gda_terminal_log_viewer(self.data_dir.get(), self.root)
 
     def open_notebook_browser(self):

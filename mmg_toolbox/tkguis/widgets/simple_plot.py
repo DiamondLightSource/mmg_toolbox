@@ -22,8 +22,8 @@ class SimplePlot:
 
         self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(
             frame=self.root,
-            figure_size=self.config.get(C.plot_size),
-            figure_dpi=self.config.get(C.plot_dpi),
+            figure_size=self.config.get(C.plot_size, None),
+            figure_dpi=self.config.get(C.plot_dpi, None),
         )
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
