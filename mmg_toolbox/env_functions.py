@@ -51,14 +51,14 @@ def check_file_access(filepath: str, append: str = '_new') -> str:
     return filepath
 
 
-def get_beamline():
+def get_beamline(default=''):
     """Return current beamline from environment variable"""
-    return os.environ.get(BEAMLINE, '')
+    return os.environ.get(BEAMLINE, default)
 
 
-def get_user():
+def get_user(default=''):
     """Return current user from environment variable"""
-    return next((os.environ[u] for u in USER if u in os.environ), '')
+    return next((os.environ[u] for u in USER if u in os.environ), default)
 
 
 def get_data_directory():

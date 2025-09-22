@@ -13,7 +13,7 @@ import hdfmap
 from ...file_functions import list_files, display_timestamp, get_scan_number
 from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
 from ..misc.logging import create_logger
-from ..misc.config import get_config
+from ..misc.config import get_config, C
 
 logger = create_logger(__file__)
 
@@ -36,6 +36,7 @@ class _ScanSelector:
         self.search_box = tk.StringVar(root, '')
         self.search_matchcase = tk.BooleanVar(root, False)
         self.search_wholeword = tk.BooleanVar(root, True)
+        self.select_box = tk.StringVar(root, '')
 
         # Columns
         self.columns = [
@@ -46,7 +47,7 @@ class _ScanSelector:
             ("filepath", 'File Path', 0, False, None),
         ]
         # add values from metadata_list
-        self.metadata_names = tuple(self.config.get('metadata_list', {}).keys())
+        self.metadata_names = tuple(self.config.get(C.metadata_list, {}).keys())
         self.columns += [
             (name, name, 200, True, None) for name in self.metadata_names
         ]
@@ -78,12 +79,12 @@ class _ScanSelector:
             if self.map is None:
                 self.map = hdfmap.create_nexus_map(filepath)
             with hdfmap.load_hdf(filepath) as nxs:
-                for name, fmt in self.config.get('metadata_list', {}).items():
+                for name, fmt in self.config.get(C.metadata_list, {}).items():
                     if not self.tree.winfo_exists():
                         return
                     self.tree.set(item, name, self.map.format_hdf(nxs, fmt))
         except Exception as exception:
-            name = next(iter(self.config.get('metadata_list', {})), 'data')
+            name = next(iter(self.config.get(C.metadata_list, {})), 'data')
             self.tree.set(item, name, str(exception))
 
     def populate_files(self, item, *file_list: str):
@@ -211,6 +212,28 @@ class _ScanSelector:
         # self.root.unbind_all('<KeyPress>')
         self.root.destroy()
 
+    def _get_select_box(self):
+        return str(eval(self.select_box.get()))
+
+    def select_from_box(self, event=None):
+        item = self._get_select_box()
+        self.tree.selection_remove(self.tree.selection())
+        for iid in self.tree.get_children():  # folders
+            for scan_iid in self.tree.get_children(iid):
+                scan_number = self.tree.item(scan_iid)['text']
+                if item in scan_number:
+                    self.tree.selection_add(scan_iid)
+                    self.tree.see(scan_iid)
+                    break
+
+    def select_box_increase(self):
+        if self.tree.selection():
+            self.tree.selection_set(self.tree.prev(self.tree.selection()[0]))
+
+    def select_box_decrease(self):
+        if self.tree.selection():
+            self.tree.selection_set(self.tree.next(self.tree.selection()[0]))
+
     def on_key_press(self, event):
         """any key press performs search of folders, selects first matching folder"""
         # return if clicked on entry box
@@ -243,21 +266,21 @@ class _ScanSelector:
         filename, folderpath = self.get_filepath()
         logger.info(f"Opening nexus viewer for filename: {filename}")
         if filename:
-            from ..main import create_nexus_viewer
+            from .. import create_nexus_viewer
             create_nexus_viewer(filename, parent=self.root)
 
     def open_nexus_plot(self):
         filename, folderpath = self.get_filepath()
         logger.info(f"Opening nexus plot viewer for filename: {filename}")
         if filename:
-            from ..main import create_nexus_plotter
+            from ..apps.nexus import create_nexus_plotter
             create_nexus_plotter(filename, parent=self.root, config=self.config)
 
     def open_nexus_image(self):
         filename, folderpath = self.get_filepath()
         logger.info(f"Opening nexus image viewer for filename: {filename}")
         if filename:
-            from ..main import create_nexus_image_plotter
+            from ..apps.nexus import create_nexus_image_plotter
             create_nexus_image_plotter(filename, parent=self.root, config=self.config)
 
     "======================================================"
@@ -296,7 +319,8 @@ class FolderScanSelector(_ScanSelector):
         super().__init__(root, config)
 
         # Build widgets
-        self.ini_folderpath()
+        # self.ini_folderpath()
+        self.ini_file_select()
         self.tree = folder_treeview(self.root, self.columns, 400, 200)
         self.tree.configure(displaycolumns=('modified', ) + self.metadata_names)  # hide columns
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
@@ -317,12 +341,22 @@ class FolderScanSelector(_ScanSelector):
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X)
 
-        var = ttk.Button(frm, text='Add Folder', command=self.browse_folder)
+        ttk.Button(frm, text='Add Folder', command=self.browse_folder).pack(side=tk.LEFT)
+        ttk.Button(frm, text='Search', command=self.search_options).pack(side=tk.RIGHT)
+
+    def ini_file_select(self):
+        frm = ttk.Frame(self.root)
+        frm.pack(side=tk.TOP, fill=tk.X)
+
+        var = ttk.Entry(frm, textvariable=self.select_box, width=12)
         var.pack(side=tk.LEFT)
-        # var = ttk.Button(frm, text='Nexus Files', command=self.nexus_file_options)
-        # var.pack(side=tk.RIGHT)
-        var = ttk.Button(frm, text='Search', command=self.search_options)
-        var.pack(side=tk.RIGHT)
+        var.bind("<Return>", self.select_from_box)
+        var.bind('<KP_Enter>', self.select_from_box)
+        ttk.Button(frm, text='-', command=self.select_box_decrease, width=2).pack(side=tk.LEFT)
+        ttk.Button(frm, text='+', command=self.select_box_increase, width=2).pack(side=tk.LEFT)
+
+        ttk.Button(frm, text='Search', command=self.search_options).pack(side=tk.RIGHT)
+        ttk.Button(frm, text='Add Folder', command=self.browse_folder).pack(side=tk.RIGHT)
 
     "======================================================"
     "=============== populate functions ==================="
@@ -379,9 +413,6 @@ class FolderScanSelector(_ScanSelector):
     "======================================================"
     "================= button functions ==================="
     "======================================================"
-
-    def select_dataset(self):
-        pass
 
     def search_options(self):
         pass

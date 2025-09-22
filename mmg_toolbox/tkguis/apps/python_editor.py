@@ -7,9 +7,9 @@ import datetime
 import sys
 from tkinter import messagebox, filedialog
 
-from ..misc.styles import tk, ttk, create_root
-from ..misc.functions import topmenu
-from ..misc.logging import create_logger
+from mmg_toolbox.tkguis.misc.styles import tk, ttk, create_root
+from mmg_toolbox.tkguis.misc.functions import topmenu
+from mmg_toolbox.tkguis.misc.logging import create_logger
 
 logger = create_logger(__file__)
 

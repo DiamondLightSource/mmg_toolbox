@@ -10,26 +10,10 @@ import hdfmap
 from hdfmap import create_nexus_map
 
 from ..misc.logging import create_logger
-from ..misc.config import get_config
+from ..misc.config import get_config, C
 from .simple_plot import SimplePlot
 
 logger = create_logger(__file__)
-
-
-"""
-'xlabel': str mode of first axes
-'ylabel': str mode of first signal
-'xdata': flattened array of first axes
-'ydata': flattend array of first signal
-'axes_names': list of axes names,
-'signal_names': list of signal + auxilliary signal names,
-'axes_data': list of ND arrays of data for axes,
-'signal_data': list of ND array of data for signal + auxilliary raw_signals,
-'axes_labels': list of axes labels as 'name [units]',
-'signal_labels': list of signal labels,
-'data': dict of all scannables axes,
-'title': str title as 'filename\nNXtitle'
-"""
 
 
 class NexusDefaultPlot(SimplePlot):
@@ -163,7 +147,11 @@ class NexusDefaultPlot(SimplePlot):
     def update_data(self, hdf: h5py.File):
         try:
             self.data = self.map.get_plot_data(hdf)
-            self.ax1.set_title(self.data['title'])
+            if self.config.get(C.plot_title):
+                ttl = self.map.format_hdf(hdf, self.config[C.plot_title])
+            else:
+                ttl = self.data['title']
+            self.ax1.set_title(ttl)
         except Exception as exc:
             self._set_error(f"Error loading plot data: {exc}")
             raise exc

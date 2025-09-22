@@ -3,6 +3,7 @@ a tkinter frame with a single plot
 """
 import tkinter as tk
 
+from ..misc.config import C
 from ..misc.matplotlib import ini_plot
 from ..misc.logging import create_logger
 
@@ -21,8 +22,8 @@ class SimplePlot:
 
         self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(
             frame=self.root,
-            figure_size=self.config.get('figure_size'),
-            figure_dpi=self.config.get('figure_dpi'),
+            figure_size=self.config.get(C.plot_size),
+            figure_dpi=self.config.get(C.plot_dpi),
         )
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)

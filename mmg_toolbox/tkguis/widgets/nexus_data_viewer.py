@@ -39,7 +39,7 @@ class NexusDataViewer:
         frm = ttk.LabelFrame(window, text='Files', width=50)
         # frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)
         frm.grid(column=0, row=0)
-        self.selector_widget = FolderScanSelector(frm, initial_directory=initial_folder)
+        self.selector_widget = FolderScanSelector(frm, initial_directory=initial_folder, config=self.config)
         self.selector_widget.tree.bind("<<TreeviewSelect>>", self.on_file_select)
 
         # BOTTOM-LEFT

@@ -112,14 +112,14 @@ class ScanRangeSelector:
         return self.numbers2files(scan_numbers)
 
     def select_files(self):
-        from ..main import select_scans
+        from ..apps.scans import select_scans
         files = select_scans(self.exp_folder.get(), self.root, self.config)
         if files:
             numbers = [get_scan_number(file) for file in files]
             self.text.replace("1.0", tk.END, str(numbers))
 
     def show_metadata(self):
-        from ..main import list_scans
+        from ..apps.scans import list_scans
         metadata_list = self.metadata_name.get().split(',')
         file_list = self.generate_scan_files()
         list_scans(*file_list, parent=self.root, config=self.config, metadata_list=metadata_list)

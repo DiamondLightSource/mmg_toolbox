@@ -136,12 +136,12 @@ class TitleWindow:
             self.notebook_dir.set(folder)
 
     def open_data_viewer(self):
-        from ..main import create_data_viewer
+        from .. import create_data_viewer
         self.add_recent_directory(self.data_dir.get())
         create_data_viewer(self.data_dir.get(), self.root, self.config)
 
     def open_file_browser(self):
-        from ..main import create_nexus_file_browser
+        from .. import create_nexus_file_browser
         create_nexus_file_browser(self.root, self.data_dir.get())
 
     def open_log_viewer(self):
@@ -149,11 +149,11 @@ class TitleWindow:
         create_gda_terminal_log_viewer(self.data_dir.get(), self.root)
 
     def open_notebook_browser(self):
-        from ..main import create_jupyter_browser
+        from ..apps.file_browser import create_jupyter_browser
         create_jupyter_browser(self.root, self.notebook_dir.get())
 
     def open_script_runner(self):
-        from ..main import create_script_runner
+        from ..apps.script_runner import create_script_runner
         folders = {
             C.default_directory: self.data_dir.get(),
             C.processing_directory: self.proc_dir.get(),

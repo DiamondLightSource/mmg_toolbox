@@ -368,28 +368,28 @@ class FolderTreeViewFrame:
         filename, foldername = self.get_filepath()
         logger.info(f"Opening nexus viewer for filename: {filename}")
         if filename:
-            from ..main import create_nexus_viewer
+            from .. import create_nexus_viewer
             create_nexus_viewer(filename, parent=self.root)
 
     def open_nexus_plot(self):
         filename, foldername = self.get_filepath()
         logger.info(f"Opening nexus plot viewer for filename: {filename}")
         if filename:
-            from ..main import create_nexus_plotter
+            from ..apps.nexus import create_nexus_plotter
             create_nexus_plotter(filename, parent=self.root)
 
     def open_nexus_image(self):
         filename, foldername = self.get_filepath()
         logger.info(f"Opening nexus image viewer for filename: {filename}")
         if filename:
-            from ..main import create_nexus_image_plotter
+            from ..apps.nexus import create_nexus_image_plotter
             create_nexus_image_plotter(filename, parent=self.root)
 
     def open_folder_summary(self):
         filename, foldername = self.get_filepath()
         logger.info(f"Opening folder summary for filename: {filename}")
         if foldername:
-            from .edit_text import EditText
+            from mmg_toolbox.tkguis.apps.edit_text import EditText
             summary = folder_summary(foldername)
             EditText(summary, self.root).show()
 
