@@ -41,7 +41,7 @@ class CustomToolbar(NavigationToolbar2Tk):
         self.master.clipboard_append(io_buffer.getvalue(), format="image/png")  # adds byte array to buffer but isn't interpreted
 
     def popout_figure(self):
-        """Create a new tk roi_table and display figure"""
+        """Create a new tk window and display figure"""
         root = create_root('Figure', parent=self.master)
         fig, ax1, plot_list, toolbar = ini_plot(root, FIGURE_SIZE, FIGURE_DPI)
 

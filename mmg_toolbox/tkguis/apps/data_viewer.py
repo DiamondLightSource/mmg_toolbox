@@ -1,9 +1,12 @@
+import os
 import tkinter as tk
 
-from mmg_toolbox.env_functions import get_notebook_directory
+from mmg_toolbox.env_functions import get_notebook_directory, open_terminal
 from mmg_toolbox.tkguis.misc.config import get_config, C
 from mmg_toolbox.tkguis.misc.functions import topmenu
 from mmg_toolbox.tkguis.misc.styles import RootWithStyle, create_root
+from mmg_toolbox.tkguis.misc.jupyter import launch_jupyter_notebook, terminate_notebooks
+from mmg_toolbox.scripts.scripts import create_script, create_notebook, SCRIPTS, NOTEBOOKS
 
 
 def create_data_viewer(initial_folder: str | None = None,
@@ -17,6 +20,7 @@ def create_data_viewer(initial_folder: str | None = None,
     from ..misc.matplotlib import SMALL_FIGURE_DPI
     from .file_browser import create_nexus_file_browser, create_file_browser, create_jupyter_browser
     from .scans import create_range_selector
+    from .python_editor import create_python_editor
 
     root = create_root(parent=parent, window_title='NeXus Data Viewer')
     config = get_config() if config is None else config
@@ -28,6 +32,28 @@ def create_data_viewer(initial_folder: str | None = None,
     def get_filepath():
         filename, folder = widget.selector_widget.get_filepath()
         return folder
+
+    def get_replacements(*filenames):
+        return {
+            # {{template}}: replacement
+            'description': 'an example script',
+            'filepaths': ', '.join(f"'{f}'" for f in filenames),
+            'title': f"Example Script: {os.path.basename(filenames[0])}",
+            'x-axis': widget.plot_widget.axes_x.get(),
+            'y-axis': widget.plot_widget.axes_y.get(),
+        }
+
+    def create_script_template(template='example'):
+        filename, folder = widget.selector_widget.get_filepath()
+        new_file = folder + '/processing/example_script.py'
+        create_script(new_file, template, **get_replacements(filename))
+        create_python_editor(open(new_file).read(), root, config),
+
+    def create_notebook_template(template='example'):
+        filename, folder = widget.selector_widget.get_filepath()
+        new_file = folder + '/processing/example.ipynb'
+        create_notebook(new_file, template, **get_replacements(filename))
+        launch_jupyter_notebook('notebook', file=new_file)
 
     menu = {
         'File': {
@@ -41,6 +67,15 @@ def create_data_viewer(initial_folder: str | None = None,
         },
         'Config.': {
             'Edit Config.': lambda: ConfigEditor(root, config),
+        },
+        'Processing': {
+            'Script Editor': lambda: create_python_editor(None, root, config),
+            'Open a terminal': lambda: open_terminal(f"cd {get_filepath()}"),
+            'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', get_filepath() + '/processing'),
+            'Start Jupyter (notebooks)': lambda: launch_jupyter_notebook('notebook', get_filepath() + '/processed/notebooks'),
+            'Stop Jupyter servers': terminate_notebooks,
+            'Scripts:': {name: lambda n=name: create_script_template(n) for name in SCRIPTS},
+            'Notebooks:': {name: lambda n=name: create_notebook_template(n) for name in NOTEBOOKS},
         }
     }
     menu.update(widget.image_widget.options_menu())

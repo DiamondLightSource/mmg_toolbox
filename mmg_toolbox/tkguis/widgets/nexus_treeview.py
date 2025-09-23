@@ -6,7 +6,6 @@ import os
 import h5py
 import tkinter as tk
 from tkinter import ttk
-from tkinter.scrolledtext import ScrolledText
 
 import hdfmap
 from hdfmap.eval_functions import generate_identifier

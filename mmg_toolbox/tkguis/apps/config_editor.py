@@ -17,7 +17,7 @@ TEXTWIDTH = 50
 
 class ConfigEditor:
     """
-    Edit the Configuration File in an inset roi_table
+    Edit the Configuration File in an inset window
     """
 
     def __init__(self, parent: tk.Misc, config: dict | None = None):

@@ -1,5 +1,5 @@
 """
-A python editor roi_table
+A python editor window
 """
 
 import re

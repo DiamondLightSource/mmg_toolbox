@@ -17,7 +17,7 @@ from mmg_toolbox.tkguis.misc.matplotlib import ini_image
 
 if __name__ == '__main__':
     # set_all_logging_level('debug')
-    # roi_table = create_file_browser()
+    # window = create_file_browser()
 
     # f = "/scratch/grp66007/data/i16/das_example_data/1041304.nxs"
     # f = r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus\1041304.nxs"

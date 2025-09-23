@@ -19,36 +19,47 @@ NOTEBOOKS = {
 TEMPLATE = {
     # {{template}}: replacement
     'description': 'a short description',
-    'filepaths': 'file1.nxs, file2.nxs, file3.nxs',
-    'title': 'a nice plot'
+    'filepaths': "'file1.nxs', 'file2.nxs', 'file3.nxs'",
+    'title': 'a nice plot',
+    'x-axis': 'axes',
+    'y-axis': 'signal',
 }
 
 
 def create_script(new_script_path: str, template_name: str, **replacements):
     """create script from template"""
     template_file, description = SCRIPTS[template_name]
+    template_file = os.path.join(os.path.dirname(__file__), template_file)
+    template_changes = TEMPLATE.copy()
+    template_changes.update(replacements)
+    print(template_file)
+    print(template_changes)
+
+    template_string = open(template_file, 'r').read()
+    for name, value in template_changes.items():
+        param = "{{" + name + "}}"
+        print(f"Replacing {template_string.count(param)} instances of {param}")
+        template_string = template_string.replace(param, value)
+
+    with open(new_script_path, 'w') as new:
+        new.write(template_string)
+    print(f"Created {new_script_path}")
+
+
+def create_notebook(new_notebook_path: str, template_name: str, **replacements):
+    """create script from template"""
+    template_file, description = NOTEBOOKS[template_name]
+    template_file = os.path.join(os.path.dirname(__file__), template_file)
     template_changes = TEMPLATE.copy()
     template_changes.update(replacements)
 
     template_string = open(template_file, 'r').read()
     for name, value in template_changes.items():
         param = "{{" + name + "}}"
-        template_string.replace(param, value)
-
-    with open(new_script_path, 'w') as new:
-        new.write(template_string)
-
-
-def create_notebook(new_notebook_path: str, template_name: str, **replacements):
-    """create script from template"""
-    template_file, description = NOTEBOOKS[template_name]
-    template_changes = TEMPLATE.copy()
-    template_changes.update(replacements)
-
-    template_string = open(template_file, 'r').read()
-    for name, value in template_changes.items():
-        template_string.replace(name, value)
+        print(f"Replacing {template_string.count(param)} instances of {param}")
+        template_string = template_string.replace(param, value)
 
     with open(new_notebook_path, 'w') as new:
         new.write(template_string)
+    print(f"Created {new_notebook_path}")
 

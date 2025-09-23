@@ -15,7 +15,7 @@ def create_log_viewer(filename: str, parent: tk.Misc | None = None):
 
 
 def create_gda_terminal_log_viewer(data_directory: str, parent: tk.Misc | None = None):
-    """Create Log Viewer roi_table using data directory"""
+    """Create Log Viewer window using data directory"""
     gda_terminal_log = os.path.join(data_directory, 'gdaterminal.log')
     if os.path.isfile(gda_terminal_log):
         create_log_viewer(gda_terminal_log, parent=parent)

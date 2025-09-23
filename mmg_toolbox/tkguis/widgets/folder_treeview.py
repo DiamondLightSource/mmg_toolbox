@@ -8,10 +8,13 @@ import tkinter as tk
 from tkinter import ttk
 from threading import Thread
 
+from ipywidgets.widgets import widget
+
 from ...file_functions import list_files, list_path_time, display_timestamp, get_hdf_string, folder_summary
 from ...env_functions import open_terminal
 from ..misc.styles import create_hover
 from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
+from ..misc.jupyter import launch_jupyter_notebook
 from ..misc.logging import create_logger
 
 logger = create_logger(__file__)
@@ -194,8 +197,13 @@ class FolderTreeViewFrame:
         self.set_folder(os.path.abspath(os.path.join(self.filepath.get(), '..')))
 
     def on_double_click(self, event=None):
-        """Open a folder or open a file in a new roi_table"""
-        pass
+        """Open a folder or open a file in a new window"""
+        filename, foldername = self.get_filepath()
+        if filename:
+            pass
+        else:
+            self.filepath.set(foldername)
+            self.populate_folders()
 
     "======================================================"
     "================= button functions ==================="
@@ -288,11 +296,19 @@ class FolderTreeViewFrame:
         cmd = f"cd {folderpath}"
         open_terminal(cmd)
 
+    def open_jupyter_notebook(self):
+        filename, foldername = self.get_filepath()
+        if filename:
+            launch_jupyter_notebook('notebook', file=filename)
+        else:
+            launch_jupyter_notebook('notebook', directory=foldername)
+
     def _right_click_folder(self) -> tk.Menu:
         # right-click menu - folder options
         m_folder = tk.Menu(self.root, tearoff=0)
         m_folder.add_command(label="Copy path", command=self.copy_path)
         m_folder.add_command(label="Open Terminal", command=self.open_terminal)
+        m_folder.add_command(label='Launch Jupyter', command=self.launch_jupyter)
         # m_folder.add_command(mode="Open Folder Datasets", command=self.menu_folder_files)
         # m_folder.add_command(mode="Open Folder Plots", command=self.menu_folder_plot)
         # # m_folder.add_command(mode="Display Contents", command=self.menu_folder_plot)
@@ -437,7 +453,7 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
         return m_file
 
     def on_double_click(self, event=None):
-        """Open a folder or open a file in a new roi_table"""
+        """Open a folder or open a file in a new window"""
         if not self.tree.focus():
             return
         iid = self.tree.focus()
@@ -576,6 +592,7 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
 
         return window
 
+
 class JupyterFolderTreeViewFrame(FolderTreeViewFrame):
     def __init__(self, root: tk.Misc, initial_directory: str | None = None):
         logger.info('Creating JupyterFolderTreeViewFrame')
@@ -589,14 +606,6 @@ class JupyterFolderTreeViewFrame(FolderTreeViewFrame):
         m_file.add_command(label="view html", command=self.open_jupyter_html)
         return m_file
 
-    def open_jupyter_notebook(self):
-        from ...nb_runner import run_jupyter_notebook
-
-        filename, foldername = self.get_filepath()
-        if filename:
-            run_jupyter_notebook(filename)
-        else:
-            run_jupyter_notebook(foldername)
 
     def open_jupyter_html(self):
         from ...nb_runner import view_jupyter_notebook, view_notebook_html

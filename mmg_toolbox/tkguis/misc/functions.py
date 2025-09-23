@@ -24,12 +24,17 @@ def topmenu(root: RootWithStyle, menu_dict: dict, add_themes=False, add_about=Fa
     if add_about:
         menu_dict.update(about_menu())
 
+    def add_menu(menu: tk.Menu, **this_menu_dict):
+        for name, item in this_menu_dict.items():
+            if type(item) is dict:
+                new_menu = tk.Menu(menu, tearoff=False)
+                add_menu(new_menu, **item)
+                menu.add_cascade(label=name, menu=new_menu)
+            else:
+                menu.add_command(label=name, command=item)
+
     menubar = tk.Menu(root)
-    for item in menu_dict:
-        men = tk.Menu(menubar, tearoff=0)
-        for label, function in menu_dict[item].items():
-            men.add_command(label=label, command=function)
-        menubar.add_cascade(label=item, menu=men)
+    add_menu(menubar, **menu_dict)
     root.config(menu=menubar)
 
 

@@ -148,7 +148,7 @@ def run_command(command: str):
 
 def open_terminal(command: str):
     """
-    Open a new terminal roi_table (linux only) and run a command
+    Open a new terminal window (linux only) and run a command
     """
     shell_cmd = f"gnome-terminal -- bash -c \"{command}; exec bash\""
     subprocess.Popen(shell_cmd, shell=True)

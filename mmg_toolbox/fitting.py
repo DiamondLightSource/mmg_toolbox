@@ -13,6 +13,7 @@ fit.plot()
 import numpy as np
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel, PseudoVoigtModel, LinearModel, ExponentialModel
 from .misc_functions import stfm
+from .nexus_reader import NexusDataHolder
 
 # https://lmfit.github.io/lmfit-py/builtin_models.html#peak-like-models
 MODELS = {
@@ -938,7 +939,7 @@ class ScanFitManager:
     :param scan: babelscan.Scan
     """
 
-    def __init__(self, scan):
+    def __init__(self, scan: NexusDataHolder):
         self.scan = scan
 
     def __call__(self, *args, **kwargs):
@@ -956,8 +957,9 @@ class ScanFitManager:
         :param yaxis: str name or address of array to plot on y axis
         :return: float ratio signal / err
         """
-        xdata, ydata, yerror, xname, yname = self.scan.get_plot_data('axes', yaxis, None, None)
-        return peak_ratio(ydata, yerror)
+        values = self.scan.eval(yaxis)
+        errors = np.sqrt(values + 0.1)
+        return peak_ratio(values, errors)
 
     def find_peaks(self, xaxis='axes', yaxis='signal', min_peak_power=None, peak_distance_idx=6):
         """
@@ -972,8 +974,9 @@ class ScanFitManager:
         :return index: array(m) of indexes in y of peaks that satisfy conditions
         :return power: array(m) of estimated power of each peak
         """
-        xdata, ydata, yerror, xname, yname = self.scan.get_plot_data(xaxis, yaxis, None, None)
-        index, power = find_peaks(ydata, yerror, min_peak_power, peak_distance_idx)
+        xdata, ydata = self.scan.arrays(xaxis, yaxis)
+        errors = np.sqrt(ydata + 0.1)
+        index, power = find_peaks(ydata, errors, min_peak_power, peak_distance_idx)
         return xdata[index], index, power
 
     def fit(self, xaxis='axes', yaxis='signal', model='Gaussian', background='slope',
@@ -1018,17 +1021,23 @@ class ScanFitManager:
         :param plot_result: if True, plots the results using fit.plot()
         :return: FitResult object
         """
-        xdata, ydata, yerror, xname, yname = self.scan.get_plot_data(xaxis, yaxis, None, None)
+        xdata, ydata = self.scan.arrays(xaxis, yaxis)
+        errors = np.sqrt(ydata + 0.1)
+        xname, yname = self.scan.labels(xaxis, yaxis)
 
         # lmfit
-        res = peakfit(xdata, ydata, yerror, model=model, background=background,
+        res = peakfit(xdata, ydata, errors, model=model, background=background,
                       initial_parameters=initial_parameters, fix_parameters=fix_parameters, method=method)
 
         output = res.results()
-        self.scan.update_namespace(output)
-        self.scan.add2namespace('lmfit', res.res, other_names='fit_result')
-        self.scan.add2namespace('fitobj', res)
-        self.scan.add2namespace('fit', res.res.best_fit, other_names=['fit_%s' % yname])
+        output.update({
+            'lmfit': res.res,
+            'fit_result': res.res,
+            'fitobj': res,
+            'fit': res.res.best_fit,
+            f"fit_{yname}": res.res.best_fit,
+        })
+        self.scan.map.add_local(**output)
 
         if print_result:
             print(self.scan.title())
@@ -1092,18 +1101,24 @@ class ScanFitManager:
         :param plot_result: if True, plots the results using fit.plot()
         :return: FitResult object
         """
-        xdata, ydata, yerror, xname, yname = self.scan.get_plot_data(xaxis, yaxis, None, None)
+        xdata, ydata = self.scan.arrays(xaxis, yaxis)
+        errors = np.sqrt(ydata + 0.1)
+        xname, yname = self.scan.labels(xaxis, yaxis)
 
         # lmfit
-        res = multipeakfit(xdata, ydata, yerror, npeaks=npeaks, min_peak_power=min_peak_power,
+        res = multipeakfit(xdata, ydata, errors, npeaks=npeaks, min_peak_power=min_peak_power,
                            peak_distance_idx=peak_distance_idx, model=model, background=background,
                            initial_parameters=initial_parameters, fix_parameters=fix_parameters, method=method)
 
         output = res.results()
-        self.scan.update_namespace(output)
-        self.scan.add2namespace('lmfit', res.res, other_names='fit_result')
-        self.scan.add2namespace('fitobj', res)
-        self.scan.add2namespace('fit', res.res.best_fit, other_names=['fit_%s' % yname])
+        output.update({
+            'lmfit': res.res,
+            'fit_result': res.res,
+            'fitobj': res,
+            'fit': res.res.best_fit,
+            f"fit_{yname}": res.res.best_fit,
+        })
+        self.scan.map.add_local(**output)
 
         if print_result:
             print(self.scan.title())
