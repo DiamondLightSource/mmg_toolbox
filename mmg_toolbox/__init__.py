@@ -3,12 +3,13 @@ Magnetic Materials Group Toolbox
 """
 
 import sys
+from file_reader import data_file_reader
 
 __version__ = '0.2.1'
 __date__ = '30/07/2025'
 __author__ = 'Dan Porter'
 
-__all__ = ['start_gui', 'version_info', 'title', 'module_info']
+__all__ = ['start_gui', 'version_info', 'title', 'module_info', 'data_file_reader']
 
 
 def start_gui():

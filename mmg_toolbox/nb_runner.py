@@ -129,7 +129,7 @@ def reprocess_notebook(notebook_filename: str, output_folder: str | None = None)
     path, name = os.path.split(notebook_filename)
 
     if output_folder is None and path.endswith('/processed/notebooks'):
-        output_folder = path.replace('/processed/notebooks', 'processing')
+        output_folder = path.replace('/processed/notebooks', '/processing')
 
     if output_folder.endswith('.ipynb'):
         new_filename = output_folder
