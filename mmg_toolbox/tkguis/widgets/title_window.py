@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from ...env_functions import get_dls_visits, MMG_BEAMLINES
+from ...file_functions import folder_summary_line
 from ..misc.logging import create_logger
 from ..misc.config import get_config, save_config, C
 from ..misc.functions import select_folder, show_error
@@ -20,6 +21,7 @@ class TitleWindow:
 
         self.beamline = tk.StringVar(self.root, '')
         self.visit = tk.StringVar(self.root, '')
+        self.summary = tk.StringVar(self.root, '')
         self.data_dir = tk.StringVar(self.root, '')
         self.proc_dir = tk.StringVar(self.root, '')
         self.notebook_dir = tk.StringVar(self.root, '')
@@ -35,6 +37,7 @@ class TitleWindow:
         self.visit_menu = ttk.OptionMenu(frm, self.visit, *list(self.visits.keys()), command=self.choose_visit)
         self.visit_menu.pack(side=tk.LEFT, padx=4)
         ttk.Button(frm, text='Check', command=self.open_file_browser, width=10).pack(side=tk.LEFT)
+        ttk.Label(frm, textvariable=self.summary).pack(side=tk.LEFT, padx=2)
 
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
@@ -92,6 +95,7 @@ class TitleWindow:
     def dls_directories(self, data_dir: str):
         if not os.access(data_dir, os.R_OK):
             show_error(f"Warning path is not readable: '{data_dir}'", self.root, raise_exception=False)
+        self.summary.set(folder_summary_line(data_dir))
         self.data_dir.set(data_dir)
         proc_dir = os.path.join(data_dir, 'processing')
         notebook_dir = os.path.join(data_dir, 'processed', 'notebooks')
