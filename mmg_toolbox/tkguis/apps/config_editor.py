@@ -167,7 +167,6 @@ class ConfigEditor:
     def reset_config(self):
         beamline = self.config_getters[C.beamline]()
         default = default_config(beamline)
-        print(default)
         self.set_from_config(default)
 
     def delete_config(self):

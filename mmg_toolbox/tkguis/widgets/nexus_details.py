@@ -132,7 +132,7 @@ class NexusDetails:
             self.textbox.insert('1.0', txt)
             self.textbox.configure(state=tk.DISABLED)
         except Exception as e:
-            show_error(f"Error:\n{e}", parent=self.root)
+            show_error(f"Error:\n{e}", parent=self.root, raise_exception=False)
 
     def edit_expression(self):
         """Double-click on text display => open config str"""

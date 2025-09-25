@@ -8,7 +8,7 @@ from tkinter import ttk
 from ...env_functions import get_dls_visits, MMG_BEAMLINES
 from ...file_functions import folder_summary_line
 from ..misc.logging import create_logger
-from ..misc.config import get_config, save_config, C
+from ..misc.config import get_config, save_config, C, default_config
 from ..misc.functions import select_folder, show_error
 
 logger = create_logger(__file__)
@@ -68,7 +68,8 @@ class TitleWindow:
         self.choose_beamline(self.config.get(C.beamline, 'i16'))
 
     def choose_beamline(self, beamline: str):
-        bl_config = get_config(beamline=beamline)
+        from ..misc.config import BEAMLINE_CONFIG
+        bl_config = BEAMLINE_CONFIG[beamline].copy()
         self.config.update(bl_config)
         self.beamline.set('MMG Toolbox: ' + beamline)
         self.visits = get_dls_visits(beamline)
@@ -79,7 +80,6 @@ class TitleWindow:
         self.dls_directories(self.visits[current_visit])
 
     def menu_items(self):
-
         menu = {
             'Recent Files': {
                 file: lambda x=file: self.data_dir.set(x)
@@ -114,6 +114,7 @@ class TitleWindow:
         recent.insert(0, directory)
         while len(recent) > 10:
             recent.pop()
+        self.config[C.recent_data_directories] = recent
         self.update_config()
 
     def choose_visit(self, event=None):

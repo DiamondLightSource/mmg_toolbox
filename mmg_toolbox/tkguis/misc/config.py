@@ -73,21 +73,25 @@ BEAMLINE_CONFIG = {
         C.beamline: 'i06',
         C.default_directory: f"/dls/i06/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06'],
+        C.normalise_factor: '',
     },
     'i06-1': {
         C.beamline: 'i06-1',
         C.default_directory: f"/dls/i06-1/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06-1'],
+        C.normalise_factor: '',
     },
     'i06-2': {
         C.beamline: 'i06-2',
         C.default_directory: f"/dls/i06-2/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06-2'],
+        C.normalise_factor: '',
     },
     'i10': {
         C.beamline: 'i10',
         C.default_directory: f"/dls/i10/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i10'],
+        C.normalise_factor: '',
     },
     'i10-1': {
         C.beamline: 'i10-1',
@@ -108,6 +112,7 @@ BEAMLINE_CONFIG = {
         C.beamline: 'i21',
         C.default_directory: f"/dls/i21/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i21'],
+        C.normalise_factor: '',
     },
 }
 
