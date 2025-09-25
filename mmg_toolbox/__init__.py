@@ -11,9 +11,9 @@ __author__ = 'Dan Porter'
 __all__ = ['start_gui', 'version_info', 'title', 'module_info']
 
 
-def start_gui():
+def start_gui(beamline: str | None = None):
     from mmg_toolbox.tkguis import create_title_window
-    create_title_window()
+    create_title_window(beamline)
 
 
 def version_info():

@@ -76,7 +76,11 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     bg = style.lookup('.', 'background')
 
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
-    fig.patch.set_facecolor(bg)
+    try:
+        fig.patch.set_facecolor(bg)
+    except ValueError:
+        print(f"Cannot set background color of {bg}")
+        bg = '#dcdad5'
     # fig.subplots_adjust(left=0.2, bottom=0.2)
     # Amplitude
     ax1 = fig.add_subplot(111)

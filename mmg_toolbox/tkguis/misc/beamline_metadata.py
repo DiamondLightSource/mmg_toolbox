@@ -9,13 +9,14 @@ META_STRING = """
 cmd = {(cmd|scan_command)}
 axes = {_axes}
 signal = {_signal}
+detector = {_IMAGE.split('/')[-2] if '/' in _IMAGE else 'none'}
 shape = {axes.shape}
 """
 
 I06_1_META_STRING = META_STRING + """
-endstation: {endstation}
+endstation: {end_station}
 sample = {sample_name}
-energy = {mean(energyh?(0)):.0f} eV
+energy = {mean((energyh|incident_energy)):.0f} eV
 pol = {polarisation}
 field = {field_x?(0)**2 + field_y?(0)**2 + field_z?(0)**2:.2f} T
 temp = {(lakeshore336_cryostat|itc3_device_sensor_temp?(300)):.2f} K

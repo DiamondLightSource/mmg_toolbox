@@ -6,7 +6,7 @@ from mmg_toolbox.tkguis.misc.jupyter import launch_jupyter_notebook, terminate_n
 from mmg_toolbox.env_functions import open_terminal
 
 
-def create_title_window():
+def create_title_window(beamline: str | None = None):
     """Title Window"""
     from ..widgets.title_window import TitleWindow
     from .config_editor import ConfigEditor
@@ -18,7 +18,7 @@ def create_title_window():
 
 
     root = create_root(window_title='Beamline Data Viewer')
-    config = get_config()
+    config = get_config(beamline=beamline)
 
     widget = TitleWindow(root, config)
 

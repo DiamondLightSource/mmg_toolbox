@@ -104,6 +104,11 @@ class NexusDataHolder(DataHolder):
         """Return labels"""
         return [generate_identifier(self.map[arg]) for arg in args]
 
+    def table(self, delimiter=', ', string_spec='', format_spec='f', default_decimals=8) -> str:
+        """Return data table"""
+        with hdfmap.load_hdf(self.filename) as hdf:
+            return self.map.create_scannables_table(hdf, delimiter, string_spec, format_spec, default_decimals)
+
     def get_plot_data(self, x_axis: str = 'axes0', y_axis: str = 'signal0'):
         with hdfmap.load_hdf(self.filename) as hdf:
             cmd = self.map.eval(hdf, '(cmd|scan_command)')
@@ -114,6 +119,19 @@ class NexusDataHolder(DataHolder):
                 'ylabel': generate_identifier(self.map[y_axis]) if y_axis in self.map else y_axis,
                 'title': f"#{self.scan_number()}\n{cmd}"
             }
+
+    def plot(self, x_axis: str = 'axes0', y_axis: str = 'signal0', axes=None):
+        """Plot data using matplotlib"""
+        import matplotlib.pyplot as plt
+        plot_data = self.get_plot_data(x_axis, y_axis)
+
+        if axes is None:
+            fig, axes = plt.subplots()
+
+        axes.plot(plot_data['x'], plot_data['y'], label=plot_data['title'])
+        axes.set_xlabel(plot_data['xlabel'])
+        axes.set_ylabel(plot_data['ylabel'])
+        axes.set_title(plot_data['title'])
 
 
 def read_nexus_file(filename: str) -> NexusDataHolder:
