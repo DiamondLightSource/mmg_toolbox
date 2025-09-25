@@ -198,7 +198,7 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name=None, element_edge=Non
     """Load ScanContainer"""
     import hdfmap
 
-    with h5py.File(filename, 'r') as hdf:
+    with hdfmap.load_hdf(filename) as hdf:
         # HdfMap creates data-path namespace
         m = hdfmap.NexusMap()
         m.populate(hdf)
@@ -313,9 +313,13 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
     else:
         raise ValueError(f"Unknown polarisation: {pol}")
 
-    scans = load_xas_scans(*filenames)
     similar = []
-    for scan in scans:
+    for filename in filenames:
+        try:
+            scan = load_xas_scans(filename)[0]
+        except ValueError as ve:
+            print(f"Error loading {filename} as xas_scan: {ve}")
+            continue
         m = scan.metadata
         if (
             m.element == element and
@@ -326,5 +330,5 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
         ):
             similar.append(scan)
         else:
-            print(f"Measurement {repr(scan)} is not similar to {repr(scans[0])}")
+            print(f"Measurement {repr(scan)} is not similar to {repr(ini_scan)}")
     return similar
