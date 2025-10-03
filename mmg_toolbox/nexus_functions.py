@@ -2,7 +2,6 @@
 Various utilities for reading and writing nexus files
 """
 
-import os
 import numpy as np
 import h5py
 
@@ -110,7 +109,7 @@ def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Gro
     return recursor(parent, *field_or_class)
 
 
-def nx_find_all(parent: h5py.Group, *field_or_class: str):
+def nx_find_all(parent: h5py.Group, *field_or_class: str) -> list[h5py.Dataset | h5py.Group]:
     """
     Return all objects that match a set of NXclass or field names
 
@@ -159,8 +158,8 @@ def nx_find_data(parent: h5py.Group, *field_or_class: str, default=None):
     dataset = nx_find(parent, *field_or_class)
     if isinstance(dataset, h5py.Dataset):
         if np.issubdtype(dataset.dtype, np.number):
-            return dataset[()]
-        return dataset.asstr()[()]
+            return dataset[...]
+        return dataset.asstr()[...]
     return default
 
 
@@ -193,7 +192,7 @@ def get_dataset_string(dataset: h5py.Dataset) -> str:
         return str(np.squeeze(dataset[()]))  # other np.ndarray
 
 
-def get_metadata(group: h5py.Group, name_paths_default: list[tuple[str, tuple, str]]) -> dict[str, str]:
+def get_metadata(group: h5py.Group, *name_paths_default: tuple[str, tuple, str]) -> dict[str, str]:
     """Return a dict with metadata available in hdf Group. All metadata formated as strings"""
     metadata = {
         name: get_dataset_string(dataset)

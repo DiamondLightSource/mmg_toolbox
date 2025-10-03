@@ -20,7 +20,7 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
                     filename: str = '', beamline: str = '', scan_no: int = 0, start_date_iso: str = '',
                     end_date_iso: str = '', cmd: str = '', default_mode: str = 'tey', pol: str = 'pc',
                     sample_name: str = '', temp: float = 300, mag_field: float = 0, pitch: float = 0,
-                    element_edge: str | None = None):
+                    element_edge: str | None = None) -> SpectraContainer:
     """
     Function to load data from i06-1 and i10-1 beamline XAS measurements
     """

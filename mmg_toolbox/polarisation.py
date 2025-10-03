@@ -110,6 +110,7 @@ def get_polarisation(pol: h5py.Dataset | h5py.Group) -> str:
             dataset = nx_find(pol, label)
             if dataset:  # DLS specific polarisation mode
                 return get_polarisation(dataset)
+        raise KeyError(f"{pol} contains no polarisation fields")
     if np.issubdtype(pol.dtype, np.number):
         return polarisation_label_from_stokes(*pol)
     return check_polarisation(pol[()])

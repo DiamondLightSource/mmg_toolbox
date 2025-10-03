@@ -6,8 +6,9 @@ import h5py
 import numpy as np
 import datetime
 
-from mmg_toolbox.misc_functions import DataHolder
+from mmg_toolbox.misc_functions import DataHolder, shorten_string
 from mmg_toolbox.file_functions import get_scan_number
+from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapMMGMetadata as Md
 
 
 class NexusDataHolder(DataHolder):
@@ -15,6 +16,7 @@ class NexusDataHolder(DataHolder):
     filename: str
     map: hdfmap.NexusMap
     metadata: DataHolder
+    MAX_STR_LEN: int = 100
 
     def __init__(self, filename: str | None, hdf_map: hdfmap.NexusMap | None = None, flatten_scannables: bool = True):
         if filename is None:
@@ -30,8 +32,9 @@ class NexusDataHolder(DataHolder):
         super().__init__(**scannables)
         self.metadata = DataHolder(**metadata)
 
-        from mmg_toolbox.fitting import ScanFitManager
+        from mmg_toolbox.fitting import ScanFitManager, poisson_errors
         self.fit = ScanFitManager(self)
+        self._error_function = poisson_errors
 
     def __repr__(self):
         return f"NexusDataHolder('{self.filename}')"
@@ -109,17 +112,22 @@ class NexusDataHolder(DataHolder):
         with hdfmap.load_hdf(self.filename) as hdf:
             return self.map.create_scannables_table(hdf, delimiter, string_spec, format_spec, default_decimals)
 
-    def get_plot_data(self, x_axis: str = 'axes0', y_axis: str = 'signal0'):
+    def get_plot_data(self, x_axis: str = 'axes0', y_axis: str = 'signal0') -> dict:
         with hdfmap.load_hdf(self.filename) as hdf:
-            cmd = self.map.eval(hdf, '(cmd|scan_command)')
+            cmd = self.map.eval(hdf, Md.cmd)
+            if len(cmd) > self.MAX_STR_LEN:
+                cmd = shorten_string(cmd)
+            ydata = self.map.eval(hdf, y_axis)
+            yerror = self._error_function(ydata)
             return {
                 'x': self.map.eval(hdf, x_axis),
-                'y': self.map.eval(hdf, y_axis),
+                'y': ydata,
+                'yerror': yerror,
                 'xlabel': generate_identifier(self.map[x_axis]) if x_axis in self.map else x_axis,
                 'ylabel': generate_identifier(self.map[y_axis]) if y_axis in self.map else y_axis,
                 'title': f"#{self.scan_number()}\n{cmd}"
             }
-
+    
     def plot(self, x_axis: str = 'axes0', y_axis: str = 'signal0', axes=None):
         """Plot data using matplotlib"""
         import matplotlib.pyplot as plt
