@@ -35,9 +35,10 @@ class NexusDetails:
         self.notebook = tk.StringVar(self.root, 'None')
         self.notebooks = {}  # notebook: filepath
 
+        self.terminal = self.ini_terminal(self.root)  # pack from bottom
+        self.combo_notebook = self.ini_notebooks(self.root)  # pack from bottom
         self.textbox = self.ini_textbox(self.root)
-        self.combo_notebook = self.ini_notebooks(self.root)
-        self.terminal = self.ini_terminal(self.root)
+
 
         if hdf_filename:
             self.update_data_from_file(hdf_filename)
@@ -71,7 +72,7 @@ class NexusDetails:
     def ini_terminal(self, frame: tk.Misc):
         # Terminal
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+        frm.pack(side=tk.BOTTOM, fill=tk.X, expand=tk.YES)
 
         tfrm = ttk.Frame(frm, relief=tk.RIDGE)
         tfrm.pack(side=tk.TOP, fill=tk.BOTH)
@@ -102,7 +103,7 @@ class NexusDetails:
 
     def ini_notebooks(self, frame: tk.Misc):
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=6)
+        frm.pack(side=tk.BOTTOM, fill=tk.X, expand=tk.YES, padx=6)
 
         menu = ttk.OptionMenu(frm, self.notebook)
         menu.pack(side=tk.LEFT)

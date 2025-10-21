@@ -287,9 +287,11 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
     def update_axis_choice(self, event=None):
         # select item in list if it matches
         yaxis = self.axes_y.get()
-        self.listbox.selection_set([
+        in_listbox = next((
             item for item in self.listbox.get_children()
             if yaxis == self.listbox.item(item)['text']
-        ])
-        self.listbox.see(next(iter(self.listbox.selection()), ''))
+        ), None)
+        if in_listbox:
+            self.listbox.selection_set(in_listbox)
+            self.listbox.see(in_listbox)
         super().update_axis_choice(event)

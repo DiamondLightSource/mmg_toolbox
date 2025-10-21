@@ -26,7 +26,7 @@ def create_nexus_viewer(filename: str, parent: tk.Misc | None = None) -> RootWit
     return root
 
 
-def create_nexus_plotter(filename: str, parent: tk.Misc | None = None, config: dict | None = None) -> RootWithStyle:
+def create_nexus_plotter(*filenames: str, parent: tk.Misc | None = None, config: dict | None = None) -> RootWithStyle:
     """
     Plot 1D line data from a NeXus file
     """
@@ -34,7 +34,7 @@ def create_nexus_plotter(filename: str, parent: tk.Misc | None = None, config: d
     from mmg_toolbox.tkguis.apps.config_editor import ConfigEditor
 
     root = create_root('NeXus File Default Plot', parent=parent)
-    widget = NexusDefaultPlot(root, filename, config)
+    widget = NexusDefaultPlot(root, *filenames, config=config)
 
     def load_file():
         new_filename = select_hdf_file(root)

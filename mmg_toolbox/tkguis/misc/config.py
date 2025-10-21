@@ -17,6 +17,7 @@ class C:
     processing_directory = 'processing_directory'
     notebook_directory = 'notebook_directory'
     recent_data_directories = 'recent_data_directories'
+    text_size = 'text_size'
     plot_size = 'plot_size'
     image_size = 'image_size'
     plot_dpi = 'plot_dpi'
@@ -34,6 +35,8 @@ class C:
 USER = get_user()
 TMPFILE = f'mmg_config_{USER}.json'
 CONFIG_FILE = os.path.join(TMPDIR, TMPFILE)
+TEXT_SIZE = 50  # Determines height of text area in Dataviewer
+
 
 META_LIST = {
     # scan number and start_time included by default
@@ -56,6 +59,7 @@ CONFIG = {
     C.processing_directory: os.path.expanduser('~'),
     C.notebook_directory: os.path.expanduser('~'),
     C.recent_data_directories: [os.path.expanduser('~')],
+    C.text_size: TEXT_SIZE,
     C.plot_size: FIGURE_SIZE,
     C.image_size: IMAGE_SIZE,
     C.plot_dpi: FIGURE_DPI,
@@ -105,7 +109,7 @@ BEAMLINE_CONFIG = {
         C.normalise_factor: '/Transmission/count_time/(rc/300.)',
         C.metadata_string: BEAMLINE_META['i16'],
         C.roi: [
-            ('pilroi1', 'pil3_centre_j', 'pil3_centre_i', 30, 30, 'IMAGE'),
+            ('pilroi1', 'pil3_centre_j', 'pil3_centre_i', 30, 30, 'pil3_100k'),
         ]
     },
     'i21': {
