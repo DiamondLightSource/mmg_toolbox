@@ -2,13 +2,14 @@
 NXtransformations
 code taken from https://github.com/DanPorter/i16_diffractometer
 """
-
+import hdfmap
 import numpy as np
 import h5py
 
 import mmg_toolbox.nexus_names as nn
 from mmg_toolbox.nexus_names import METERS
 from mmg_toolbox.rotations import norm_vector, rotation_t_matrix, translation_t_matrix, transform_by_t_matrix
+from mmg_toolbox.nexus_functions import nx_find_all, bytes2str
 
 
 def get_depends_on(root: None | str | h5py.Group | h5py.Dataset) -> str:
@@ -20,36 +21,13 @@ def get_depends_on(root: None | str | h5py.Group | h5py.Dataset) -> str:
             raise Exception(f"group: {root} does not contain 'depends_on'")
     elif isinstance(root, h5py.Dataset):
         if nn.NX_DEPON in root.attrs:
-            return str(root.attrs[nn.NX_DEPON])
+            return bytes2str(root.attrs[nn.NX_DEPON])
         else:
             raise Exception(f"dataset: {root} does not contain 'depends_on'")
     elif not root:
         return '.'
     else:
         return root
-
-# def get_depends_on(path: str, hdf_file: h5py.File) -> str:
-#     """
-#     Returns 'depends_on' path from this group or dataset
-#     The returned path will point to a dataset, based on NeXus rules
-#     :param path: path of a dataset
-#     :param hdf_file: HDF5 file object
-#     :return:
-#     """
-#     obj = hdf_file[path]
-#     if nn.NX_DEPON in obj.attrs:
-#         do_path = obj.attrs[nn.NX_DEPON]
-#     elif isinstance(obj, h5py.Group) and nn.NX_DEPON in obj:
-#         do_path = obj[nn.NX_DEPON][()]
-#     else:
-#         return '.'
-#
-#     if do_path in hdf_file:
-#         return do_path.decode() if isinstance(do_path, bytes) else do_path
-#     # walk up tree to find relative file path
-#     while (isinstance(obj, h5py.Dataset) or do_path not in obj) and obj != obj.file:
-#         obj = obj.parent
-#     return obj[do_path].name if do_path in obj else '.'
 
 
 def nx_depends_on_chain(path: str, hdf_file: h5py.File) -> list[str]:
@@ -59,7 +37,10 @@ def nx_depends_on_chain(path: str, hdf_file: h5py.File) -> list[str]:
     :param hdf_file: Nexus file object
     :return:
     """
-    depends_on = get_depends_on(hdf_file[path])
+    if path in hdf_file:
+        depends_on = get_depends_on(hdf_file[path])
+    else:
+        depends_on = path
     out = []
     if depends_on != '.':
         out.append(depends_on)
@@ -185,7 +166,7 @@ class NxTransformation:
     """
     Class containing single NXTransformation axis
     """
-    def __init__(self, path: str, name: str, parent: str, value: float | np.array, transformation_type: str,
+    def __init__(self, path: str, name: str, parent: str, value: float | np.ndarray, transformation_type: str,
                  vector: tuple[float, float, float], offset: tuple[float, float, float],
                  units: str, offset_units: str, depends_on: str):
         self.path = path
@@ -218,7 +199,7 @@ class NxTransformation:
         return transform_by_t_matrix(vec, self.t_matrix())
 
 
-def load_transformation(path: str, index: int, hdf_file: h5py.File) -> NxTransformation:
+def load_transformation(path: str, index: int, hdf_file: h5py.File, parent: str = '') -> NxTransformation:
     """Read Transformation Operation from HDF file"""
     depends_on = get_depends_on(hdf_file[path])
     if depends_on == '.':
@@ -238,7 +219,7 @@ def load_transformation(path: str, index: int, hdf_file: h5py.File) -> NxTransfo
     return NxTransformation(
         path=path,
         name=dataset.name.split('/')[-1],
-        parent='',
+        parent=parent,
         value=value,
         transformation_type=transformation_type,
         vector=vector,
@@ -253,16 +234,22 @@ class NxTransformationChain:
     """
     Class containing chain of transformation operations
     """
-    def __init__(self, path: str, index: int, hdf_file: h5py.File):
-        self.path = path
-        self.name = path.split('/')[-1]
-        chain = nx_depends_on_chain(path, hdf_file)
+    def __init__(self, object: h5py.Group, index: int = 0):
+        if not isinstance(object, h5py.Group):
+            raise TypeError("object must be a h5py.Group")
+        if nn.NX_DEPON not in object:
+            raise Exception(f"object {object} does not contain {nn.NX_DEPON}")
+        self.path = object.name
+        self.name = self.path.split('/')[-1]
+        self.index = index
+        chain = nx_depends_on_chain(self.path, object.file)
+        self.size = nx_transformations_max_size(self.path, object.file)
         self._chain = [
-            load_transformation(path, index, hdf_file) for path in chain
+            load_transformation(_path, index, object.file, self.name) for _path in chain
         ]
 
     def __repr__(self):
-        return f"NxTransformationChain('{self.path}', {self.name})"
+        return f"NxTransformationChain('{self.path}', index={self.index}/{self.size})"
 
     def __str__(self):
         return repr(self) + '\n' + '\n'.join(str(t) for t in self._chain)
@@ -289,6 +276,20 @@ class NxTransformationChain:
         return transform_by_t_matrix(vec, self.t_matrix())
 
 
+def generate_nxtranformations_string(filename: str) -> str:
+    """
+    return a string describing all the transformation chains in the NeXus file
+    """
+    out_str = "######################## NXtransformations ##########################\n"
+    with hdfmap.load_hdf(filename) as nxs:
+        datasets = nx_find_all(nxs, nn.NX_DEPON)
+        for dataset in datasets:
+            chain = NxTransformationChain(dataset.parent, 0)
+            out_str += str(chain) + '\n\n'
+    return out_str
+
+
+#TODO: Merge this and NxTransformation
 class TransformationAxis:
     """Holder for data to define an NXtransformation dataset"""
     def __init__(self, name: str, value: float | np.ndarray,

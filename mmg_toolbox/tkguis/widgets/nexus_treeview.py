@@ -59,35 +59,85 @@ def right_click_menu(frame, tree):
     return menu_popup
 
 
-class HdfTreeview:
+class _Treeview:
     """
-    HDF Treeview object
-    """
-    def __init__(self, root: tk.Misc):
+    Treeview  widget for NeXus file viewer
 
+    params
+     root: tk frame
+    """
+    def __init__(self, root: tk.Misc, *columns: str):
         frm = ttk.Frame(root)
         frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
 
-        tree = ttk.Treeview(frm, columns=('type', 'name', 'value'), selectmode='browse')
+        tree = ttk.Treeview(frm, columns=columns, selectmode='browse')
         tree.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
 
         var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
         var.pack(side=tk.LEFT, fill=tk.Y)
         tree.configure(yscrollcommand=var.set)
 
-        # Populate tree
-        tree.heading("#0", text="HDF Address")
-        tree.column("#0", minwidth=50, width=400)
-        tree.column("type", width=100, anchor='c')
-        tree.column("name", width=100, anchor='c')
-        tree.column("value", width=200, anchor='c')
-        tree.heading("type", text="Type")
-        tree.heading("name", text="Name")
-        tree.heading("value", text="Value")
         # tree.bind("<<TreeviewSelect>>", self.tree_select)
         # tree.bind("<Double-1>", self.on_double_click)
         tree.bind("<Button-3>", right_click_menu(frm, tree))
         self.tree = tree
+
+    def populate(self, **kwargs):
+        pass
+
+    def delete(self):
+        self.tree.delete(*self.tree.get_children())
+
+
+class _StringView:
+    """
+    String viewer widget for NeXus file viewer
+    """
+
+    def __init__(self, root: tk.Misc):
+
+        frm = ttk.Frame(root)
+        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+
+        self.text = tk.Text(frm, wrap=tk.NONE)
+
+        vbar = ttk.Scrollbar(frm, orient=tk.VERTICAL, command=self.text.yview)
+        hbar = ttk.Scrollbar(frm, orient=tk.HORIZONTAL, command=self.text.xview)
+        self.text.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
+
+        hbar.pack(side=tk.BOTTOM, fill=tk.X)
+        vbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.text.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+
+        if hasattr(root, 'style'):
+            update_text_style(self.text, root.style)
+
+    def _populate(self, string):
+        self.delete()
+        self.text.insert('1.0', string)
+
+    def populate(self, **kwargs):
+        pass
+
+    def delete(self):
+        self.text.delete('1.0', tk.END)
+
+
+class HdfTreeview(_Treeview):
+    """
+    HDF Treeview object
+    """
+    def __init__(self, root: tk.Misc):
+        super().__init__(root, 'type', 'name', 'value')
+        # Populate tree
+        self.tree.heading("#0", text="HDF Address")
+        self.tree.column("#0", minwidth=50, width=400)
+        self.tree.column("type", width=100, anchor='c')
+        self.tree.column("name", width=100, anchor='c')
+        self.tree.column("value", width=200, anchor='c')
+        self.tree.heading("type", text="Type")
+        self.tree.heading("name", text="Name")
+        self.tree.heading("value", text="Value")
 
     def populate(self, hdf_obj: h5py.File, openstate=True):
         """Load HDF file, populate ttk.treeview object"""
@@ -135,38 +185,22 @@ class HdfTreeview:
         self.tree.insert("", tk.END, text='/', values=('File', os.path.basename(hdf_filename), ''))
         recur_func(hdf_obj, "")
 
-    def delete(self):
-        self.tree.delete(*self.tree.get_children())
 
-
-class HdfNameSpace:
+class HdfNameSpace(_Treeview):
     """
     HDF Namespace object
     """
 
     def __init__(self, root: tk.Misc):
-
-        frm = ttk.Frame(root)
-        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-
-        tree = ttk.Treeview(frm, columns=('path', 'value'), selectmode='browse')
-        tree.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-
-        var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
-        var.pack(side=tk.LEFT, fill=tk.Y)
-        tree.configure(yscrollcommand=var.set)
+        super().__init__(root, 'path', 'value')
 
         # Populate tree
-        tree.heading("#0", text="Name")
-        tree.column("#0", minwidth=50, width=100)
-        tree.column("path", width=300, anchor='c')
-        tree.column("value", width=200, anchor='c')
-        tree.heading("path", text="Path")
-        tree.heading("value", text="Value")
-        # tree.bind("<<TreeviewSelect>>", self.tree_select)
-        # tree.bind("<Double-1>", self.on_double_click)
-        tree.bind("<Button-3>", right_click_menu(frm, tree))
-        self.tree = tree
+        self.tree.heading("#0", text="Name")
+        self.tree.column("#0", minwidth=50, width=100)
+        self.tree.column("path", width=300, anchor='c')
+        self.tree.column("value", width=200, anchor='c')
+        self.tree.heading("path", text="Path")
+        self.tree.heading("value", text="Value")
 
     def populate(self, hdf_obj: h5py.File, hdf_map: hdfmap.NexusMap):
         """Load HDF file, populate ttk.treeview object"""
@@ -216,74 +250,54 @@ class HdfNameSpace:
             value = data.get(name, 'NOT IN MAP')
             self.tree.insert(datasets, tk.END, text=name, values=(path, value))
 
-    def delete(self):
-        self.tree.delete(*self.tree.get_children())
 
-
-class HdfTreeStr:
+class HdfTreeStr(_StringView):
     """
     HDF Tree String object
     """
-
-    def __init__(self, root: tk.Misc):
-
-        frm = ttk.Frame(root)
-        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-
-        self.text = tk.Text(frm, wrap=tk.NONE)
-
-        vbar = ttk.Scrollbar(frm, orient=tk.VERTICAL, command=self.text.yview)
-        hbar = ttk.Scrollbar(frm, orient=tk.HORIZONTAL, command=self.text.xview)
-        self.text.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
-
-        hbar.pack(side=tk.BOTTOM, fill=tk.X)
-        vbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.text.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-
-        if hasattr(root, 'style'):
-            update_text_style(self.text, root.style)
-
     def populate(self, hdf_filename: str):
         """Load HDF file, populate ttk.treeview object"""
         tree_str = hdfmap.hdf_tree_string(hdf_filename)
-        self.delete()
-        self.text.insert('1.0', tree_str)
-
-    def delete(self):
-        self.text.delete('1.0', tk.END)
+        self._populate(tree_str)
 
 
-class HdfNexusStr:
+class HdfNexusStr(_StringView):
     """
     Nexus Info String object
     """
 
-    def __init__(self, root: tk.Misc):
-
-        frm = ttk.Frame(root)
-        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-
-        self.text = tk.Text(frm, wrap=tk.NONE)
-
-        vbar = ttk.Scrollbar(frm, orient=tk.VERTICAL, command=self.text.yview)
-        hbar = ttk.Scrollbar(frm, orient=tk.HORIZONTAL, command=self.text.xview)
-        self.text.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
-
-        hbar.pack(side=tk.BOTTOM, fill=tk.X)
-        vbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.text.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-
-        if hasattr(root, 'style'):
-            update_text_style(self.text, root.style)
-
     def populate(self, hdf_map: hdfmap.NexusMap):
         """Load HDF file, populate ttk.treeview object"""
         tree_str = hdf_map.info_nexus()
-        self.delete()
-        self.text.insert('1.0', tree_str)
+        self._populate(tree_str)
 
-    def delete(self):
-        self.text.delete('1.0', tk.END)
+
+class Nexus2SrsStr(_StringView):
+    """
+    Display output of NeXus2SRS
+    """
+
+    def populate(self, hdf_map: hdfmap.NexusMap):
+        """Load HDF file, populate ttk.treeview object"""
+        from nexus2srs.nexus2srs import generate_datafile
+        with hdf_map.load_hdf() as hdf:
+            outstr, detector_image_paths = generate_datafile(hdf, hdf_map)
+        self._populate(outstr)
+
+
+class NxTransformationsStr(_StringView):
+    """
+    Display output of NeXus2Transformations
+    """
+    def populate(self, hdf_filename: str):
+        from mmg_toolbox.nexus_transformations import generate_nxtranformations_string
+        outstr = generate_nxtranformations_string(hdf_filename)
+        self._populate(outstr)
+
+
+############################################################################
+############################ File Viewer ###################################
+############################################################################
 
 
 class HDFViewer:
@@ -301,7 +315,7 @@ class HDFViewer:
     """
 
     def __init__(self, root: tk.Misc, hdf_filename: str = None):
-        self.map = None
+        self.map: hdfmap.NexusMap | None = None
         self.root = root
 
         # Variables
@@ -329,17 +343,24 @@ class HDFViewer:
         tab2 = ttk.Frame(self.view_tabs)
         tab3 = ttk.Frame(self.view_tabs)
         tab4 = ttk.Frame(self.view_tabs)
+        tab5 = ttk.Frame(self.view_tabs)
+        tab6 = ttk.Frame(self.view_tabs)
+        self.view_tabs.bind('<<NotebookTabChanged>>', self.tab_change)
 
         self.view_tabs.add(tab1, text='HDF Tree')
         self.view_tabs.add(tab2, text='NeXus')
         self.view_tabs.add(tab3, text='HdfMap')
         self.view_tabs.add(tab4, text='Tree String')
+        self.view_tabs.add(tab5, text='NeXus2SRS')
+        self.view_tabs.add(tab6, text='NXtransformations')
         self.view_tabs.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
         # treeviews
         self.hdf_tree = HdfTreeview(tab1)
         self.nexus = HdfNexusStr(tab2)
         self.hdf_map = HdfNameSpace(tab3)
         self.hdf_text = HdfTreeStr(tab4)
+        self.nexus2srs = Nexus2SrsStr(tab5)
+        self.transformations = NxTransformationsStr(tab6)
 
         self.hdf_tree.tree.bind('<<TreeviewSelect>>', self.tree_select)
         self.hdf_map.tree.bind('<<TreeviewSelect>>', self.tree_select)
@@ -473,13 +494,24 @@ class HDFViewer:
     def populate(self, hdf_obj: h5py.File, hdf_map: hdfmap.NexusMap):
         self._delete_tree()
         self.hdf_tree.populate(hdf_obj, openstate=self.expandall.get())
-        self.nexus.populate(hdf_map)
         self.hdf_map.populate(hdf_obj, hdf_map)
-        self.hdf_text.populate(hdf_obj.filename)
 
     "======================================================"
     "================= event functions ===================="
     "======================================================"
+
+    def tab_change(self, event):
+        # Selected tab:
+        selected = self.view_tabs.select()
+        tab_name = self.view_tabs.tab(selected)['text']
+        if tab_name == 'NeXus':
+            self.nexus.populate(self.map)
+        if tab_name == 'Tree String':
+            self.hdf_text.populate(self.map.filename)
+        if tab_name == 'NeXus2SRS':
+            self.nexus2srs.populate(self.map)
+        if tab_name == 'NXtransformations':
+            self.transformations.populate(self.map.filename)
 
     def tree_select(self, event):
         self.text.delete('1.0', tk.END)

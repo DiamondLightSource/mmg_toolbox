@@ -130,6 +130,7 @@ def nx_find_all(parent: h5py.Group, *field_or_class: str) -> list[h5py.Dataset |
         # object from path, e.g. obj['group/data']
         if len(args) == 1 and args[0] in group:
             found.append(group[args[0]])
+            return found
         # Get group axes & signal datasets
         axes = bytes2str(group.attrs.get(nn.NX_AXES, ''))
         signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
