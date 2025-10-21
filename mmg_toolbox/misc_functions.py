@@ -9,6 +9,7 @@ from collections import defaultdict
 
 
 regex_number = re.compile(r'\d{3,}')
+re_long_floats = re.compile(r'\d+\.\d{5,}')
 
 
 def consolidate_strings(*args: tuple, match_symbol: str = '*', match_score: float = 0.6) -> list:
@@ -122,6 +123,17 @@ def numbers2string(scannos: list[int], sep=':') -> str:
     return '{}[{}]'.format(inistr, liststr)
 
 
+def round_string_floats(string: str) -> str:
+    """
+    Shorten string by removing long floats
+    :param string: string, e.g. '#810002 scan eta 74.89533603616637 76.49533603616636 0.02 pil3_100k 1 roi2'
+    :return: shorter string, e.g. '#810002 scan eta 74.895 76.495 0.02 pil3_100k 1 roi2'
+    """
+    def subfun(m):
+        return str(round(float(m.group()), 3))
+    return re_long_floats.sub(subfun, string)
+
+
 def stfm(value: float, error: float) -> str:
     """
     Create standard form string from value and uncertainty"
@@ -187,6 +199,15 @@ def stfm(value: float, error: float) -> str:
 
     fmt = '{' + '0:0.{:1.0f}f'.format(dec + 0) + '} ({1:1.0f})'
     return fmt.format(rval, rerr)
+
+
+def shorten_string(string: str, max_length: int = 100) -> str:
+    """Return a shortend version of the first line of the string"""
+    string = string.splitlines().strip()
+    string = round_string_floats(string)
+    if len(string) < max_length:
+        return string 
+    return string[:max_length-3] + '...'
 
 
 class DataHolder(dict):

@@ -5,16 +5,16 @@ Magnetic Materials Group Toolbox
 import sys
 from file_reader import data_file_reader
 
-__version__ = '0.2.1'
-__date__ = '30/07/2025'
+__version__ = '0.3.0'
+__date__ = '22/09/2025'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info', 'data_file_reader']
 
 
-def start_gui():
-    from .tkguis import create_title_window
-    create_title_window()
+def start_gui(beamline: str | None = None):
+    from mmg_toolbox.tkguis import create_title_window
+    create_title_window(beamline)
 
 
 def version_info():

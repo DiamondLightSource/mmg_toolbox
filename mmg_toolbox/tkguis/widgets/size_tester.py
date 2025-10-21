@@ -1,5 +1,5 @@
 """
-Simple frame widget that returns the current screen size and roi_table position
+Simple frame widget that returns the current screen size and window position
 """
 
 from ..misc.styles import tk, ttk, create_root
@@ -33,7 +33,7 @@ class WindowSize:
         var.pack(side=tk.TOP, fill=tk.X)
 
     def fun_update(self, event=None):
-        """Launches roi_table, returns selection"""
+        """Launches window, returns selection"""
         self.root.update()
         self.root.update_idletasks()
         # self.root.attributes('-fullscreen', True)

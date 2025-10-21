@@ -1,6 +1,7 @@
 """
 a tkinter frame with a single plot
 """
+import os
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
@@ -8,28 +9,13 @@ import h5py
 
 import hdfmap
 from hdfmap import create_nexus_map
+from hdfmap.eval_functions import generate_identifier
 
 from ..misc.logging import create_logger
-from ..misc.config import get_config
+from ..misc.config import get_config, C
 from .simple_plot import SimplePlot
 
 logger = create_logger(__file__)
-
-
-"""
-'xlabel': str mode of first axes
-'ylabel': str mode of first signal
-'xdata': flattened array of first axes
-'ydata': flattend array of first signal
-'axes_names': list of axes names,
-'signal_names': list of signal + auxilliary signal names,
-'axes_data': list of ND arrays of data for axes,
-'signal_data': list of ND array of data for signal + auxilliary raw_signals,
-'axes_labels': list of axes labels as 'name [units]',
-'signal_labels': list of signal labels,
-'data': dict of all scannables axes,
-'title': str title as 'filename\nNXtitle'
-"""
 
 
 class NexusDefaultPlot(SimplePlot):
@@ -42,13 +28,13 @@ class NexusDefaultPlot(SimplePlot):
     Axes can be chosen from a dropdown menu of the default scannables,
     or an entry box will be evaluated, allowing expressions.
     """
-    def __init__(self, root: tk.Misc, hdf_filename: str | None = None,
-                 config: dict | None = None):
+    def __init__(self, root: tk.Misc, *hdf_filenames: str, config: dict | None = None):
         self.root = root
-        self.filename = hdf_filename
+        self.filenames = hdf_filenames
         self.map: hdfmap.NexusMap | None = None
         self.config = get_config() if config is None else config
-        self.data = {}
+        self._plot_data: list[dict] = []
+        self._scannable_data: list[dict[str, np.ndarray]] = []
 
         self.axes_x = tk.StringVar(self.root, 'axes')
         self.axes_y = tk.StringVar(self.root, 'signal')
@@ -69,8 +55,8 @@ class NexusDefaultPlot(SimplePlot):
             config=config
         )
         self.line = self.plot_list[0]
-        if hdf_filename:
-            self.update_data_from_file(hdf_filename)
+        if hdf_filenames:
+            self.update_data_from_files(*hdf_filenames)
 
     def _clear_error(self):
         self.error_message.set('')
@@ -143,30 +129,81 @@ class NexusDefaultPlot(SimplePlot):
         ttk.Label(frm, textvariable=self.error_message, style='error.TLabel').pack()
         return combo_x, combo_y
 
-    def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
-        self._clear_error()
-        self.filename = filename
-        self.map = create_nexus_map(filename) if hdf_map is None else hdf_map
-        with hdfmap.load_hdf(filename) as hdf:
-            self.update_data(hdf)
-        if 'data' not in self.data:
-            self._set_error('error loading plot data')
+    def update_data_from_files(self, *filenames: str, hdf_map: hdfmap.NexusMap | None = None):
+        if not filenames:
             return
-        self.combo_x['values'] = list(self.data['data'].keys())
-        self.combo_y['values'] = list(reversed(self.data['data'].keys()))
+        self._clear_error()
+        self.filenames = filenames
+        self.map = create_nexus_map(filenames[0]) if hdf_map is None else hdf_map
+        self._load_data()
+        if not self._scannable_data:
+            self._set_error("No data loaded")
+            return
+        first_dataset = self._scannable_data[0]
+        self.combo_x['values'] = list(first_dataset.keys())
+        self.combo_y['values'] = list(reversed(first_dataset.keys()))
+        # Default axes choice
+        axes, signals = self.map.nexus_default_names()
         if not self.fix_x.get():
-            self.axes_x.set(next(iter(self.data['axes_names']), f'arange({self.map.scannables_length()})'))
+            self.axes_x.set(next(iter(axes), f'arange({self.map.scannables_length()})'))
         if not self.fix_y.get():
-            self.axes_y.set(next(iter(self.data['signal_names']), f'zeros({self.map.scannables_length()})'))
+            self.axes_y.set(next(iter(signals), f'zeros({self.map.scannables_length()})'))
         self.update_axis_choice()
 
-    def update_data(self, hdf: h5py.File):
-        try:
-            self.data = self.map.get_plot_data(hdf)
-            self.ax1.set_title(self.data['title'])
-        except Exception as exc:
-            self._set_error(f"Error loading plot data: {exc}")
-            raise exc
+    def _label(self, name: str) -> str:
+        path = self.map.combined.get(name, '')
+        if not path:
+            return name
+        units = self.map.get_attr(path, 'units', '')
+        unit_str = f" [{units}]" if units else ''
+        return generate_identifier(path) + unit_str
+
+    def _load_data(self):
+        self._plot_data = []
+        self._scannable_data = []
+        errors = []
+        for filename in self.filenames:
+            try:
+                with hdfmap.load_hdf(filename) as hdf:
+                    plot_data = self.map.get_plot_data(hdf)
+            except Exception as e:
+                errors.append(f"Error loading data in file {os.path.basename(filename)}: {e}")
+            self._plot_data.append(plot_data)
+            self._scannable_data.append(plot_data.get('data', {}))
+        if errors:
+            self._set_error('\n'.join(errors))
+
+    def get_xy_data(self, x_label: str, *y_labels: str) -> tuple[list[np.ndarray], list[np.ndarray]]:
+        x_data: list[np.ndarray] = []
+        y_data: list[np.ndarray] = []
+        errors = []
+        for filename, scannables in zip(self.filenames, self._scannable_data):
+            this_x_data = scannables.get(x_label, None)
+            this_y_data = [scannables.get(label, None) for label in y_labels]
+
+            if this_x_data is None or any(data is None for data in this_y_data):
+                # Load additional data
+                with hdfmap.load_hdf(filename) as hdf:
+                    if this_x_data is None:
+                        try:
+                            this_x_data = self.map.eval(hdf, x_label, np.arange(self.map.scannables_length()))
+                        except Exception as e:
+                            errors.append(f"Error loading x-axis in file {os.path.basename(filename)}: {e}")
+                            this_x_data = np.arange(self.map.scannables_length())
+                    for n, label in enumerate(y_labels):
+                        if this_y_data[n] is None:
+                            try:
+                                this_y_data[n] = self.map.eval(hdf, label, np.arange(self.map.scannables_length()))
+                            except Exception as e:
+                                errors.append(f"Error loading y-axis in file {os.path.basename(filename)}: {e}")
+                                this_y_data[n] = np.arange(len(this_x_data))
+            x_data.extend([this_x_data] * len(this_y_data))
+            y_data.extend(this_y_data)
+
+        if errors:
+            self._set_error('\n'.join(errors))
+
+        return x_data, y_data
 
     def normalise_signal(self, event=None):
         signal = self.axes_y.get()
@@ -179,47 +216,28 @@ class NexusDefaultPlot(SimplePlot):
             self.axes_y.set(signal)
         self.update_axis_choice()
 
-    def get_xy_data(self, xaxis: str, *yaxes: str) -> tuple[np.ndarray, list[np.ndarray]]:
-
-        xdata = []
-        ydata = []
-        if 'data' in self.data and xaxis in self.data['data']:
-            xdata = self.data['data'][xaxis]
-            ydata = [ self.data['data'][yaxis] for yaxis in yaxes if yaxis in self.data['data'] ]
-        if len(xdata) == 0 or len(ydata) == 0:
-            with hdfmap.load_hdf(self.filename) as hdf:
-                if len(xdata) == 0:
-                    xdata = self.map.eval(hdf, xaxis, default=np.arange(self.map.scannables_length()))
-                if len(ydata) == 0:
-                    ydata = [self.map.eval(hdf, yaxis) for yaxis in yaxes]
-
-        for n, yarray in enumerate(ydata):
-            if yarray.shape != xdata.shape:
-                ydata[n] = np.ones(xdata.size)
-            else:
-                ydata[n] = yarray.flatten()
-        xdata = xdata.flatten()
-        if len(ydata) == 0:
-            ydata = [np.ones_like(xdata)]
-        return xdata, ydata
-
     def update_axis_choice(self, event=None):
-        xaxis = self.axes_x.get()
-        yaxis = self.axes_y.get()
-        xdata, ydata = self.get_xy_data(xaxis, yaxis)
-        self.line.set_data(xdata, ydata[0])
-        self.ax1.set_xlabel(self.axes_x.get())
-        self.ax1.set_ylabel(self.axes_y.get())
-        self.update_axes()
+        x_label = self.axes_x.get()
+        y_label = self.axes_y.get()
+        xdata, ydata = self.get_xy_data(x_label, y_label)
+        self.update_from_data(
+            x_data=xdata,
+            y_data=ydata,
+            x_label=self._label(x_label),
+            y_label=self._label(y_label),
+            title=os.path.basename(self.filenames[0]),
+            legend=[os.path.basename(filename) for filename in self.filenames],
+        )
+        self.line = self.plot_list[0]
 
 
 class NexusMultiAxisPlot(NexusDefaultPlot):
     """
     1D line plot widget with selection box for selecting multiple axes.
     """
-    def __init__(self, root: tk.Misc, hdf_filename: str | None = None,
+    def __init__(self, root: tk.Misc, *hdf_filenames: str,
                  config: dict | None = None):
-        super().__init__(root, hdf_filename, config)
+        super().__init__(root, *hdf_filenames, config=config)
         self.listbox = self._axis_listbox()
 
     def _axis_listbox(self):
@@ -228,6 +246,7 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
 
         scrollbar = ttk.Scrollbar(frame)
         listbox = ttk.Treeview(frame, yscrollcommand=scrollbar.set, show="tree")
+        listbox.column("#0", width=100, stretch=tk.YES)
         listbox.bind("<<TreeviewSelect>>", self.select_listbox_items)
         scrollbar.configure(command=listbox.yview)
 
@@ -235,29 +254,38 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
         listbox.pack(side="left", fill="both", expand=True)
         return listbox
 
-    def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
-        super().update_data_from_file(filename, hdf_map)
+    def update_data_from_files(self, *filenames: str, hdf_map: hdfmap.NexusMap | None = None):
+        super().update_data_from_files(*filenames, hdf_map=hdf_map)
+        auto_signal = self.axes_y.get()
 
         # populate listbox
         self.listbox.delete(*self.listbox.get_children())
-        for item in self.data['data']:
+        first_dataset = self._scannable_data[0]
+        for item in first_dataset:
             self.listbox.insert("", tk.END, text=item)
+            if item == auto_signal:
+                self.listbox.focus()
+
 
     def select_listbox_items(self, event=None):
         if len(self.listbox.selection()) == 0:
             return
         self.remove_lines()
+        x_label = self.axes_x.get()
         labels = [self.listbox.item(item)['text'] for item in self.listbox.selection()]
-        xdata, ydata = self.get_xy_data(self.axes_x.get(), *labels)
-        for label, yarray in zip(labels, ydata):
-            self.plot(xdata, yarray, label=label)
-        label = 'various' if len(labels) > 2 else ', '.join(labels)
-        self.ax1.set_xlabel(self.axes_x.get())
-        self.ax1.set_ylabel(label)
+        xdata, ydata = self.get_xy_data(x_label, *labels)
+        self.update_from_data(
+            x_data=xdata,
+            y_data=ydata,
+            x_label=self._label(x_label),
+            y_label=self._label(labels[0]),
+            title=os.path.basename(self.filenames[0]),
+            legend=labels,
+        )
         self.line = self.plot_list[0]
-        self.update_axes()
 
     def update_axis_choice(self, event=None):
+        # select item in list if it matches
         yaxis = self.axes_y.get()
         self.listbox.selection_set([
             item for item in self.listbox.get_children()

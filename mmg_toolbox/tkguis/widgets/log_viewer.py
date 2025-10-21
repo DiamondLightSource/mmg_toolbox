@@ -1,10 +1,10 @@
 """
-A python editor roi_table
+A python editor window
 """
 
 import re
 
-from ..misc.styles import tk, ttk, create_root
+from ..misc.styles import tk, ttk
 from ..misc.search import search_text
 from ..misc.logging import create_logger
 
@@ -199,25 +199,4 @@ class LogViewerWidget:
             found += search_text(tab_text, self.search_box.get(), self.search_matchcase.get(), Colours.highlight)
         self.search_number.set(f"{found} found")
 
-
-
-
-def create_log_viewer(filename: str, parent: tk.Misc | None = None):
-    """Log Viewer Window"""
-
-    root = create_root(window_title='Log Viewer', parent=parent)
-    log_tabs = read_gda_terminal_log(filename)
-    LogViewerWidget(root, log_tabs)
-    root.mainloop()
-    return root
-
-
-def create_gda_terminal_log_viewer(data_directory: str, parent: tk.Misc | None = None):
-    """Create Log Viewer roi_table using data directory"""
-    import os
-    gda_terminal_log = os.path.join(data_directory, 'gdaterminal.log')
-    if os.path.isfile(gda_terminal_log):
-        create_log_viewer(gda_terminal_log, parent=parent)
-    else:
-        raise OSError(f"{gda_terminal_log} does not exist!")
 

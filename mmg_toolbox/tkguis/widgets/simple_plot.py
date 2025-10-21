@@ -2,7 +2,9 @@
 a tkinter frame with a single plot
 """
 import tkinter as tk
+from numpy import ndarray
 
+from ..misc.config import C
 from ..misc.matplotlib import ini_plot
 from ..misc.logging import create_logger
 
@@ -21,8 +23,8 @@ class SimplePlot:
 
         self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(
             frame=self.root,
-            figure_size=self.config.get('figure_size'),
-            figure_dpi=self.config.get('figure_dpi'),
+            figure_size=self.config.get(C.plot_size, None),
+            figure_dpi=self.config.get(C.plot_dpi, None),
         )
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
@@ -35,6 +37,42 @@ class SimplePlot:
         self.plot_list.extend(lines)
         self.update_axes()
 
+    def update_labels(self, x_label: str | None = None, y_label: str | None = None,
+                      title: str | None = None, legend: bool = False):
+        if x_label:
+            self.ax1.set_xlabel(x_label)
+        if y_label:
+            self.ax1.set_ylabel(y_label)
+        if title:
+            self.ax1.set_title(title)
+        if legend:
+            self.ax1.legend()
+        else:
+            self.ax1.legend([]).set_visible(False)
+
+    def plot_from_data(self, x_data: list[ndarray], y_data: list[ndarray], x_label: str = '', y_label: str = '',
+                       title: str = '', labels: list[str] | None = None):
+        labels = [f"data #{n + 1}" for n in range(len(x_data))] if labels is None else labels
+        self.reset_plot()
+        for xdata, ydata, label in zip(x_data, y_data, labels):
+            lines = self.ax1.plot(xdata, ydata, label=label)
+            self.plot_list.extend(lines)
+        self.update_labels(x_label=x_label, y_label=y_label, title=title, legend=True if len(labels) > 1 else False)
+        self.update_axes()
+
+    def update_from_data(self, x_data: list[ndarray], y_data: list[ndarray], x_label: str | None = None,
+                         y_label: str | None = None, title: str | None = None, legend: list[str] | None = None):
+        if len(x_data) == len(self.plot_list):
+            # replace lines
+            legend = [None for _n in range(len(x_data))] if legend is None else legend
+            for xdata, ydata, label, line in zip(x_data, y_data, legend, self.plot_list):
+                line.set_data(xdata, ydata)
+                if label:
+                    line.set_label(label)
+            self.update_labels(x_label=x_label, y_label=y_label, title=title, legend=True if len(legend) > 1 else False)
+        else:
+            self.plot_from_data(x_data, y_data, x_label, y_label, title, legend)
+
     def remove_lines(self):
         for obj in self.plot_list:
             obj.remove()
@@ -43,7 +81,7 @@ class SimplePlot:
     def reset_plot(self):
         # self.ax1.set_xlabel(self.xaxis.get())
         # self.ax1.set_ylabel(self.yaxis.get())
-        self.ax1.set_title('')
+        # self.ax1.set_title('')
         self.ax1.set_prop_cycle(None)  # reset colours
         self.ax1.legend([]).set_visible(False)
         self.remove_lines()

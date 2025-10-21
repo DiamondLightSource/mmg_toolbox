@@ -8,17 +8,16 @@ from mmg_toolbox.tkguis.misc.styles import create_root
 # # from mmg_toolbox.tkguis.widgets.folder_treeview import NexusFolderTreeViewFrame
 # from mmg_toolbox.tkguis.widgets.nexus_treeview import HDFViewer
 # from mmg_toolbox.tkguis.widgets.simple_plot import NexusDefaultPlot
-from mmg_toolbox.tkguis import create_nexus_file_browser
+from mmg_toolbox.tkguis import create_nexus_file_browser, create_data_viewer, create_title_window
 from mmg_toolbox.tkguis.widgets.scan_selector import FolderScanSelector
 # from mmg_toolbox.tkguis.widgets.nexus_details import NexusDetails
 from mmg_toolbox.tkguis.widgets.nexus_image import NexusDetectorImage
-from mmg_toolbox.tkguis.main import create_data_viewer, create_title_window
 from mmg_toolbox.tkguis.misc.logging import set_all_logging_level
 from mmg_toolbox.tkguis.misc.matplotlib import ini_image
 
 if __name__ == '__main__':
     # set_all_logging_level('debug')
-    # roi_table = create_file_browser()
+    # window = create_file_browser()
 
     # f = "/scratch/grp66007/data/i16/das_example_data/1041304.nxs"
     # f = r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus\1041304.nxs"

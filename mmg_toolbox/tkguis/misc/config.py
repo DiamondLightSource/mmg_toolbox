@@ -5,8 +5,9 @@ Configuration Options
 import os
 import json
 
-from ...env_functions import TMPDIR, YEAR, get_beamline, check_file_access
+from ...env_functions import TMPDIR, YEAR, get_beamline, get_user, check_file_access
 from .beamline_metadata import BEAMLINE_META, META_STRING
+from .matplotlib import FIGURE_SIZE, FIGURE_DPI, IMAGE_SIZE, DEFAULT_COLORMAP
 
 
 class C:
@@ -16,6 +17,10 @@ class C:
     processing_directory = 'processing_directory'
     notebook_directory = 'notebook_directory'
     recent_data_directories = 'recent_data_directories'
+    plot_size = 'plot_size'
+    image_size = 'image_size'
+    plot_dpi = 'plot_dpi'
+    plot_title = 'plot_title'
     normalise_factor = 'normalise_factor'
     replace_names = 'replace_names'
     metadata_string = 'metadata_string'
@@ -26,13 +31,14 @@ class C:
 
 
 # config name (saved in TMPDIR)
-TMPFILE = 'mmg_config.json'
+USER = get_user()
+TMPFILE = f'mmg_config_{USER}.json'
 CONFIG_FILE = os.path.join(TMPDIR, TMPFILE)
 
 META_LIST = {
     # scan number and start_time included by default
     # name: format
-    'cmd': '{scan_command}'
+    'cmd': '{(cmd|scan_command)}'
 }
 
 REPLACE_NAMES = {
@@ -50,12 +56,16 @@ CONFIG = {
     C.processing_directory: os.path.expanduser('~'),
     C.notebook_directory: os.path.expanduser('~'),
     C.recent_data_directories: [os.path.expanduser('~')],
+    C.plot_size: FIGURE_SIZE,
+    C.image_size: IMAGE_SIZE,
+    C.plot_dpi: FIGURE_DPI,
+    C.plot_title: '{filename}\n{(cmd|scan_command)}',
     C.normalise_factor: '',
     C.replace_names: REPLACE_NAMES,
     C.roi: ROIs,
     C.metadata_string: META_STRING,
     C.metadata_list: META_LIST,
-    C.default_colormap: 'twilight',
+    C.default_colormap: DEFAULT_COLORMAP,
 }
 
 BEAMLINE_CONFIG = {
@@ -63,21 +73,25 @@ BEAMLINE_CONFIG = {
         C.beamline: 'i06',
         C.default_directory: f"/dls/i06/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06'],
+        C.normalise_factor: '',
     },
     'i06-1': {
         C.beamline: 'i06-1',
         C.default_directory: f"/dls/i06-1/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06-1'],
+        C.normalise_factor: '',
     },
     'i06-2': {
         C.beamline: 'i06-2',
         C.default_directory: f"/dls/i06-2/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06-2'],
+        C.normalise_factor: '',
     },
     'i10': {
         C.beamline: 'i10',
         C.default_directory: f"/dls/i10/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i10'],
+        C.normalise_factor: '',
     },
     'i10-1': {
         C.beamline: 'i10-1',
@@ -98,6 +112,7 @@ BEAMLINE_CONFIG = {
         C.beamline: 'i21',
         C.default_directory: f"/dls/i21/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i21'],
+        C.normalise_factor: '',
     },
 }
 

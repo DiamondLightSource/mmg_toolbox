@@ -41,7 +41,7 @@ class CustomToolbar(NavigationToolbar2Tk):
         self.master.clipboard_append(io_buffer.getvalue(), format="image/png")  # adds byte array to buffer but isn't interpreted
 
     def popout_figure(self):
-        """Create a new tk roi_table and display figure"""
+        """Create a new tk window and display figure"""
         root = create_root('Figure', parent=self.master)
         fig, ax1, plot_list, toolbar = ini_plot(root, FIGURE_SIZE, FIGURE_DPI)
 
@@ -76,7 +76,11 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     bg = style.lookup('.', 'background')
 
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
-    fig.patch.set_facecolor(bg)
+    try:
+        fig.patch.set_facecolor(bg)
+    except ValueError:
+        print(f"Cannot set background color of {bg}")
+        bg = '#dcdad5'
     # fig.subplots_adjust(left=0.2, bottom=0.2)
     # Amplitude
     ax1 = fig.add_subplot(111)
@@ -99,6 +103,7 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     frm2.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=5, pady=2)
     # toolbar = NavigationToolbar2Tk(canvas, frm)
     toolbar = CustomToolbar(canvas, frm2)
+    toolbar.config(background=bg)
     toolbar.update()
     toolbar.pack(fill=tk.X, expand=tk.YES)
     return fig, ax1, plot_list, toolbar

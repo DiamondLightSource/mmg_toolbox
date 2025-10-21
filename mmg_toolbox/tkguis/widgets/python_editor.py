@@ -1,18 +1,8 @@
-"""
-A python editor roi_table
-"""
-
 import re
-import datetime
 import sys
-from tkinter import messagebox, filedialog
-
-from ..misc.styles import tk, ttk, create_root
-from ..misc.functions import topmenu
-from ..misc.logging import create_logger
-
-logger = create_logger(__file__)
-
+import datetime
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
 
 # Define colors for the various types of tokens
 class Colours:
@@ -76,110 +66,15 @@ def default_script():
     return SCRIPT % datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
 
-class PythonEditor:
-    """
-    ScriptGenerator GUI
-    Python code editor with special features for I16 scripts
-    """
-
-    def __init__(self, script_string=None, parent: tk.Tk | None = None):
-        # Create Tk inter instance
-        self.root = create_root('Python Editor', parent=parent)
-
-        # Top menu
-        menu = {
-            'File': {
-                'New roi_table': self.menu_new_window,
-                'New script': self.menu_new,
-                'Open': self.menu_open,
-                'Save As...': self.menu_saveas,
-                'Save': self.menu_save,
-                'Quit': self.f_exit,
-            },
-        }
-        topmenu(self.root, menu, add_about=True)
-
-        # Variables
-        self.filename = tk.StringVar(self.root, '')
-
-        "----------- Textbox -----------"
-        self.editor = PythonEditorFrame(self.root, script_string)
-
-        "-------------------------Start Mainloop------------------------------"
-        self.root.protocol("WM_DELETE_WINDOW", self.f_exit)
-        if parent is None:
-            self.root.mainloop()
-
-    "------------------------------------------------------------------------"
-    "---------------------------Menu Callbacks-----------------------------"
-    "------------------------------------------------------------------------"
-
-    def menu_new_window(self):
-        """Open new instance"""
-        PythonEditor()
-
-    def menu_new(self):
-        """Overwrite"""
-        answer = messagebox.askokcancel('Script editor', 'Do you want to replace the current script?')
-        if answer:
-            self.editor.text.delete('1.0', tk.END)
-            self.editor.text.insert('1.0', default_script())
-            self.editor.changes()
-
-    def menu_open(self):
-        """Open new script"""
-        filename = filedialog.askopenfilename(
-            title='Open Python Script',
-            defaultextension='*.py',
-            filetypes=(("Python files", "*.py"), ("All files", "*.*"))
-        )
-        if filename:
-            with open(filename, 'r') as f:
-                self.script_string = f.read()
-            self.editor.text.delete('1.0', tk.END)
-            self.editor.text.insert('1.0', self.script_string)
-            self.filename.set(filename)
-            self.editor.changes()
-
-    def menu_saveas(self):
-        """Save as file"""
-        c_filename = self.filename.get()
-        filename = filedialog.asksaveasfile(
-            title='Python Script',
-            initialfile=c_filename,
-            defaultextension='.py'
-        )
-        if filename:
-            with open(filename, 'w') as f:
-                f.write(self.script_string)
-            print('Written script to %s' % filename)
-            self.filename.set(filename)
-
-    def menu_save(self):
-        """Save script"""
-        filename = self.filename.get()
-        if filename == '':
-            self.menu_saveas()
-        with open(filename, 'w') as f:
-            f.write(self.script_string)
-        print('Written script to %s' % filename)
-
-    "------------------------------------------------------------------------"
-    "---------------------------Button Callbacks-----------------------------"
-    "------------------------------------------------------------------------"
-
-    def f_exit(self):
-        self.root.destroy()
-
-
 class PythonEditorFrame:
     """
     Editable textbox with numbers at side and key bindings for Python
     """
 
-    def __init__(self, root: tk.Misc, script_string=None):
-
+    def __init__(self, root: tk.Misc | tk.Tk, script_string=None):
+        self.root = root
         # Variables
+        self.filename = ''
         self.script_string = script_string or default_script()
 
         "----------- Textbox -----------"
@@ -230,6 +125,64 @@ class PythonEditorFrame:
         scany.config(command=self.text.yview)
 
         self.changes()
+
+    "------------------------------------------------------------------------"
+    "-------------------------Load/Save Functions----------------------------"
+    "------------------------------------------------------------------------"
+
+    def set_filename(self, filename: str):
+        self.filename = filename
+        if hasattr(self.root, 'wm_title'):
+            self.root.wm_title(filename)
+
+    def new(self):
+        answer = messagebox.askokcancel(
+            title='Script editor',
+            message='Do you want to replace the current script?',
+            parent=self.root,
+        )
+        if answer:
+            self.set_filename('new_file.py')
+            self.text.delete('1.0', tk.END)
+            self.text.insert('1.0', default_script())
+            self.changes()
+
+    def open(self):
+        """Open new script"""
+        filename = filedialog.askopenfilename(
+            title='Open Python Script',
+            defaultextension='*.py',
+            filetypes=(("Python files", "*.py"), ("All files", "*.*"))
+        )
+        if filename:
+            with open(filename, 'r') as f:
+                self.script_string = f.read()
+            self.text.delete('1.0', tk.END)
+            self.text.insert('1.0', self.script_string)
+            self.set_filename(filename)
+            self.changes()
+
+    def saveas(self):
+        """Save as file"""
+        filename = filedialog.asksaveasfilename(
+            title='Python Script',
+            initialfile=self.filename,
+            defaultextension='.py'
+        )
+        if filename:
+            with open(filename, 'w') as f:
+                f.write(self.script_string)
+            print('Written script to %s' % filename)
+            self.set_filename(filename)
+
+    def save(self):
+        """Save script"""
+        if self.filename == '':
+            self.saveas()
+            return
+        with open(self.filename, 'w') as f:
+            f.write(self.script_string)
+        print('Written script to %s' % self.filename)
 
     "------------------------------------------------------------------------"
     "--------------------------General Functions-----------------------------"

@@ -8,7 +8,7 @@ from tkinter import ttk
 from ...env_functions import get_dls_visits, MMG_BEAMLINES
 from ...file_functions import folder_summary_line
 from ..misc.logging import create_logger
-from ..misc.config import get_config, save_config, C
+from ..misc.config import get_config, save_config, C, default_config
 from ..misc.functions import select_folder, show_error
 
 logger = create_logger(__file__)
@@ -68,7 +68,8 @@ class TitleWindow:
         self.choose_beamline(self.config.get(C.beamline, 'i16'))
 
     def choose_beamline(self, beamline: str):
-        bl_config = get_config(beamline=beamline)
+        from ..misc.config import BEAMLINE_CONFIG
+        bl_config = BEAMLINE_CONFIG[beamline].copy()
         self.config.update(bl_config)
         self.beamline.set('MMG Toolbox: ' + beamline)
         self.visits = get_dls_visits(beamline)
@@ -79,7 +80,6 @@ class TitleWindow:
         self.dls_directories(self.visits[current_visit])
 
     def menu_items(self):
-
         menu = {
             'Recent Files': {
                 file: lambda x=file: self.data_dir.set(x)
@@ -114,6 +114,7 @@ class TitleWindow:
         recent.insert(0, directory)
         while len(recent) > 10:
             recent.pop()
+        self.config[C.recent_data_directories] = recent
         self.update_config()
 
     def choose_visit(self, event=None):
@@ -136,24 +137,24 @@ class TitleWindow:
             self.notebook_dir.set(folder)
 
     def open_data_viewer(self):
-        from ..main import create_data_viewer
+        from .. import create_data_viewer
         self.add_recent_directory(self.data_dir.get())
         create_data_viewer(self.data_dir.get(), self.root, self.config)
 
     def open_file_browser(self):
-        from ..main import create_nexus_file_browser
+        from .. import create_nexus_file_browser
         create_nexus_file_browser(self.root, self.data_dir.get())
 
     def open_log_viewer(self):
-        from .log_viewer import create_gda_terminal_log_viewer
+        from ..apps.log_viewer import create_gda_terminal_log_viewer
         create_gda_terminal_log_viewer(self.data_dir.get(), self.root)
 
     def open_notebook_browser(self):
-        from ..main import create_jupyter_browser
+        from ..apps.file_browser import create_jupyter_browser
         create_jupyter_browser(self.root, self.notebook_dir.get())
 
     def open_script_runner(self):
-        from ..main import create_script_runner
+        from ..apps.script_runner import create_script_runner
         folders = {
             C.default_directory: self.data_dir.get(),
             C.processing_directory: self.proc_dir.get(),

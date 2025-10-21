@@ -51,14 +51,14 @@ def check_file_access(filepath: str, append: str = '_new') -> str:
     return filepath
 
 
-def get_beamline():
+def get_beamline(default=''):
     """Return current beamline from environment variable"""
-    return os.environ.get(BEAMLINE, '')
+    return os.environ.get(BEAMLINE, default)
 
 
-def get_user():
+def get_user(default=''):
     """Return current user from environment variable"""
-    return next((os.environ[u] for u in USER if u in os.environ), '')
+    return next((os.environ[u] for u in USER if u in os.environ), default)
 
 
 def get_data_directory():
@@ -148,7 +148,7 @@ def run_command(command: str):
 
 def open_terminal(command: str):
     """
-    Open a new terminal roi_table (linux only) and run a command
+    Open a new terminal window (linux only) and run a command
     """
     shell_cmd = f"gnome-terminal -- bash -c \"{command}; exec bash\""
     subprocess.Popen(shell_cmd, shell=True)
@@ -169,3 +169,10 @@ def run_jupyter_notebook(notebook_filename: str):
     command = f"jupyter notebook {notebook_filename}"
     run_command(command)
 
+
+def open_jupyter_lab():
+    """
+    Open a new terminal and start a Jupyter lab terminal (linux only)
+    """
+    shell_cmd = f"gnome-terminal -- bash -c \"jupyter lab; exec bash\""
+    subprocess.Popen(shell_cmd, shell=True)

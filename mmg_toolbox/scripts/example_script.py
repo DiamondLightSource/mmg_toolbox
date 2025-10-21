@@ -1,5 +1,5 @@
 """
-Example Script
+{{title}}
 {{description}}
 """
 
@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 import hdfmap
 
 filenames = [
-    # {{filenames}}
-    'file.nxs'
+    {{filepaths}}
 ]
 
 fig, ax = plt.subplots()

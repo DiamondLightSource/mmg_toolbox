@@ -11,7 +11,7 @@ logger = create_logger(__file__)
 
 class RoiEditor:
     """
-    Edit the Configuration File in an inset roi_table
+    Edit the Configuration File in an inset window
     """
 
     def __init__(self, root: tk.Misc, config: dict | None = None, close_func = None):

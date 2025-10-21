@@ -13,7 +13,7 @@ from ...env_functions import get_scan_notebooks, TMPDIR
 from ..misc.functions import post_right_click_menu, show_error
 from ..misc.logging import create_logger
 from ..misc.config import get_config
-from .edit_text import EditText
+from mmg_toolbox.tkguis.apps.edit_text import EditText
 
 logger = create_logger(__file__)
 
@@ -132,7 +132,7 @@ class NexusDetails:
             self.textbox.insert('1.0', txt)
             self.textbox.configure(state=tk.DISABLED)
         except Exception as e:
-            show_error(f"Error:\n{e}", parent=self.root)
+            show_error(f"Error:\n{e}", parent=self.root, raise_exception=False)
 
     def edit_expression(self):
         """Double-click on text display => open config str"""
@@ -155,7 +155,6 @@ class NexusDetails:
     def reprocess_notebook(self):
         """Copy notebook to processing folder"""
         from ...nb_runner import reprocess_notebook
-        from tkinter.messagebox import askokcancel, askquestion
         notebook = self.notebook.get()
         if notebook not in self.notebooks:
             return

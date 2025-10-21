@@ -39,7 +39,7 @@ class NexusDataViewer:
         frm = ttk.LabelFrame(window, text='Files', width=50)
         # frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO, padx=2, pady=2)
         frm.grid(column=0, row=0)
-        self.selector_widget = FolderScanSelector(frm, initial_directory=initial_folder)
+        self.selector_widget = FolderScanSelector(frm, initial_directory=initial_folder, config=self.config)
         self.selector_widget.tree.bind("<<TreeviewSelect>>", self.on_file_select)
 
         # BOTTOM-LEFT
@@ -54,9 +54,9 @@ class NexusDataViewer:
         frm.grid(column=1, row=0, rowspan=2)
         sec = ttk.Frame(frm)
         sec.pack(side=tk.TOP, fill=tk.X)
-        self.plot_widget = NexusDefaultPlot(sec, config=self.config)
-        # self.plot_widget = NexusMultiAxisPlot(sec, config=self.config)
-        self.index_line, = self.plot_widget.ax1.plot([], [], ls='--', c='k', scaley=False)
+        # self.plot_widget = NexusDefaultPlot(sec, config=self.config)
+        self.plot_widget = NexusMultiAxisPlot(sec, config=self.config)
+        self.index_line, = self.plot_widget.ax1.plot([], [], ls='--', c='k', scaley=False, label=None)
 
         # BOTTOM-RIGHT
         self.image_frame = ttk.Frame(frm)  # image frame will be packed when required
@@ -91,7 +91,7 @@ class NexusDataViewer:
         logger.info(f"Updating widgets for file: {filename}")
         self.map = create_nexus_map(filename)
         self.detail_widget.update_data_from_file(filename, self.map)
-        self.plot_widget.update_data_from_file(filename, self.map)
+        self.plot_widget.update_data_from_files(*filenames, hdf_map=self.map)
 
         if self.map.image_data:
             self.image_widget.update_data_from_file(filename, self.map)

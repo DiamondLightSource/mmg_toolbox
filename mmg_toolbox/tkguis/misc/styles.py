@@ -108,8 +108,8 @@ def create_hover(parent: tk.Misc | RootWithStyle):
     ttk.Button(window_frame, text='Close', command=close).pack()
 
     :param parent: tk widget or root
-    :returns: ttk.Frame object inside tk.TopLevel with no roi_table management
-    :returns: function close() -> None (releases widget and destroys hover roi_table)
+    :returns: ttk.Frame object inside tk.TopLevel with no window management
+    :returns: function close() -> None (releases widget and destroys hover window)
     """
     root = create_root('', parent)
     root.wm_overrideredirect(True)

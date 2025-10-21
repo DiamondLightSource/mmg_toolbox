@@ -81,7 +81,7 @@ def energy_range_edge_label(min_energy_ev: float, max_energy_ev: float | None = 
         if element1 != element2:
             raise ValueError(f"xray absorption edges of multiple edges present: {label1}, {label2}")
         return element1, f"{edge1}, {edge2}"
-    raise ValueError(f"xray absorption edges of multiple edges present: {edges}")
+    raise ValueError(f"xray absorption edge not found: {edges} edges at energy {min_energy_ev} eV")
 
 
 def average_energy_scans(*args: np.ndarray):
