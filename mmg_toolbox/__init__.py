@@ -5,8 +5,8 @@ Magnetic Materials Group Toolbox
 import sys
 from file_reader import data_file_reader
 
-__version__ = '0.3.0'
-__date__ = '22/09/2025'
+__version__ = '0.4.0'
+__date__ = '21/10/2025'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info', 'data_file_reader']
