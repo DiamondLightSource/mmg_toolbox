@@ -5,17 +5,9 @@ Various utilities for reading and writing nexus files
 import numpy as np
 import h5py
 
-NXCLASS = 'NX_class'
-NXDATA = 'NXdata'
-NX_DEFINITION = 'definition'
-NX_DEFAULT = 'default'
-NX_AXES = 'axes'
-NX_SIGNAL = 'signal'
-NX_AUXILIARY = 'auxiliary_signals'
-
-ENTRY_CLASSES = ['NXentry', 'NXsubentry']
-XAS_DEFINITIONS = ['NXxas', 'NXxas_new']
-SEARCH_ATTRS = (NXCLASS, 'local_name')  # DLS attribute 'local_name' helps match metadata to scan commands
+from mmg_toolbox import nexus_names as nn
+from mmg_toolbox.nexus_names import METERS
+from mmg_toolbox.xray_utils import photon_energy, photon_wavelength
 
 
 def bytes2str(value: str | bytes | list | tuple) -> str:
@@ -38,8 +30,8 @@ def _reorder_group_items(group: h5py.Group) -> dict[str, h5py.Group | h5py.Datas
     """re-order the group.items list to get the put @default objects first"""
     # 1. put default objects first in the list
     items = {}
-    if NX_DEFAULT in group.attrs and group.attrs[NX_DEFAULT] in group:
-        items[group.attrs[NX_DEFAULT]] = group[group.attrs[NX_DEFAULT]]
+    if nn.NX_DEFAULT in group.attrs and group.attrs[nn.NX_DEFAULT] in group:
+        items[group.attrs[nn.NX_DEFAULT]] = group[group.attrs[nn.NX_DEFAULT]]
     # 2. put datasets before groups to avoid catching lower-level matches
     items.update({key: ds for key, ds in group.items() if isinstance(ds, h5py.Dataset)})
     # 3. add remaining items
@@ -50,15 +42,15 @@ def _reorder_group_items(group: h5py.Group) -> dict[str, h5py.Group | h5py.Datas
 def _update_args(name, obj, axes, signal, *args):
     """remove object from search arguments if it matches"""
     # expand match-names with SEARCH_ATTRS
-    names = [name] + [bytes2str(obj.attrs.get(attr, '')) for attr in SEARCH_ATTRS]
+    names = [name] + [bytes2str(obj.attrs.get(attr, '')) for attr in nn.SEARCH_ATTRS]
     # Add NX application definition
-    if isinstance(obj, h5py.Group) and NX_DEFINITION in obj:
-        names.append(bytes2str(obj[NX_DEFINITION][()]))
+    if isinstance(obj, h5py.Group) and nn.NX_DEFINITION in obj:
+        names.append(bytes2str(obj[nn.NX_DEFINITION][()]))
     # Add axes & signal from parent group
     if name == axes:
-        names.append(NX_AXES)
+        names.append(nn.NX_AXES)
     if name == signal:
-        names.append(NX_SIGNAL)
+        names.append(nn.NX_SIGNAL)
     # check if object matches first arg, otherwise drill down or continue
     return args[1:] if args[0] in names else args
 
@@ -93,8 +85,8 @@ def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Gro
         if len(args) == 1 and args[0] in group:
             return group[args[0]]
         # Get group axes & signal datasets
-        axes = bytes2str(group.attrs.get(NX_AXES, ''))
-        signal = bytes2str(group.attrs.get(NX_SIGNAL, ''))
+        axes = bytes2str(group.attrs.get(nn.NX_AXES, ''))
+        signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
 
         items = _reorder_group_items(group)  # @default first
         for name, obj in items.items():
@@ -139,8 +131,8 @@ def nx_find_all(parent: h5py.Group, *field_or_class: str) -> list[h5py.Dataset |
         if len(args) == 1 and args[0] in group:
             found.append(group[args[0]])
         # Get group axes & signal datasets
-        axes = bytes2str(group.attrs.get(NX_AXES, ''))
-        signal = bytes2str(group.attrs.get(NX_SIGNAL, ''))
+        axes = bytes2str(group.attrs.get(nn.NX_AXES, ''))
+        signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
 
         for name, obj in group.items():
             new_args = _update_args(name, obj, axes, signal, *args)
@@ -165,9 +157,9 @@ def nx_find_data(parent: h5py.Group, *field_or_class: str, default=None):
 
 def get_axes_signals(nxdata: h5py.Group) -> tuple[list[h5py.Dataset], list[h5py.Dataset]]:
     """Return lists of axes and signal+auxiliary_signals datasets"""
-    axes_datasets = get_attr_datasets(nxdata, NX_AXES)
-    signal_datasets = get_attr_datasets(nxdata, NX_SIGNAL)
-    aux_datasets = get_attr_datasets(nxdata, NX_AUXILIARY)
+    axes_datasets = get_attr_datasets(nxdata, nn.NX_AXES)
+    signal_datasets = get_attr_datasets(nxdata, nn.NX_SIGNAL)
+    aux_datasets = get_attr_datasets(nxdata, nn.NX_AUXILIARY)
     return axes_datasets, signal_datasets + aux_datasets
 
 
@@ -201,3 +193,44 @@ def get_metadata(group: h5py.Group, *name_paths_default: tuple[str, tuple, str])
     }
     return metadata
 
+
+def get_dataset_value(path: str, group: h5py.Group | h5py.File, default):
+    """
+    Get value from dataset in group, or return default
+    :param path: hdf path of dataset in group
+    :param group: hdf group
+    :param default: returned if path doesn't exist
+    :return: group[path][()]
+    """
+    if path in group:
+        dataset = group[path]
+        if np.issubdtype(dataset, np.number):
+            return np.squeeze(dataset[()])
+        return dataset.asstr()[()]
+    return default
+
+
+def nx_beam_energy(beam: h5py.Group) -> tuple[float, float]:
+    """
+    Return beam energy in keV and wavelength in A
+    :param beam: Nexus NXbeam group
+    :return: incident_energy, incident_wavelength
+    """
+    if nn.NX_WL in beam:
+        dataset = beam[nn.NX_WL]
+        units = dataset.attrs.get(nn.NX_UNITS, b'nm').decode()
+        wl = dataset[()]
+        if units.lower() in METERS:
+            wl = wl * METERS[units] * 1e-10  # wavelength in Angstroms
+        else:
+            print(f"Warning: unknown translation untis: {units}")
+        return photon_energy(wl), wl
+    elif nn.NX_EN in beam:
+        dataset = beam[nn.NX_WL]
+        units = dataset.attrs.get(nn.NX_UNITS, b'ev').decode()
+        en = dataset[()]
+        if units.lower() == 'ev':
+            en = en / 1000.  # wavelength in keV
+        return en, photon_wavelength(en)
+    else:
+        raise KeyError(f"{beam} contains no '{nn.NX_WL}' or '{nn.NX_EN}'")

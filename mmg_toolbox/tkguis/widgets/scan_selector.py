@@ -82,7 +82,8 @@ class _ScanSelector:
                 for name, fmt in self.config.get(C.metadata_list, {}).items():
                     if not self.tree.winfo_exists():
                         return
-                    self.tree.set(item, name, self.map.format_hdf(nxs, fmt))
+                    data = self.map.format_hdf(nxs, fmt)
+                    self.tree.set(item, name, data)
         except Exception as exception:
             name = next(iter(self.config.get(C.metadata_list, {})), 'data')
             self.tree.set(item, name, str(exception))
