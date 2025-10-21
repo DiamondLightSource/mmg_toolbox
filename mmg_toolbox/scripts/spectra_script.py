@@ -4,11 +4,10 @@ Example Script
 """
 
 import os
-import numpy as np
 import matplotlib.pyplot as plt
 
-from mmg_toolbox.nxxas_loader import load_xas_scans
-from mmg_toolbox.spectra_container import average_polarised_scans
+from mmg_toolbox.xas.nxxas_loader import load_xas_scans
+from mmg_toolbox.xas.spectra_container import average_polarised_scans
 
 
 scan_files = [

@@ -5,7 +5,7 @@ Configuration Options
 import os
 import json
 
-from ...env_functions import TMPDIR, YEAR, get_beamline, get_user, check_file_access
+from mmg_toolbox.utils.env_functions import TMPDIR, YEAR, get_beamline, get_user, check_file_access
 from .beamline_metadata import BEAMLINE_META, META_STRING
 from .matplotlib import FIGURE_SIZE, FIGURE_DPI, IMAGE_SIZE, DEFAULT_COLORMAP
 

@@ -24,7 +24,7 @@ from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 
-from .xray_utils import photon_wavelength, photon_energy
+from mmg_toolbox.utils.xray_utils import photon_wavelength, photon_energy
 
 # Euler to Kappa angles
 KALPHA = 50.0 # limits the range of possible chi in different modes.

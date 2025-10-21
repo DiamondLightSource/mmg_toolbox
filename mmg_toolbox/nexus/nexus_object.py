@@ -2,12 +2,12 @@ import h5py
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mmg_toolbox import nexus_names as nn
-from mmg_toolbox.nexus_functions import nx_find, get_dataset_value
-from mmg_toolbox.nexus_transformations import nx_direction, nx_transformations_max_size, \
+from mmg_toolbox.nexus import nexus_names as nn
+from mmg_toolbox.nexus.nexus_functions import nx_find, get_dataset_value
+from mmg_toolbox.nexus.nexus_transformations import nx_direction, nx_transformations_max_size, \
     nx_transformations_matrix, nx_transform_vector
-from mmg_toolbox.rotations import norm_vector, transform_by_t_matrix
-from mmg_toolbox.xray_utils import wavevector, photon_energy, photon_wavelength, bmatrix
+from mmg_toolbox.utils.rotations import norm_vector, transform_by_t_matrix
+from mmg_toolbox.utils.xray_utils import wavevector, photon_energy, photon_wavelength, bmatrix
 
 
 class NXBeam:

@@ -2,9 +2,9 @@
 Automatic data file reader
 """
 
-from mmg_toolbox.misc_functions import DataHolder
-from mmg_toolbox.dat_file_reader import read_dat_file
-from mmg_toolbox.nexus_reader import read_nexus_file
+from mmg_toolbox.utils.misc_functions import DataHolder
+from mmg_toolbox.utils.dat_file_reader import read_dat_file
+from mmg_toolbox.nexus.nexus_reader import read_nexus_file
 
 
 def data_file_reader(filename: str) -> DataHolder:

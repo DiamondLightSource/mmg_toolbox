@@ -2,7 +2,7 @@
 Test nbrunner
 """
 
-from mmg_toolbox.nb_runner import process_template, view_jupyter_notebook
+from mmg_toolbox.utils.nb_runner import process_template, view_jupyter_notebook
 
 
 template = '/dls_sw/i06/scripts/gda-zocalo/notebooks/xas_notebook.ipynb'

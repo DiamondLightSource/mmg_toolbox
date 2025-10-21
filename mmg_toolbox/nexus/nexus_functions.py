@@ -5,9 +5,9 @@ Various utilities for reading and writing nexus files
 import numpy as np
 import h5py
 
-from mmg_toolbox import nexus_names as nn
-from mmg_toolbox.nexus_names import METERS
-from mmg_toolbox.xray_utils import photon_energy, photon_wavelength
+from mmg_toolbox.nexus import nexus_names as nn
+from mmg_toolbox.nexus.nexus_names import METERS
+from mmg_toolbox.utils.xray_utils import photon_energy, photon_wavelength
 
 
 def bytes2str(value: str | bytes | list | tuple) -> str:

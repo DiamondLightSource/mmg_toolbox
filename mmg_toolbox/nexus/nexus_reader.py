@@ -6,8 +6,8 @@ import h5py
 import numpy as np
 import datetime
 
-from mmg_toolbox.misc_functions import DataHolder, shorten_string
-from mmg_toolbox.file_functions import get_scan_number
+from mmg_toolbox.utils.misc_functions import DataHolder, shorten_string
+from mmg_toolbox.utils.file_functions import get_scan_number
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapMMGMetadata as Md
 
 
@@ -32,7 +32,7 @@ class NexusDataHolder(DataHolder):
         super().__init__(**scannables)
         self.metadata = DataHolder(**metadata)
 
-        from mmg_toolbox.fitting import ScanFitManager, poisson_errors
+        from mmg_toolbox.utils.fitting import ScanFitManager, poisson_errors
         self.fit = ScanFitManager(self)
         self._error_function = poisson_errors
 

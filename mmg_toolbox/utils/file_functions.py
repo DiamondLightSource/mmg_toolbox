@@ -11,7 +11,7 @@ import numpy as np
 from hdfmap.eval_functions import dataset2str, dataset2data
 from PIL import Image
 
-from mmg_toolbox.misc_functions import consolidate_numeric_strings, regex_number
+from mmg_toolbox.utils.misc_functions import consolidate_numeric_strings, regex_number
 
 
 def list_files(folder_directory: str, extension='.nxs') -> list[str]:

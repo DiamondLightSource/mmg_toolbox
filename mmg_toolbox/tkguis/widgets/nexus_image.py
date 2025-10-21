@@ -7,11 +7,10 @@ from tkinter import ttk
 import numpy as np
 
 import hdfmap
-from fontTools.merge import cmap
 from hdfmap import create_nexus_map
 
-from ...file_functions import read_tiff
-from ...nexus_reader import add_roi
+from mmg_toolbox.utils.file_functions import read_tiff
+from mmg_toolbox.nexus.nexus_reader import add_roi
 from ..misc.styles import create_hover, create_root
 from ..misc.matplotlib import ini_image, COLORMAPS, DEFAULT_COLORMAP, add_rectangle
 from ..misc.logging import create_logger

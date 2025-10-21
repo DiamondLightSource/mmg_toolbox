@@ -2,7 +2,6 @@
 Use Dans_Diffraction to make a element edge database
 """
 
-import os
 import numpy as np
 import json
 from Dans_Diffraction.functions_crystallography import atom_properties
@@ -90,7 +89,7 @@ test_range = np.array([694.9287, 695.1218, 695.3457, 695.5315, 695.742 , 695.937
 
 
 if __name__ == '__main__':
-    from mmg_toolbox.spectra_analysis import xray_edges_in_range, energy_range_edge_label
+    from mmg_toolbox.xas.spectra_analysis import xray_edges_in_range, energy_range_edge_label
 
     print('\nxray edges in range')
     print(xray_edges_in_range(test_range.min(), test_range.max()))

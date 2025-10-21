@@ -6,14 +6,14 @@ import os
 import numpy as np
 import h5py
 import datetime
-from .file_functions import get_scan_number, replace_scan_number
+from mmg_toolbox.utils.file_functions import get_scan_number, replace_scan_number
 from .dat_file_reader import read_dat_file
-from .polarisation import check_polarisation
+from mmg_toolbox.utils.polarisation import check_polarisation
 from .spectra_analysis import energy_range_edge_label
-from .nexus_functions import nx_find, nx_find_all, nx_find_data
+from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
 from .spectra import Spectra
 from .spectra_container import SpectraContainer, XasMetadata
-from .beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
+from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
 
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],

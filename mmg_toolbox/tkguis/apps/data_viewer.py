@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 
-from mmg_toolbox.env_functions import get_notebook_directory, open_terminal
+from mmg_toolbox.utils.env_functions import get_notebook_directory, open_terminal
 from mmg_toolbox.tkguis.misc.config import get_config, C
 from mmg_toolbox.tkguis.misc.functions import topmenu
 from mmg_toolbox.tkguis.misc.styles import RootWithStyle, create_root

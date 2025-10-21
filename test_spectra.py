@@ -4,8 +4,8 @@ Try out Spectra
 
 import os
 import matplotlib.pyplot as plt
-from mmg_toolbox.spectra import SpectraScan, find_pol_pairs
-from mmg_toolbox.nexus_writer import create_xmcd_nexus
+from mmg_toolbox.xas.spectra import SpectraScan, find_pol_pairs
+from mmg_toolbox.nexus.nexus_writer import create_xmcd_nexus
 
 if os.path.isdir('/dls'):
     files = [
@@ -34,7 +34,7 @@ scans = [SpectraScan(file) for file in files]
 
 print(scans)
 
-from mmg_toolbox.spectra_analysis import fit_double_edge_step_background
+from mmg_toolbox.xas.spectra_analysis import fit_double_edge_step_background
 
 scan = scans[0]
 # scan.create_figure()

@@ -17,10 +17,10 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 
-from . import __version__
-from . import nexus_writer as nw
+from mmg_toolbox import __version__
+from mmg_toolbox.nexus import nexus_writer as nw
 from . import spectra_analysis as spa
-from .polarisation import pol_subtraction_label
+from mmg_toolbox.utils.polarisation import pol_subtraction_label
 from .spectra import Spectra, SpectraSubtraction
 
 

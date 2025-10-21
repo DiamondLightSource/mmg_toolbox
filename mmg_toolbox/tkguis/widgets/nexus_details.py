@@ -9,7 +9,7 @@ from tkinter.messagebox import askyesnocancel
 import hdfmap
 from hdfmap import create_nexus_map
 
-from ...env_functions import get_scan_notebooks, TMPDIR
+from mmg_toolbox.utils.env_functions import get_scan_notebooks, TMPDIR
 from ..misc.functions import post_right_click_menu, show_error
 from ..misc.logging import create_logger
 from ..misc.config import get_config
@@ -140,7 +140,7 @@ class NexusDetails:
         self.update_text()
 
     def run_notebook(self):
-        from ...nb_runner import view_jupyter_notebook, view_notebook_html
+        from mmg_toolbox.utils.nb_runner import view_jupyter_notebook, view_notebook_html
         notebook = self.notebook.get()
         if notebook not in self.notebooks:
             return
@@ -154,7 +154,7 @@ class NexusDetails:
 
     def reprocess_notebook(self):
         """Copy notebook to processing folder"""
-        from ...nb_runner import reprocess_notebook
+        from mmg_toolbox.utils.nb_runner import reprocess_notebook
         notebook = self.notebook.get()
         if notebook not in self.notebooks:
             return

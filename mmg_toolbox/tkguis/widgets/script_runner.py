@@ -7,8 +7,8 @@ import tkinter as tk
 from tkinter import ttk
 
 from ...scripts import scripts
-from ...env_functions import (get_scan_numbers, get_last_scan_number, get_first_file)
-from ...file_functions import get_scan_number, replace_scan_number
+from mmg_toolbox.utils.env_functions import (get_scan_numbers, get_last_scan_number, get_first_file)
+from mmg_toolbox.utils.file_functions import get_scan_number, replace_scan_number
 from ..misc.logging import create_logger
 from ..misc.config import get_config
 from ..misc.functions import select_folder
