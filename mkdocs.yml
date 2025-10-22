@@ -1,0 +1,108 @@
+site_name: MMG_Toolbox
+repo_name: mmg_toolbox
+repo_url: https://github.com/DiamondLightSource/mmg_toolbox
+plugins:
+  - techdocs-diamond
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: sphinx
+nav:
+  - Home:
+    - index.md
+  - Installation:
+    - installation/index.md
+  - Examples:
+    - examples/index.md
+    - examples/examples.md
+  - Code Description:
+    - description/index.md
+    - mmg_toolbox
+    - scripts
+      - description/example_script.md
+      - description/scripts.md
+      - description/spectra_script.md
+    - tkguis
+      - description/experiment_management.md
+      - description/cli.md
+      - misc
+        - description/beamline_metadata.md
+        - description/config.md
+        - description/functions.md
+        - description/logging.md
+        - description/matplotlib.md
+        - description/styles.md
+        - description/search.md
+        - description/jupyter.md
+      - widgets
+        - description/python_editor.md
+        - description/folder_treeview.md
+        - description/log_viewer.md
+        - description/image_slider.md
+        - description/nexus_details.md
+        - description/nexus_image.md
+        - description/nexus_plot.md
+        - description/simple_plot.md
+        - description/nexus_treeview.md
+        - description/nexus_data_viewer.md
+        - description/scan_range_selector.md
+        - description/scan_selector.md
+        - description/script_runner.md
+        - description/title_window.md
+        - description/size_tester.md
+        - description/roi_editor.md
+      - apps
+        - description/config_editor.md
+        - description/data_viewer.md
+        - description/edit_text.md
+        - description/experiment.md
+        - description/file_browser.md
+        - description/log_viewer.md
+        - description/nexus.md
+        - description/python_editor.md
+        - description/scans.md
+        - description/script_runner.md
+    - beamline_metadata
+      - description/hdfmap_generic.md
+    - nexus
+      - description/nexus_functions.md
+      - description/nexus_names.md
+      - description/nexus_object.md
+      - description/nexus_reader.md
+      - description/nexus_transformations.md
+      - description/nexus_writer.md
+    - utils
+      - description/dat_file_reader.md
+      - description/env_functions.md
+      - description/file_functions.md
+      - description/file_reader.md
+      - description/fitting.md
+      - description/misc_functions.md
+      - description/nb_runner.md
+      - description/polarisation.md
+      - description/rotations.md
+      - description/xray_utils.md
+    - xas
+      - description/nxxas_loader.md
+      - description/spectra.md
+      - description/spectra_analysis.md
+      - description/spectra_container.md
+    - diffraction
+      - description/diffcalc.md
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
