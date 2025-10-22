@@ -94,7 +94,6 @@ def add_nxcrystal(root: h5py.Group, name: str, usage: str, crystal_type: str, d_
     :param d_spacing: spacing between crystals in Angstrom
     :param reflection: reflection index in Miller-indices (h,k,l)
     :param order_no: order of the reflection, n*(h,k,l)
-    :param depends_on: absolute hdf path to first transformation in transformation group
     :return: NXcrystal group
     """
     crystal = add_nxclass(root, name, nn.NX_XTL)

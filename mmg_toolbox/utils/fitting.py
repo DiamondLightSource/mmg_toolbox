@@ -119,7 +119,7 @@ def gauss(x: np.ndarray, y: np.ndarray | None = None,
 
     :param x: [1xn] array of values, defines size of gaussian in dimension 1
     :param y: None* or [1xm] array of values, defines size of gaussian in dimension 2
-    :param: height: peak height
+    :param height: peak height
     :param cen: peak centre
     :param fwhm: peak full width at half-max
     :param bkg: background
