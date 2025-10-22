@@ -1,0 +1,3 @@
+mkdocs-techdocs-diamond
+mkdocstrings[python]
+ruamel.yaml

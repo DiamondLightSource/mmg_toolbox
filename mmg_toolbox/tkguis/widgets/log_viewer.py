@@ -31,7 +31,7 @@ REPL = [
         r'(?:^|\s|\W)(Scan|WARNING|ERROR)(?:$|\s|\W)',
         Colours.keywords
     ],
-    ['\A.*\| >>>.*\Z', Colours.input],
+    [r'\A.*\| >>>.*\Z', Colours.input],
     # [r'(?:^|\s|\W)(scan|scancn|cscan|frange|pos|inc|go)(?:$|\s|\W)', commands],
     ['".*?"', Colours.string],
     ['\'.*?\'', Colours.string],

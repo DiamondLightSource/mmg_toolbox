@@ -3,7 +3,7 @@ from mmg_toolbox.tkguis.misc.config import get_config, C
 from mmg_toolbox.tkguis.misc.functions import topmenu
 from mmg_toolbox.tkguis.misc.styles import create_root
 from mmg_toolbox.tkguis.misc.jupyter import launch_jupyter_notebook, terminate_notebooks
-from mmg_toolbox.env_functions import open_terminal
+from mmg_toolbox.utils.env_functions import open_terminal
 
 
 def create_title_window(beamline: str | None = None):

@@ -16,6 +16,7 @@ from mmg_toolbox.tkguis.misc.logging import set_all_logging_level
 from mmg_toolbox.tkguis.misc.matplotlib import ini_image
 
 if __name__ == '__main__':
+    pass
     # set_all_logging_level('debug')
     # window = create_file_browser()
 
@@ -35,7 +36,7 @@ if __name__ == '__main__':
     # root.mainloop()
 
     # create_data_viewer(r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus")
-    create_title_window()
+    # create_title_window()
 
     # root = create_root('image')
     # NexusDetectorImage(root, hdf_filename=r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus\1041304.nxs")

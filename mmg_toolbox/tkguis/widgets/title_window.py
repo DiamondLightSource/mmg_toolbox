@@ -5,10 +5,10 @@ import os
 import tkinter as tk
 from tkinter import ttk
 
-from ...env_functions import get_dls_visits, MMG_BEAMLINES
-from ...file_functions import folder_summary_line
+from mmg_toolbox.utils.env_functions import get_dls_visits, MMG_BEAMLINES
+from mmg_toolbox.utils.file_functions import folder_summary_line
 from ..misc.logging import create_logger
-from ..misc.config import get_config, save_config, C, default_config
+from ..misc.config import get_config, save_config, C
 from ..misc.functions import select_folder, show_error
 
 logger = create_logger(__file__)

@@ -7,11 +7,10 @@ from tkinter import ttk
 import numpy as np
 
 import hdfmap
-from fontTools.merge import cmap
 from hdfmap import create_nexus_map
 
-from ...file_functions import read_tiff
-from ...nexus_reader import add_roi
+from mmg_toolbox.utils.file_functions import read_tiff
+from mmg_toolbox.nexus.nexus_reader import add_roi
 from ..misc.styles import create_hover, create_root
 from ..misc.matplotlib import ini_image, COLORMAPS, DEFAULT_COLORMAP, add_rectangle
 from ..misc.logging import create_logger
@@ -188,6 +187,10 @@ class NexusDetectorImage:
         lines = self.ax.plot(*args, **kwargs)
         self.plot_list.extend(lines)
 
+    def text(self, *args, **kwargs):
+        text = self.ax.text(*args, **kwargs)
+        self.plot_list.append(text)
+
     def remove_lines(self):
         for obj in self.plot_list:
             obj.remove()
@@ -322,26 +325,41 @@ class NexusDetectorImage:
         rois = self.config.get(C.roi)
         if rois:
             for name, cen_i, cen_j, wid_i, wid_j, det_name in rois:
-                add_roi(self.map, name, cen_i, cen_j, wid_i, wid_j, det_name)
+                # add_roi(self.map, name, cen_i, cen_j, wid_i, wid_j, det_name)
+                self.map.add_roi(name, cen_i, cen_j, wid_i, wid_j, det_name)
+                new_names = [
+                    f"{name}_total",
+                    f"{name}_max",
+                    f"{name}_min",
+                    f"{name}_mean",
+                    f"{name}_bkg",
+                    f"{name}_rmbkg",
+                    # f"{name}_box",
+                    # f"{name}_bkg_box",
+                ]
+                print('Adding new roi, available names:\n', '\n'.join(new_names))
 
     def plot_config_rois(self):
         """plot config rois on image"""
         self.remove_lines()
         rois = self.config.get(C.roi)
+        detector = self.detector_name.get()
         if rois:
             try:
                 with hdfmap.load_hdf(self.filename) as hdf:
-                    for name, cen_i, cen_j, wid_i, wid_j, det_name in rois:
-                        cen_i, cen_j, wid_i, wid_j = self.map.eval(hdf, f"{cen_i},{cen_j},{wid_i},{wid_j}")
-                        roi_square = np.array([
-                            # x, y
-                            [cen_i - wid_i // 2, cen_j - wid_j // 2],
-                            [cen_i - wid_i // 2, cen_j + wid_j // 2],
-                            [cen_i + wid_i // 2, cen_j + wid_j // 2],
-                            [cen_i + wid_i // 2, cen_j - wid_j // 2],
-                            [cen_i - wid_i // 2, cen_j - wid_j // 2],
-                        ])
-                        self.plot(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
+                    for n, (name, cen_i, cen_j, wid_i, wid_j, det_name) in enumerate(rois):
+                        if det_name == detector:
+                            cen_i, cen_j, wid_i, wid_j = self.map.eval(hdf, f"{cen_i},{cen_j},{wid_i},{wid_j}")
+                            roi_square = np.array([
+                                # x, y
+                                [cen_i - wid_i // 2, cen_j - wid_j // 2],
+                                [cen_i - wid_i // 2, cen_j + wid_j // 2],
+                                [cen_i + wid_i // 2, cen_j + wid_j // 2],
+                                [cen_i + wid_i // 2, cen_j - wid_j // 2],
+                                [cen_i - wid_i // 2, cen_j - wid_j // 2],
+                            ])
+                            self.plot(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
+                            self.text(cen_i + wid_i // 2, cen_j + wid_j // 2, str(n))
             except Exception as e:
                 self._show_error(f'Error plotting ROIs: {e}')
         self.fig.canvas.draw()

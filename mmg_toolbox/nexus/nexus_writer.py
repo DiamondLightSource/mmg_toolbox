@@ -9,11 +9,11 @@ import json
 
 from hdfmap.nexus import default_nxentry
 
-import mmg_toolbox.nexus_names as nn
-from mmg_toolbox.file_functions import get_scan_number
-from mmg_toolbox.nexus_transformations import TransformationAxis, RotationAxis, TranslationAxis, get_depends_on
-from mmg_toolbox.polarisation import polarisation_label_to_stokes, analyser_jones_matrix
-from mmg_toolbox.xray_utils import photon_wavelength
+import mmg_toolbox.nexus.nexus_names as nn
+from mmg_toolbox.utils.file_functions import get_scan_number
+from mmg_toolbox.nexus.nexus_transformations import TransformationAxis, RotationAxis, TranslationAxis, get_depends_on
+from mmg_toolbox.utils.polarisation import polarisation_label_to_stokes, analyser_jones_matrix
+from mmg_toolbox.utils.xray_utils import photon_wavelength
 
 
 def add_nxclass(root: h5py.Group, name: str, nx_class: str) -> h5py.Group:
@@ -94,7 +94,6 @@ def add_nxcrystal(root: h5py.Group, name: str, usage: str, crystal_type: str, d_
     :param d_spacing: spacing between crystals in Angstrom
     :param reflection: reflection index in Miller-indices (h,k,l)
     :param order_no: order of the reflection, n*(h,k,l)
-    :param depends_on: absolute hdf path to first transformation in transformation group
     :return: NXcrystal group
     """
     crystal = add_nxclass(root, name, nn.NX_XTL)
@@ -345,7 +344,7 @@ def add_analyser_detector(instrument: h5py.Group, name: str, data: np.ndarray,
 def add_6circle_diffractometer(instrument: h5py.Group, name: str, phi: np.ndarray, chi: np.ndarray, eta: np.ndarray,
                                mu: np.ndarray, delta: np.ndarray, gamma: np.ndarray) -> h5py.Group:
     """6-circle Euler diffractometer"""
-    from .diffcalc import euler2kappa, KALPHA
+    from mmg_toolbox.diffraction.diffcalc import euler2kappa, KALPHA
     kphi, kappa, ktheta = euler2kappa(phi, chi, eta, mode=1, kalpha=KALPHA)
 
     # Positions
@@ -381,7 +380,7 @@ def add_6circle_diffractometer_kappa(instrument: h5py.Group, name: str,
                                      mu: np.ndarray, delta: np.ndarray, gamma: np.ndarray,
                                      kalpha: float,) -> h5py.Group:
     """6-circle Kappa diffractometer"""
-    from .diffcalc import kappa2euler
+    from mmg_toolbox.diffraction.diffcalc import kappa2euler
     phi, chi, eta = kappa2euler(ktheta, kappa, kphi, mode=1, kalpha=kalpha)
 
     # Positions

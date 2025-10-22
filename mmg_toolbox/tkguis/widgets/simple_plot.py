@@ -70,6 +70,7 @@ class SimplePlot:
                 if label:
                     line.set_label(label)
             self.update_labels(x_label=x_label, y_label=y_label, title=title, legend=True if len(legend) > 1 else False)
+            self.update_axes()
         else:
             self.plot_from_data(x_data, y_data, x_label, y_label, title, legend)
 

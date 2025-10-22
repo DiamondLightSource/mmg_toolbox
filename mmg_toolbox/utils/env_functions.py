@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from datetime import datetime
 
-from mmg_toolbox.file_functions import get_scan_number
+from mmg_toolbox.utils.file_functions import get_scan_number
 
 # environment variables on beamline computers
 BEAMLINE = 'BEAMLINE'
@@ -102,13 +102,13 @@ def get_dls_visits(instrument: str | None = None, year: str | int | None = None)
 
 def get_first_file(folder: str, extension='.nxs') -> str:
     """Return first scan in folder"""
-    from mmg_toolbox.file_functions import list_files
+    from mmg_toolbox.utils.file_functions import list_files
     return next(iter(list_files(folder, extension=extension)))
 
 
 def get_scan_numbers(folder: str) -> list[int]:
     """Return ordered list of scans numbers from nexus files in directory"""
-    from mmg_toolbox.file_functions import list_files
+    from mmg_toolbox.utils.file_functions import list_files
     return sorted(
         number for filename in list_files(folder, extension='.nxs')
         if (number := get_scan_number(filename)) > 0
@@ -122,7 +122,7 @@ def get_last_scan_number(folder: str) -> int:
 
 def get_scan_notebooks(scan: int | str, data_directory: str | None = None) -> list[str]:
     """Return list of processed jupyter notebooks for scan"""
-    from mmg_toolbox.file_functions import list_files
+    from mmg_toolbox.utils.file_functions import list_files
     try:
         data_directory, filename = os.path.split(scan)
         scan = get_scan_number(filename)

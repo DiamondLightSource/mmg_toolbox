@@ -5,8 +5,8 @@ Polarisation utilities
 import numpy as np
 import h5py
 
-from .nexus_functions import nx_find, bytes2str
-from .nexus_names import NX_POLARISATION_FIELDS
+from mmg_toolbox.nexus.nexus_functions import nx_find, bytes2str
+from mmg_toolbox.nexus.nexus_names import NX_POLARISATION_FIELDS
 
 
 class PolLabels:

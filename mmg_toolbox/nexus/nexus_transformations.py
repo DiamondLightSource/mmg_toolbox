@@ -6,10 +6,10 @@ import hdfmap
 import numpy as np
 import h5py
 
-import mmg_toolbox.nexus_names as nn
-from mmg_toolbox.nexus_names import METERS
-from mmg_toolbox.rotations import norm_vector, rotation_t_matrix, translation_t_matrix, transform_by_t_matrix
-from mmg_toolbox.nexus_functions import nx_find_all, bytes2str
+import mmg_toolbox.nexus.nexus_names as nn
+from mmg_toolbox.nexus.nexus_names import METERS
+from mmg_toolbox.utils.rotations import norm_vector, rotation_t_matrix, translation_t_matrix, transform_by_t_matrix
+from mmg_toolbox.nexus.nexus_functions import nx_find_all, bytes2str
 
 
 def get_depends_on(root: None | str | h5py.Group | h5py.Dataset) -> str:

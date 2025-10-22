@@ -5,7 +5,7 @@ Also known as SRS files
 
 import numpy as np
 
-from mmg_toolbox.misc_functions import DataHolder, data_holder
+from mmg_toolbox.utils.misc_functions import DataHolder, data_holder
 
 
 def read_dat_file(filename: str) -> DataHolder:

@@ -14,7 +14,7 @@ import numpy as np
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel, PseudoVoigtModel, LinearModel, ExponentialModel
 from lmfit.model import ModelResult, Model, Parameters
 from .misc_functions import stfm
-from .nexus_reader import NexusDataHolder
+from mmg_toolbox.nexus.nexus_reader import NexusDataHolder
 
 # https://lmfit.github.io/lmfit-py/builtin_models.html#peak-like-models
 MODELS = {
@@ -119,7 +119,7 @@ def gauss(x: np.ndarray, y: np.ndarray | None = None,
 
     :param x: [1xn] array of values, defines size of gaussian in dimension 1
     :param y: None* or [1xm] array of values, defines size of gaussian in dimension 2
-    :param: height: peak height
+    :param height: peak height
     :param cen: peak centre
     :param fwhm: peak full width at half-max
     :param bkg: background
@@ -685,7 +685,6 @@ def peak2dfit(xdata: np.ndarray, ydata: np.ndarray, image_data: np.ndarray,
     :param plot_result:
     :return:
     """
-    from lmfit.models import Gaussian2dModel  # lmfit V1.0.3+
     print('Not yet finished...')
     pass
 

@@ -8,10 +8,8 @@ import tkinter as tk
 from tkinter import ttk
 from threading import Thread
 
-from ipywidgets.widgets import widget
-
-from ...file_functions import list_files, list_path_time, display_timestamp, get_hdf_string, folder_summary
-from ...env_functions import open_terminal
+from mmg_toolbox.utils.file_functions import list_files, list_path_time, display_timestamp, get_hdf_string, folder_summary
+from mmg_toolbox.utils.env_functions import open_terminal
 from ..misc.styles import create_hover
 from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
 from ..misc.jupyter import launch_jupyter_notebook
@@ -608,7 +606,7 @@ class JupyterFolderTreeViewFrame(FolderTreeViewFrame):
 
 
     def open_jupyter_html(self):
-        from ...nb_runner import view_jupyter_notebook, view_notebook_html
+        from mmg_toolbox.utils.nb_runner import view_jupyter_notebook, view_notebook_html
 
         filename, foldername = self.get_filepath()
         if filename:

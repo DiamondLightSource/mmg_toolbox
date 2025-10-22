@@ -10,7 +10,7 @@ from tkinter import ttk
 import hdfmap
 from hdfmap.eval_functions import generate_identifier
 
-from ...file_functions import hdfobj_string
+from mmg_toolbox.utils.file_functions import hdfobj_string
 from ..misc.styles import update_text_style
 from ..misc.functions import post_right_click_menu, open_close_all_tree, select_hdf_file
 from ..misc.search import search_tree
@@ -290,7 +290,7 @@ class NxTransformationsStr(_StringView):
     Display output of NeXus2Transformations
     """
     def populate(self, hdf_filename: str):
-        from mmg_toolbox.nexus_transformations import generate_nxtranformations_string
+        from mmg_toolbox.nexus.nexus_transformations import generate_nxtranformations_string
         outstr = generate_nxtranformations_string(hdf_filename)
         self._populate(outstr)
 

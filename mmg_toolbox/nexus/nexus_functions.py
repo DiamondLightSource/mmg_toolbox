@@ -1,13 +1,14 @@
 """
 Various utilities for reading and writing nexus files
 """
+import typing
 
 import numpy as np
 import h5py
 
-from mmg_toolbox import nexus_names as nn
-from mmg_toolbox.nexus_names import METERS
-from mmg_toolbox.xray_utils import photon_energy, photon_wavelength
+from mmg_toolbox.nexus import nexus_names as nn
+from mmg_toolbox.nexus.nexus_names import METERS
+from mmg_toolbox.utils.xray_utils import photon_energy, photon_wavelength
 
 
 def bytes2str(value: str | bytes | list | tuple) -> str:
@@ -26,7 +27,7 @@ def get_attr_datasets(group: h5py.Group, attr_name: str) -> list[h5py.Dataset]:
     return [dataset for name in attribute if (dataset := group.get(name))]
 
 
-def _reorder_group_items(group: h5py.Group) -> dict[str, h5py.Group | h5py.Dataset]:
+def reorder_group_items(group: h5py.Group) -> dict[str, h5py.Group | h5py.Dataset]:
     """re-order the group.items list to get the put @default objects first"""
     # 1. put default objects first in the list
     items = {}
@@ -39,7 +40,7 @@ def _reorder_group_items(group: h5py.Group) -> dict[str, h5py.Group | h5py.Datas
     return items
 
 
-def _update_args(name, obj, axes, signal, *args):
+def update_args(name: str, obj: h5py.Group, axes: str, signal: str, *args: str) -> list[str]:
     """remove object from search arguments if it matches"""
     # expand match-names with SEARCH_ATTRS
     names = [name] + [bytes2str(obj.attrs.get(attr, '')) for attr in nn.SEARCH_ATTRS]
@@ -52,7 +53,7 @@ def _update_args(name, obj, axes, signal, *args):
     if name == signal:
         names.append(nn.NX_SIGNAL)
     # check if object matches first arg, otherwise drill down or continue
-    return args[1:] if args[0] in names else args
+    return list(args[1:] if args[0] in names else args)
 
 
 def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Group | None:
@@ -88,9 +89,9 @@ def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Gro
         axes = bytes2str(group.attrs.get(nn.NX_AXES, ''))
         signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
 
-        items = _reorder_group_items(group)  # @default first
+        items = reorder_group_items(group)  # @default first
         for name, obj in items.items():
-            new_args = _update_args(name, obj, axes, signal, *args)
+            new_args = update_args(name, obj, axes, signal, *args)
             if len(new_args) == 0:
                 return obj
             if isinstance(obj, h5py.Group):
@@ -136,7 +137,7 @@ def nx_find_all(parent: h5py.Group, *field_or_class: str) -> list[h5py.Dataset |
         signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
 
         for name, obj in group.items():
-            new_args = _update_args(name, obj, axes, signal, *args)
+            new_args = update_args(name, obj, axes, signal, *args)
             if len(new_args) == 0:
                 found.append(obj)
                 continue
@@ -195,19 +196,19 @@ def get_metadata(group: h5py.Group, *name_paths_default: tuple[str, tuple, str])
     return metadata
 
 
-def get_dataset_value(path: str, group: h5py.Group | h5py.File, default):
+def get_dataset_value(path: str, group: h5py.Group | h5py.File, default: np.ndarray) -> np.ndarray:
     """
     Get value from dataset in group, or return default
     :param path: hdf path of dataset in group
     :param group: hdf group
     :param default: returned if path doesn't exist
-    :return: group[path][()]
+    :return: value or default
     """
     if path in group:
         dataset = group[path]
         if np.issubdtype(dataset, np.number):
-            return np.squeeze(dataset[()])
-        return dataset.asstr()[()]
+            return np.squeeze(dataset[...])
+        return dataset.asstr()[...]
     return default
 
 
@@ -224,7 +225,7 @@ def nx_beam_energy(beam: h5py.Group) -> tuple[float, float]:
         if units.lower() in METERS:
             wl = wl * METERS[units] * 1e-10  # wavelength in Angstroms
         else:
-            print(f"Warning: unknown translation untis: {units}")
+            print(f"Warning: unknown translation units: {units}")
         return photon_energy(wl), wl
     elif nn.NX_EN in beam:
         dataset = beam[nn.NX_WL]

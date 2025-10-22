@@ -17,8 +17,8 @@ from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 import h5py
 
-from . import nexus_writer as nw
-from . import spectra_analysis as spa
+from mmg_toolbox.nexus import nexus_writer as nw
+from mmg_toolbox.xas import spectra_analysis as spa
 
 
 # Build database of spectra functions from spectra_analysis.py

@@ -13,7 +13,8 @@ dependencies = [
   "matplotlib",
   "imageio",
   "scipy",
-  "lmfit"
+  "lmfit",
+  "diffcalc-core"
 ]
 requires-python = ">=3.10"
 authors = [

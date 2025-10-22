@@ -5,9 +5,9 @@ Create an idealised nexus file for I16
 import h5py
 import datetime
 import numpy as np
-import mmg_toolbox.nexus_writer as nw
-from mmg_toolbox.diffcalc import UB
-from mmg_toolbox.fitting import gauss
+import mmg_toolbox.nexus.nexus_writer as nw
+from mmg_toolbox.diffraction.diffcalc import UB
+from mmg_toolbox.utils.fitting import gauss
 
 
 # Metadata
