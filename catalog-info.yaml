@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: mmg_toolbox
+  annotations:
+    github.com/project-slug: DiamondLightSource/mmg_toolbox
+spec:
+  type: other
+  lifecycle: unknown
+  owner: data-analysis
