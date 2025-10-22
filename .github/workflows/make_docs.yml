@@ -23,12 +23,11 @@ jobs:
       - name: Install Python Dependencies
         run: pip install -r docs/requirements.txt
 
+      - name: Update Docs
+        run: python docs/make_docs.py  # build markdown files for python files and update mkdocs.yml
+
       - name: Build Docs
-        run: |
-          cd docs
-          python -m make_docs.py  # build markdown files for python files and update mkdocs.yml
-          cd ..
-          mkdocs build
+        run: mkdocs build
 
       - name: Upload Docs Artifact
         uses: actions/upload-artifact@v4.3.6
