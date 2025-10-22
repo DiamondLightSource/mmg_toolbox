@@ -1,5 +1,5 @@
 # MMG_Toolbox
-## Documenation for mmg_toolboxc package
+## Documenation for mmg_toolbox package
 Repository for useful python data analysis functions for the Diamond Magnetic Materials Group
 
 ```python
