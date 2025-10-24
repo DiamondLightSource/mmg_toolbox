@@ -14,3 +14,20 @@ def data_file_reader(filename: str) -> DataHolder:
     if filename.endswith('.dat'):
         return read_dat_file(filename)
     return read_nexus_file(filename)
+
+
+def read_gda_terminal_log(filename: str) -> dict[str, list[str]]:
+    """Read GDA terminal log using specific time stamp regex"""
+    from datetime import datetime
+    from collections import defaultdict
+    dt_format = '%Y-%m-%d %H:%M:%S,%f'
+    line2dt = lambda ln: datetime.strptime(ln.split('|')[0].strip(), dt_format)
+    tab_title = '%a %d%b'
+
+    tabs = defaultdict(list)
+    with open(filename) as file:
+        for line in file:
+            time = line2dt(line)
+            title = time.strftime(tab_title)
+            tabs[title] += [line]
+    return tabs

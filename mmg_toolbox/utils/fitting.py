@@ -14,7 +14,7 @@ import numpy as np
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel, PseudoVoigtModel, LinearModel, ExponentialModel
 from lmfit.model import ModelResult, Model, Parameters
 from .misc_functions import stfm
-from mmg_toolbox.nexus.nexus_reader import NexusDataHolder
+from mmg_toolbox.nexus.nexus_reader import NexusScan
 
 # https://lmfit.github.io/lmfit-py/builtin_models.html#peak-like-models
 MODELS = {
@@ -778,7 +778,7 @@ def generate_model_script(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndar
                           npeaks: int | None = None, min_peak_power: float | None = None, peak_distance_idx: int = 6,
                           model: str = 'Gaussian', background: str = 'slope', 
                           initial_parameters: dict | None = None, fix_parameters: dict | None = None,
-                          only_lmfit: str = False) -> str:
+                          only_lmfit: bool = False) -> str:
     """
     Generate script to create lmfit profile models
     E.G.:
@@ -970,7 +970,7 @@ class ScanFitManager:
     :param scan: babelscan.Scan
     """
 
-    def __init__(self, scan: NexusDataHolder):
+    def __init__(self, scan: NexusScan):
         self.scan = scan
 
     def __call__(self, *args, **kwargs) -> FitResults:
@@ -1211,19 +1211,22 @@ class ScanFitManager:
         # lmfit
         res = model.fit(ydata, pars, x=xdata, weights=weights, method=method)
 
-        self.scan.add2namespace('lmfit', res, 'fit_result')
-        self.scan.add2namespace('fit', res.best_fit, other_names=['fit_%s' % yname])
-        fit_dict = {}
+        fit_dict = {
+            'lmfit': res,
+            'fit_result': res,
+            'fit': res.best_fit,
+            f"fit_{yname}": res.best_fit,
+        }
         for pname, param in res.params.items():
             ename = 'stderr_' + pname
             fit_dict[pname] = param.value
             fit_dict[ename] = param.stderr
-        for name, value in fit_dict.items():
-            self.scan.add2namespace(name, value)
+
         # Add peak components
         comps = res.eval_components(x=xdata)
         for component in comps.keys():
-            self.scan.add2namespace('%sfit' % component, comps[component])
+            fit_dict[f"{component}fit"] = comps[component]
+        self.scan.map.add_local(**fit_dict)
 
         if print_result:
             print(self.scan.title())
@@ -1328,11 +1331,7 @@ class ScanFitManager:
         :param parameter_name: str, name from last fit e.g. 'amplitude', 'center', 'fwhm', 'background'
         :returns:  value, error
         """
-        if not self.scan.isinnamespace('lmfit'): #TODO: fix this
-            self.fit()
         lmfit = self.scan('lmfit')
-        if parameter_name is None:
-            return FitResults(lmfit)
         param = lmfit.params[parameter_name]
         return param.value, param.stderr
 
@@ -1341,8 +1340,6 @@ class ScanFitManager:
         Returns FitResults object from last fit
         :return: PeakResults obect
         """
-        if not self.scan.isinnamespace('fitobj'):  #TODO: fix this
-            self.fit()
         return self.scan('fitobj')
 
     def fit_report(self) -> str:

@@ -5,7 +5,8 @@ from mmg_toolbox.tkguis.misc.styles import create_root
 
 def create_log_viewer(filename: str, parent: tk.Misc | None = None):
     """Log Viewer Window"""
-    from ..widgets.log_viewer import read_gda_terminal_log, LogViewerWidget
+    from ..widgets.log_viewer import LogViewerWidget
+    from mmg_toolbox.utils.file_reader import read_gda_terminal_log
 
     root = create_root(window_title='Log Viewer', parent=parent)
     log_tabs = read_gda_terminal_log(filename)
