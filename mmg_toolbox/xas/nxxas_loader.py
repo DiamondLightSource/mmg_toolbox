@@ -2,18 +2,19 @@
 Functions to load data from i06-1 and i10-1 beamline XAS measurements
 """
 
-import os
 import numpy as np
 import h5py
 import datetime
-from mmg_toolbox.utils.file_functions import get_scan_number, replace_scan_number
-from .dat_file_reader import read_dat_file
+
+from mmg_toolbox.utils.file_functions import get_scan_number
+from mmg_toolbox.utils.file_reader import read_dat_file
 from mmg_toolbox.utils.polarisation import check_polarisation
-from .spectra_analysis import energy_range_edge_label
 from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
+from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
+
+from .spectra_analysis import energy_range_edge_label
 from .spectra import Spectra
 from .spectra_container import SpectraContainer, XasMetadata
-from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
 
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
@@ -254,33 +255,6 @@ def load_xas_scans(*filenames: str, sample_name='') -> list[SpectraContainer]:
     return scans
 
 
-def find_matching_scans(filename: str, match_field: str = 'scan_command',
-                        search_scans_before: int = 10, search_scans_after: int | None = None) -> list[str]:
-    """
-    Find scans with scan numbers close to the current file with matching scan command
-
-    :param filename: nexus file to start at (must include scan number in filename)
-    :param match_field: nexus field to compare between scan files
-    :param search_scans_before: number of scans before current scan to look for
-    :param search_scans_after: number of scans after current scan to look for (None==before)
-    :returns: list of scan files that exist and have matching field values
-    """
-    import hdfmap
-    nexus_map = hdfmap.create_nexus_map(filename)
-    field_value = nexus_map.eval(nexus_map.load_hdf(), match_field)
-    scanno = get_scan_number(filename)
-    if search_scans_after is None:
-        search_scans_after = search_scans_before
-    matching_files = []
-    for scn in range(scanno - search_scans_before, scanno + search_scans_after):
-        new_filename = replace_scan_number(filename, scn)
-        if os.path.isfile(new_filename):
-            new_field_value = nexus_map.eval(hdfmap.load_hdf(new_filename), match_field)
-            if field_value == new_field_value:
-                matching_files.append(new_filename)
-    return matching_files
-
-
 def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> list[SpectraContainer]:
     """
     Find similar measurements based on energy, temperature and field.
@@ -296,6 +270,7 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
     :param field_tol: Tolerance for field comparison (default: 0.1 T)
     :return: List of similar measurements
     """
+    from ..nexus.nexus_reader import find_matching_scans
     ini_scan = load_xas_scans(filenames[0])[0]
     if len(filenames) == 1:
         filenames = find_matching_scans(filenames[0])
@@ -332,3 +307,4 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
         else:
             print(f"Measurement {repr(scan)} is not similar to {repr(ini_scan)}")
     return similar
+

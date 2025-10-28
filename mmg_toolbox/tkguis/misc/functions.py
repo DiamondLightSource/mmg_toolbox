@@ -69,9 +69,10 @@ def select_hdf_file(parent):
     return filename
 
 
-def select_folder(parent):
+def select_folder(parent, initial_directory: str | None = None):
     """Select folder"""
     foldername = filedialog.askdirectory(
+        initialdir=initial_directory,
         title='Select folder...',
         mustexist=True,
         parent=parent,

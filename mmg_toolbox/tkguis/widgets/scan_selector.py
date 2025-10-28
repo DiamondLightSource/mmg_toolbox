@@ -394,7 +394,8 @@ class FolderScanSelector(_ScanSelector):
     "======================================================"
 
     def browse_folder(self):
-        folder_directory = select_folder(parent=self.root)
+        filename, foldername = self.get_filepath()
+        folder_directory = select_folder(initial_directory=foldername, parent=self.root)
         if folder_directory:
             self.add_folder(folder_directory)
 

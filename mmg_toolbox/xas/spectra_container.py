@@ -17,7 +17,6 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 
-from mmg_toolbox import __version__
 from mmg_toolbox.nexus import nexus_writer as nw
 from . import spectra_analysis as spa
 from mmg_toolbox.utils.polarisation import pol_subtraction_label
@@ -205,6 +204,8 @@ class SpectraContainer:
         return sample
 
     def nx_process(self, entry: h5py.Group) -> h5py.Group:
+        from mmg_toolbox import __version__
+
         # NXprocess - read dat
         input_filename = self.metadata.filename
         if input_filename.endswith('.dat'):
@@ -305,6 +306,7 @@ class SpectraContainerSubtraction(SpectraContainer):
         super().__init__(name, spectra, spectra_container1, spectra_container2, metadata=metadata)
 
     def nx_sum_rules_process(self, entry: h5py.Group):
+        from mmg_toolbox import __version__
         process = nw.add_nxprocess(
             root=entry,
             name='sum_rules',

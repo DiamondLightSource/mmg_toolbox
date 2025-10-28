@@ -7,7 +7,7 @@ import numpy as np
 import h5py
 
 from mmg_toolbox.nexus import nexus_names as nn
-from mmg_toolbox.nexus.nexus_names import METERS
+from mmg_toolbox.utils.units import METERS, unit_converter
 from mmg_toolbox.utils.xray_utils import photon_energy, photon_wavelength
 
 
@@ -196,20 +196,25 @@ def get_metadata(group: h5py.Group, *name_paths_default: tuple[str, tuple, str])
     return metadata
 
 
-def get_dataset_value(path: str, group: h5py.Group | h5py.File, default: np.ndarray) -> np.ndarray:
+def get_dataset_value(path: str, group: h5py.Group,
+                      default: str | float | np.ndarray | None = None, units: str = '') -> np.ndarray | None:
     """
     Get value from dataset in group, or return default
     :param path: hdf path of dataset in group
     :param group: hdf group
     :param default: returned if path doesn't exist
-    :return: value or default
+    :param units: converts to given units if units in attrs
+    :return: value or default as ndarray, or None if default is None
     """
     if path in group:
         dataset = group[path]
         if np.issubdtype(dataset, np.number):
-            return np.squeeze(dataset[...])
+            data = np.squeeze(dataset[...])
+            if units and 'units' in dataset.attrs:
+                return unit_converter(data, bytes2str(dataset.attrs['units']), units)
+            return data
         return dataset.asstr()[...]
-    return default
+    return None if default is None else np.asarray(default)
 
 
 def nx_beam_energy(beam: h5py.Group) -> tuple[float, float]:

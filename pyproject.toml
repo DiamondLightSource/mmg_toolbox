@@ -9,7 +9,7 @@ dependencies = [
   "numpy",
   "h5py",
   "hdf5plugin",
-  "hdfmap>1.0.0",
+  "hdfmap>=1.1.0",
   "matplotlib",
   "imageio",
   "scipy",

@@ -11,7 +11,10 @@ fit.plot()
 """
 
 import numpy as np
-from lmfit.models import GaussianModel, LorentzianModel, VoigtModel, PseudoVoigtModel, LinearModel, ExponentialModel
+from lmfit.models import (
+    GaussianModel, LorentzianModel, VoigtModel, PseudoVoigtModel, LinearModel, ExponentialModel,
+    SineModel
+)
 from lmfit.model import ModelResult, Model, Parameters
 from .misc_functions import stfm
 from mmg_toolbox.nexus.nexus_reader import NexusScan
@@ -23,7 +26,8 @@ MODELS = {
     'voight': VoigtModel,
     'pvoight': PseudoVoigtModel,
     'linear': LinearModel,
-    'exponential': ExponentialModel
+    'exponential': ExponentialModel,
+    'SineModel': SineModel,
 }  # list of available lmfit models
 
 PEAK_MODELS = {

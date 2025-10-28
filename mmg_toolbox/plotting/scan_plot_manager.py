@@ -74,12 +74,10 @@ class ScanPlotManager:
             plot_line(axes, data['x'], data['y'], None, *args, label=_yaxis, **kwargs)
 
         # Add labels
-        #TODO: replace with xlab, ylab = self.map.get_names(xaxis, yaxis)
-        xlab = self.scan.eval('__axes') if xaxis == 'axes' else xaxis
+        xlab, ylab = self.scan.map.generate_ids(xaxis, yaxis[0], modify_missing=False)
         axes.set_xlabel(xlab)
         axes.set_title(self.scan.title())
         if len(yaxis) == 1:
-            ylab = self.scan.eval('__signal') if yaxis[0] == 'signal' else yaxis[0]
             axes.set_ylabel(ylab)
         else:
             axes.legend()
@@ -101,8 +99,7 @@ class ScanPlotManager:
         """
         # x axis data
         xdata = self.scan.eval(xaxis)
-        # TODO: replace with self.scan.map.get_names
-        xname = self.scan.eval('__axes') if xaxis == 'axes' else xaxis
+        xname, = self.scan.map.generate_ids(xaxis, modify_missing=False)
         xdata = np.reshape(xdata, -1)  # handle multi-dimension data
 
         # image data
@@ -192,4 +189,26 @@ class ScanPlotManager:
         # right - image plot
         self.image(index, xaxis, cmap=cmap, clim=clim, axes=rt)
         return fig
+
+    def image_histogram(self, index: int | tuple | slice | None = None,
+                        axes: plt.Axes | None = None, **kwargs) -> plt.Axes:
+        """
+        Plot image in matplotlib figure (if available)
+        :param index: int, detector image index, 0-length of scan, if None, use centre index
+        :param axes: matplotlib axes to plot on (None to create figure)
+        :param kwargs: additional arguments for plot_detector_image
+        :param cut_ratios: list of cut-ratios, each cut has a different colour and given as ratio of max intensity
+        :return: axes object
+        """
+        if index is None:
+            index = ()
+        vol = self.scan.get_image(index=index)
+
+        axes.hist(np.log10(vol[vol > 0].flatten()), 100)
+
+        axes.set_xlabel('Log$_{10}$ Pixel Intensity')
+        axes.set_ylabel('N')
+        axes.set_title(self.scan.title())
+        return axes
+
 

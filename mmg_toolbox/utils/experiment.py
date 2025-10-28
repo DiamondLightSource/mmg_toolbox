@@ -9,6 +9,7 @@ import hdfmap
 from ..utils.misc_functions import numbers2string
 from ..utils.env_functions import scan_number_mapping, last_folder_update
 from ..nexus.nexus_reader import NexusScan, NexusDataHolder
+from ..xas import load_xas_scans, SpectraContainer
 
 DEFAULT_SCAN_DESCRIPTION = '{(cmd|scan_command)}'
 
@@ -27,6 +28,21 @@ class Experiment:
         self.instrument = instrument
         from ..plotting.exp_plot_manager import ExperimentPlotManager
         self.plot = ExperimentPlotManager(self)
+
+    def __repr__(self):
+        paths = ', '.join("'{p}'" for p in self.folder_paths)
+        return f"Experiment({paths}, instrument={self.instrument})"
+
+    def __str__(self):
+        self._update_scan_list()
+        scan_numbers = self._scan_numbers()
+        lines = ['Instrument: ' + self.instrument]
+        lines.extend(self.folder_paths)
+        lines.extend([
+            f"    Files: {len(scan_numbers)}",
+            f"    Scans: {scan_numbers[0]}-{scan_numbers[-1]}",
+        ])
+        return '\n'.join(lines)
 
     def _update_scan_list(self):
         mod_times = [last_folder_update(folder) for folder in self.folder_paths]
@@ -200,4 +216,8 @@ class Experiment:
         scans = self.scans(*scan_files, hdf_map=hdf_map)
         return self._generate_scans_title(*scans, metadata_str=metadata_str)
 
+    def load_xas(self, *scan_files: int | str, sample_name: str | None = '') -> list[SpectraContainer]:
+        """Read XAS spectra containers"""
+        filenames = [self.get_scan_filename(file) for file in scan_files]
+        return load_xas_scans(*filenames, sample_name=sample_name)
 

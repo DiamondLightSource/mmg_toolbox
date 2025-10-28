@@ -7,12 +7,14 @@ import numpy as np
 import h5py
 
 import mmg_toolbox.nexus.nexus_names as nn
-from mmg_toolbox.nexus.nexus_names import METERS
+from mmg_toolbox.utils.units import METERS
 from mmg_toolbox.utils.rotations import norm_vector, rotation_t_matrix, translation_t_matrix, transform_by_t_matrix
 from mmg_toolbox.nexus.nexus_functions import nx_find_all, bytes2str
 
+H5pyType = h5py.File | h5py.Group | h5py.Dataset
 
-def get_depends_on(root: None | str | h5py.Group | h5py.Dataset) -> str:
+
+def get_depends_on(root: None | str | H5pyType) -> str:
     """Return depends_on value from group or dataset"""
     if isinstance(root, h5py.Group):
         if nn.NX_DEPON in root:
@@ -30,7 +32,7 @@ def get_depends_on(root: None | str | h5py.Group | h5py.Dataset) -> str:
         return root
 
 
-def nx_depends_on_chain(path: str, hdf_file: h5py.File) -> list[str]:
+def nx_depends_on_chain(path: str, hdf_file: h5py.Group) -> list[str]:
     """
     Returns list of paths in a transformation chain, linked by 'depends_on'
     :param path: hdf path of initial dataset or group
@@ -48,7 +50,7 @@ def nx_depends_on_chain(path: str, hdf_file: h5py.File) -> list[str]:
     return out
 
 
-def nx_direction(path: str, hdf_file: h5py.File) -> np.ndarray:
+def nx_direction(path: str, hdf_file: h5py.Group) -> np.ndarray:
     """
     Return a unit-vector direction from a dataset
     :param path: hdf path of NXtransformation path or component group with 'depends_on'
@@ -65,7 +67,7 @@ def nx_direction(path: str, hdf_file: h5py.File) -> np.ndarray:
     return norm_vector(vector)
 
 
-def nx_transformations_max_size(path: str, hdf_file: h5py.File) -> int:
+def nx_transformations_max_size(path: str, hdf_file: h5py.Group) -> int:
     """
     Return the maximum dataset size from a chain of transformations
     :param path: hdf dataset path of NX transformation, or group containing 'depends_on'
@@ -81,7 +83,7 @@ def nx_transformations_max_size(path: str, hdf_file: h5py.File) -> int:
     return dataset_size
 
 
-def nx_transformations(path: str, index: int, hdf_file: h5py.File, print_output=False) -> list[np.ndarray]:
+def nx_transformations(path: str, index: int, hdf_file: h5py.Group, print_output=False) -> list[np.ndarray]:
     """
     Create list of 4x4 transformation matrices matching transformations along an NXtransformations chain
     :param path: str hdf path of the first point in the chain (Group or Dataset)
@@ -135,7 +137,7 @@ def nx_transformations(path: str, index: int, hdf_file: h5py.File, print_output=
     return [matrix] + nx_transformations(depends_on, index, hdf_file, print_output)
 
 
-def nx_transformations_matrix(path: str, index: int, hdf_file: h5py.File) -> np.ndarray:
+def nx_transformations_matrix(path: str, index: int, hdf_file: h5py.Group) -> np.ndarray:
     """
     Combine chain of transformation operations into single matrix
     :param path: str hdf path of the first point in the chain (Group or Dataset)
@@ -148,7 +150,7 @@ def nx_transformations_matrix(path: str, index: int, hdf_file: h5py.File) -> np.
     return np.linalg.multi_dot(matrices[::-1])  # multiply transformations Tn..T3.T2.T1
 
 
-def nx_transform_vector(xyz, path: str, index: int, hdf_file: h5py.File) -> np.ndarray:
+def nx_transform_vector(xyz, path: str, index: int, hdf_file: h5py.Group) -> np.ndarray:
     """
     Transform a vector or position [x, y, z] by an NXtransformations chain
     :param xyz: 3D coordinates, n*3 [[x, y, z], ...]
@@ -160,6 +162,11 @@ def nx_transform_vector(xyz, path: str, index: int, hdf_file: h5py.File) -> np.n
     xyz = np.reshape(xyz, (-1, 3))
     t_matrix = nx_transformations_matrix(path, index, hdf_file)
     return (np.dot(t_matrix[:3, :3], xyz.T) + t_matrix[:3, 3:]).T
+
+
+########################################################################################################################
+########################################## Transformation Classes ######################################################
+########################################################################################################################
 
 
 class NxTransformation:
@@ -199,13 +206,16 @@ class NxTransformation:
         return transform_by_t_matrix(vec, self.t_matrix())
 
 
-def load_transformation(path: str, index: int, hdf_file: h5py.File, parent: str = '') -> NxTransformation:
+def load_transformation(path: str, index: int, hdf_file: h5py.Group, parent: str = '') -> NxTransformation:
     """Read Transformation Operation from HDF file"""
-    depends_on = get_depends_on(hdf_file[path])
-    if depends_on == '.':
+    if nn.NX_VECTOR in hdf_file[path].attrs:
         dataset = hdf_file[path]
     else:
-        dataset = hdf_file[depends_on]
+        depends_on = get_depends_on(hdf_file[path])
+        if depends_on == '.':
+            dataset = hdf_file[path]
+        else:
+            dataset = hdf_file[depends_on]
 
     this_index = index if dataset.size > 1 else 0
     value = dataset[np.unravel_index(this_index, dataset.shape)]
@@ -234,11 +244,11 @@ class NxTransformationChain:
     """
     Class containing chain of transformation operations
     """
-    def __init__(self, object: h5py.Group, index: int = 0):
-        if not isinstance(object, h5py.Group):
-            raise TypeError("object must be a h5py.Group")
-        if nn.NX_DEPON not in object:
-            raise Exception(f"object {object} does not contain {nn.NX_DEPON}")
+    def __init__(self, object: H5pyType, index: int = 0):
+        if isinstance(object, h5py.Dataset) and nn.NX_TTYPE not in object.attrs:
+            raise Exception(f"{object} does not have '{nn.NX_TTYPE}' attribute")
+        elif isinstance(object, h5py.Group) and nn.NX_DEPON not in object:
+            raise Exception(f"{object} does not contain {nn.NX_DEPON}")
         self.path = object.name
         self.name = self.path.split('/')[-1]
         self.index = index
@@ -249,7 +259,7 @@ class NxTransformationChain:
         ]
 
     def __repr__(self):
-        return f"NxTransformationChain('{self.path}', index={self.index}/{self.size})"
+        return f"NxTransformationChain('{self.path}', index={self.index+1}/{self.size})"
 
     def __str__(self):
         return repr(self) + '\n' + '\n'.join(str(t) for t in self._chain)
