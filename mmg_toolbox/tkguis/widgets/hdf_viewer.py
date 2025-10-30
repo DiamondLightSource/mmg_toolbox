@@ -16,6 +16,9 @@ from .nexus_string_views import HdfNexusStr, HdfTreeStr, Nexus2SrsStr, NxTransfo
 from .nexus_treeview import HdfTreeview, HdfNameSpace
 
 
+DETAILS_TAB_WIDTH = 30
+
+
 class HDFViewer:
     """
     HDF Viewer - display cascading hierarchical data within HDF file in ttk GUI
@@ -30,9 +33,10 @@ class HDFViewer:
     :param hdf_filename: str or None*, if str opens this file initially
     """
 
-    def __init__(self, root: tk.Misc, hdf_filename: str = None):
+    def __init__(self, root: tk.Misc, hdf_filename: str = None, config: dict | None = None):
         self.map: hdfmap.NexusMap | None = None
         self.root = root
+        self.config = config
 
         # Variables
         self.filepath = tk.StringVar(self.root, '')
@@ -195,7 +199,12 @@ class HDFViewer:
     "======================================================"
 
     def check_expand(self):
-        open_close_all_tree(self.hdf_tree, "", self.expandall.get())
+        selected = self.view_tabs.select()
+        tab_name = self.view_tabs.tab(selected)['text']
+        if tab_name == 'HDF Tree':
+            open_close_all_tree(self.hdf_tree.tree, "", self.expandall.get())
+        elif tab_name == 'HdfMap':
+            open_close_all_tree(self.hdf_map.tree, "", self.expandall.get())
 
     def _delete_tree(self):
         self.hdf_tree.delete()
@@ -283,5 +292,3 @@ class HDFViewer:
         # self.text2.insert('1.0', out_str)
         self.text2.insert(tk.END, out_str)
 
-
-DETAILS_TAB_WIDTH = 30

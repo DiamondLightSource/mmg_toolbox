@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 
-from mmg_toolbox.utils.env_functions import get_notebook_directory, open_terminal
+from mmg_toolbox.utils.env_functions import get_notebook_directory, open_terminal, get_scan_number
 from mmg_toolbox.tkguis.misc.config import get_config, C
 from mmg_toolbox.tkguis.misc.functions import topmenu
 from mmg_toolbox.tkguis.misc.styles import RootWithStyle, create_root
@@ -19,6 +19,7 @@ def create_data_viewer(initial_folder: str | None = None,
     from mmg_toolbox.tkguis.apps.config_editor import ConfigEditor
     from ..misc.matplotlib import SMALL_FIGURE_DPI
     from .file_browser import create_nexus_file_browser, create_file_browser, create_jupyter_browser
+    from .multi_scan_analysis import create_multi_scan_analysis
     from .scans import create_range_selector
     from .python_editor import create_python_editor
 
@@ -55,6 +56,12 @@ def create_data_viewer(initial_folder: str | None = None,
         create_notebook(new_file, template, **get_replacements(filename))
         launch_jupyter_notebook('notebook', file=new_file)
 
+    def start_multi_scan_plot():
+        filename, folder = widget.selector_widget.get_filepath()
+        filenames = widget.selector_widget.get_multi_filepath()
+        scan_numbers = [get_scan_number(f) for f in filenames]
+        create_multi_scan_analysis(root, config, exp_directory=folder, scan_numbers=scan_numbers)
+
     menu = {
         'File': {
             'New Data Viewer': lambda: create_data_viewer(parent=root, config=config),
@@ -69,6 +76,7 @@ def create_data_viewer(initial_folder: str | None = None,
             'Edit Config.': lambda: ConfigEditor(root, config),
         },
         'Processing': {
+            'Multi-Scan': start_multi_scan_plot,
             'Script Editor': lambda: create_python_editor(None, root, config),
             'Open a terminal': lambda: open_terminal(f"cd {get_filepath()}"),
             'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', get_filepath() + '/processing'),

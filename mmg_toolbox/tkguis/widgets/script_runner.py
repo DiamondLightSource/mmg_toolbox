@@ -36,9 +36,6 @@ class ScriptRunner:
         self.script_desc = tk.StringVar(root, 'blah')
         self.notebook_desc = tk.StringVar(root, 'basd')
         self.output_file = tk.StringVar(root, proc_directory + '/file.py')
-        self.number_start = tk.StringVar(self.root, '-10')
-        self.number_end = tk.StringVar(self.root, '-1')
-        self.number_step = tk.IntVar(self.root, 1)
         self.metadata_name = tk.StringVar(self.root, '')
         self.options = {}
         self.file_list = []
@@ -73,6 +70,7 @@ class ScriptRunner:
         sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
 
         self.range = ScanRangeSelector(sec, exp_directory, self.config)
+        self.range.exp_folder.set(exp_directory)
 
         # Script Selection
         sec = ttk.LabelFrame(self.root, text='Script')
@@ -103,20 +101,25 @@ class ScriptRunner:
 
     def browse_metadata(self):
         from ..apps.namespace_select import create_metadata_selector
-        scan_file = next(iter(self.range.generate_scan_files()), get_first_file(self.exp_folder.get()))
+        scan_file = next(iter(self.range.generate_scan_files().values()), get_first_file(self.exp_folder.get()))
         hdf_map = hdfmap.create_nexus_map(scan_file)
         paths = create_metadata_selector(hdf_map)
         if paths:
             self.metadata_name.set(', '.join(path for path in paths))
 
     def update_options(self):
+        exp_folder = self.exp_folder.get()
+        self.range.exp_folder.set(exp_folder)
+        scans = self.range.generate_scan_files()
+        scan_numbers = list(scans)
+        scan_files = scans.values()
         new = {
             # {{template}}: replacement
             'beamline': self.config.get('beamline', ''),
             # 'description': '',
-            'filepaths': '\n    '.join(self.range.generate_scan_files()),
-            'experiment_dir': self.exp_folder.get(),
-            'scan_numbers': str(self.range.generate_scan_numbers()),
+            'filepaths': '\n    '.join(scan_files),
+            'experiment_dir': exp_folder,
+            'scan_numbers': str(scan_numbers),
             # 'title': 'a nice plot',
             'x-axis': 'axes',
             'y-axis': 'signal',

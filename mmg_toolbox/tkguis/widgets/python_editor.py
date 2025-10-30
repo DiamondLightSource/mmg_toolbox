@@ -71,8 +71,9 @@ class PythonEditorFrame:
     Editable textbox with numbers at side and key bindings for Python
     """
 
-    def __init__(self, root: tk.Misc | tk.Tk, script_string=None):
+    def __init__(self, root: tk.Misc | tk.Tk, script_string=None, config: dict | None = None):
         self.root = root
+        self.config = config
         # Variables
         self.filename = ''
         self.script_string = script_string or default_script()

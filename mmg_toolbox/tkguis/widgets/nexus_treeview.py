@@ -15,7 +15,7 @@ from ..misc.logging import create_logger
 
 logger = create_logger(__file__)
 
-
+# TODO: make this more general, add to _Treeview
 def right_click_menu(frame, tree):
     """
     Create right-click context menu for hdf_tree objects

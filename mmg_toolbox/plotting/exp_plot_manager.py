@@ -123,7 +123,7 @@ class ExperimentPlotManager:
 
     def multi_lines(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
                     xaxis: str = 'axes', yaxis: str = 'signal', value: str | None = None,
-                    axes: plt.Axes | None, **kwargs) -> plt.Axes:
+                    axes: plt.Axes | None = None, **kwargs) -> plt.Axes:
         """
         Create matplotlib figure with a line plot from a or several scans
 

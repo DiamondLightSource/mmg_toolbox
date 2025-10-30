@@ -268,7 +268,7 @@ class _ScanSelector:
         logger.info(f"Opening nexus viewer for filename: {filename}")
         if filename:
             from .. import create_nexus_viewer
-            create_nexus_viewer(filename, parent=self.root)
+            create_nexus_viewer(filename, parent=self.root, config=self.config)
 
     def open_nexus_plot(self):
         filename, folderpath = self.get_filepath()

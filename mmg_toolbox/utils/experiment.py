@@ -93,7 +93,7 @@ class Experiment:
     def scans(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None) -> list[NexusScan]:
         """Read Nexus files as NexusScan"""
         filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
-        if hdf_map is None:
+        if filenames and hdf_map is None:
             hdf_map = hdfmap.create_nexus_map(filenames[0])
         return [NexusScan(file, hdf_map) for file in filenames]
 

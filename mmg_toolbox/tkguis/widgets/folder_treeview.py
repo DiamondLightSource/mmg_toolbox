@@ -307,7 +307,8 @@ class FolderTreeViewFrame:
         m_folder = tk.Menu(self.root, tearoff=0)
         m_folder.add_command(label="Copy path", command=self.copy_path)
         m_folder.add_command(label="Open Terminal", command=self.open_terminal)
-        m_folder.add_command(label='Launch Jupyter', command=self.launch_jupyter)
+        # TODO: add these
+        # m_folder.add_command(label='Launch Jupyter', command=self.launch_jupyter)
         # m_folder.add_command(mode="Open Folder Datasets", command=self.menu_folder_files)
         # m_folder.add_command(mode="Open Folder Plots", command=self.menu_folder_plot)
         # # m_folder.add_command(mode="Display Contents", command=self.menu_folder_plot)
@@ -317,6 +318,7 @@ class FolderTreeViewFrame:
     def _right_click_file(self) -> tk.Menu:
         # right-click menu - file options
         m_file = tk.Menu(self.root, tearoff=0)
+        #TODO: add these
         m_file.add_command(label="Copy path", command=self.copy_path)
         # m_file.add_command(mode="open Treeview", command=self.open_nexus_treeview)
         # m_file.add_command(mode="open Plot", command=self.open_nexus_plot)

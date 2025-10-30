@@ -30,6 +30,9 @@ class C:
     default_colormap = 'default_colormap'
     beamline = 'beamline'
     roi = 'roi'
+    current_dir = 'current_dir'
+    current_proc = 'current_proc'
+    current_nb = 'current_nb'
 
 
 # config name (saved in TMPDIR)

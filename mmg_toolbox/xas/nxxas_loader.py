@@ -160,7 +160,9 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None) -> Spectra
                     'tfy': hdf['/entry/mcse19/data'][()],
                 }
             else:
-                raise ValueError(f'Unknown data fields: {list(nx_find(hdf, 'NXdata').keys())}')
+                nxdata = nx_find(hdf, 'NXdata')
+                fields = list(nxdata.keys())
+                raise ValueError(f'Unknown data fields: {fields}')
 
         # read Metadata - currently only works for i06-1!
         beamline = nx_find_data(hdf, 'NXinstrument', 'name', default='?')

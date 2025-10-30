@@ -13,7 +13,7 @@ from mmg_toolbox.tkguis.misc.logging import create_logger
 logger = create_logger(__file__)
 
 
-def create_python_editor(script_string: str | None = None, parent: tk.Tk | None = None,
+def create_python_editor(script_string: str | None = None, parent: tk.Misc | None = None,
                          config: dict | None = None) -> RootWithStyle:
     """
     ScriptGenerator GUI
@@ -27,8 +27,8 @@ def create_python_editor(script_string: str | None = None, parent: tk.Tk | None 
 
     root = create_root('Python Editor', parent=parent)
     config = get_config() if config is None else config
-    #TODO: add config
-    widget = PythonEditorFrame(root, script_string)
+
+    widget = PythonEditorFrame(root, script_string, config)
 
     menu = {
         'File': {
