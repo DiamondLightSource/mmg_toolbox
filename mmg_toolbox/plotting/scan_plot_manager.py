@@ -4,7 +4,7 @@ Plot Manager for the Scan object
 
 import numpy as np
 import matplotlib.pyplot as plt
-from ..nexus.nexus_reader import NexusScan
+from ..nexus.nexus_scan import NexusScan
 from .matplotlib import (
     set_plot_defaults, plot_line, plot_image,
     FIG_SIZE, FIG_DPI, DEFAULT_CMAP

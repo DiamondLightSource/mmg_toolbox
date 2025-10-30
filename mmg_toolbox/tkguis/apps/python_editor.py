@@ -27,7 +27,7 @@ def create_python_editor(script_string: str | None = None, parent: tk.Tk | None 
 
     root = create_root('Python Editor', parent=parent)
     config = get_config() if config is None else config
-
+    #TODO: add config
     widget = PythonEditorFrame(root, script_string)
 
     menu = {

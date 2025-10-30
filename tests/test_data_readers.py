@@ -4,7 +4,7 @@ Test data readers
 """
 
 import time
-from mmg_toolbox.nexus.nexus_reader import NexusScan
+from mmg_toolbox.nexus.nexus_scan import NexusScan
 from . import only_dls_file_system
 from .example_files import DIR, FILES
 

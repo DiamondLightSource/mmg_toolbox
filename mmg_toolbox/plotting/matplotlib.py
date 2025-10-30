@@ -116,9 +116,10 @@ def plot_line(axes: Axes, xdata: np.ndarray, ydata: np.ndarray, yerrors: np.ndar
     return lines
 
 
-def plot_lines(axes: Axes,
-               *plot_data: tuple[float, np.ndarray, np.ndarray, np.ndarray] | tuple[float, np.ndarray, np.ndarray],
-               cmap: str = DEFAULT_CMAP, line_spec: str = '-o', **kwargs) -> list[Line2D]:
+PlotData = tuple[float | None, np.ndarray, np.ndarray, np.ndarray] | tuple[float | None, np.ndarray, np.ndarray]
+
+def plot_lines(axes: Axes, *plot_data: PlotData,
+               cmap: str = DEFAULT_CMAP, line_spec: str = '-o', **kwargs) -> tuple[list[Line2D], plt.cm.ScalarMappable]:
     """
     Plot lines on given matplotlib axes subplot
     Uses matplotlib.plot or matplotlib.errorbar if yerrors is not None
@@ -128,14 +129,21 @@ def plot_lines(axes: Axes,
     :param line_spec: str or list[m] of str matplotlib.plot line_spec
     :param kwargs: additional arguments
     :return: output of plt.plot [line], or plt.errorbar [line, xerrors, yerrors]
+    :return: ScalarMappable for use in colorbar
     """
 
     cdata = np.array([data[0] for data in plot_data])
     if None in cdata:
         cdata = np.arange(len(plot_data))
-    cnorm = cdata - cdata.min()
-    cnorm = cnorm / cnorm.max()
+    norm = plt.Normalize()
+    cnorm = norm(cdata)
+    # cnorm = cdata - (cdata.min() - max(0.05 * ))
+    # cnorm = cnorm / cnorm.max()
     cols = plt.get_cmap(cmap)(cnorm)
+
+    # Create ScalarMappable for colorbar
+    sm = plt.cm.ScalarMappable(cmap=cmap)
+    sm.set_array(cdata)
 
     lines = []
     for data, col in zip(plot_data, cols):
@@ -144,7 +152,7 @@ def plot_lines(axes: Axes,
             y = x
             x = np.arange(y)
         lines.extend(plot_line(axes, x, y, err, line_spec, c=col, **kwargs))
-    return lines
+    return lines, sm
 
 
 def plot_image(axes: Axes, image: np.ndarray, clim: tuple[float, float] = None,

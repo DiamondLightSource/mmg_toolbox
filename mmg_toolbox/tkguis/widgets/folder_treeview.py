@@ -142,6 +142,7 @@ class FolderTreeViewFrame:
                     self.tree.insert(branch, tk.END)  # empty
                     self.tree.item(branch, open=False)
         th = Thread(target=fun)
+        #TODO: add deamon?
         th.start()  # will run until complete, may error if TreeView is destroyed
 
     def populate_files(self, event=None):
@@ -435,10 +436,12 @@ class FolderTreeViewFrame:
 
 
 class NexusFolderTreeViewFrame(FolderTreeViewFrame):
-    def __init__(self, root: tk.Misc, initial_directory: str | None = None):
+    def __init__(self, root: tk.Misc, initial_directory: str | None = None, hdf_path: str | None = None):
         logger.info('Creating NexusFolderTreeViewFrame')
         super().__init__('.nxs', root, initial_directory)
         self.extensions = ('.nxs', '.hdf', '.hdf5', '.h5', '.*')
+        if hdf_path:
+            self.hdf_path.set(hdf_path)
 
     def _right_click_file(self) -> tk.Menu:
         # right-click menu - file options

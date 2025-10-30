@@ -420,62 +420,10 @@ class FolderScanSelector(_ScanSelector):
         pass
 
 
-class ScanSelector(_ScanSelector):
-    """Frame with TreeView for selection of scans"""
-
-    def __init__(self, root: tk.Misc, initial_directory: str, config: dict | None = None):
-        logger.info('Creating ScanSelector')
-        super().__init__(root, config)
-        self.folder = initial_directory
-        self.output_files = []
-
-        # Build widgets
-        self.tree = folder_treeview(self.root, self.columns, 600, 200)
-        self.tree.configure(displaycolumns=('modified', ) + self.metadata_names)  # hide columns
-        # self.tree.bind("<<TreeviewSelect>>", self.on_select)
-        # self.tree.bind("<Double-1>", self.on_double_click)
-        # self.tree.bind('<KeyPress>', self.on_key_press)
-        self.tree.bind("<Button-3>", self.right_click_menu())
-
-        ttk.Button(self.root, text='Select', command=self.select_scans).pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
-
-        self.poll_files()
-
-    def update_files(self):
-        """Check folders in the tree for new files"""
-        files = list_files(self.folder, self.extension.get())
-        for leaf in self.tree.get_children(""):  # files
-            if not self.tree.winfo_exists():
-                return
-            file = self.tree.set(leaf, 'filepath')
-            if file in files:
-                files.remove(file)
-
-        logger.info(f"Updating {len(files)} in '{os.path.basename(self.folder)}'")
-        logger.debug(f"update_files: Current thread: {current_thread()}, in process pid: {os.getpid()}")
-        for file in files:
-            if not self.tree.winfo_exists():
-                return
-            iid = self._add_file("", file)
-            if self.read_datasets.get():
-                self._add_data(iid)
-
-    def select_scans(self):
-        self.output_files = [
-            self.tree.set(iid, column='filepath')
-            for iid in self.tree.selection()
-        ]
-        self.root.destroy()
-
-    def show(self):
-        self.root.wait_window()
-        return self.output_files
-
-
 class ScanViewer(_ScanSelector):
     """Frame with TreeView for selection of scans"""
 
-    def __init__(self, root: tk.Misc, *scan_files: str, config: dict | None = None):
+    def __init__(self, root: tk.Misc, *scan_files: str, config: dict | None = None, button_name: str = 'Close'):
         logger.info('Creating ScanViewer')
         super().__init__(root, config)
         self.file_list = scan_files
@@ -489,9 +437,21 @@ class ScanViewer(_ScanSelector):
         # self.tree.bind('<KeyPress>', self.on_key_press)
         self.tree.bind("<Button-3>", self.right_click_menu())
 
-        ttk.Button(self.root, text='Close', command=self.select_scans).pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+        ttk.Button(self.root, text=button_name, command=self.select_scans).pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
 
         self.populate_files("", *scan_files)
+
+    def update_metadata(self, event=None):
+        """Update dataset values column for hdf files under open folders"""
+
+        def fn():
+            for file in self.tree.get_children():  # files
+                if not self.tree.winfo_exists():
+                    return
+                self._add_data(file)
+
+        th = Thread(target=fn)
+        th.start()  # will run until complete, may error if TreeView is destroyed
 
     def select_scans(self):
         self.output_files = [

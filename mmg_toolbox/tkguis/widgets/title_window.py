@@ -122,17 +122,20 @@ class TitleWindow:
         self.dls_directories(visit_folder)
 
     def browse_datadir(self):
-        folder = select_folder(self.root)
+        current_folder = self.data_dir.get()
+        folder = select_folder(self.root, initial_directory=current_folder if current_folder else None)
         if folder:
             self.dls_directories(folder)
 
     def browse_analysis(self):
-        folder = select_folder(self.root)
+        current_folder = self.proc_dir.get()
+        folder = select_folder(self.root, initial_directory=current_folder if current_folder else None)
         if folder:
             self.proc_dir.set(folder)
 
     def browse_notebook(self):
-        folder = select_folder(self.root)
+        current_folder = self.notebook_dir.get()
+        folder = select_folder(self.root, initial_directory=current_folder if current_folder else None)
         if folder:
             self.notebook_dir.set(folder)
 

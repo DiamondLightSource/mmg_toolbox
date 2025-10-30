@@ -4,6 +4,7 @@ Environment functions
 
 import os
 import subprocess
+import sys
 import tempfile
 from datetime import datetime
 
@@ -157,6 +158,7 @@ def run_command(command: str):
     print(f"Running command:\n{command}\n\n\n")
     output = subprocess.run(command, shell=True, capture_output=True)
     print(output.stdout.decode())
+    print(output.stderr.decode())
     print('\n\n\n################# Finished ###################\n\n\n')
 
 
@@ -172,7 +174,7 @@ def run_python_script(script_filename: str):
     """
     Run shell command, print output to terminal
     """
-    command = f"python {script_filename}"
+    command = f"{sys.executable} {script_filename}"
     run_command(command)
 
 

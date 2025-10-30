@@ -270,7 +270,7 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
     :param field_tol: Tolerance for field comparison (default: 0.1 T)
     :return: List of similar measurements
     """
-    from ..nexus.nexus_reader import find_matching_scans
+    from mmg_toolbox.nexus.nexus_reader import find_matching_scans
     ini_scan = load_xas_scans(filenames[0])[0]
     if len(filenames) == 1:
         filenames = find_matching_scans(filenames[0])

@@ -18,7 +18,8 @@ def create_file_browser(parent: tk.Misc | None = None, initial_directory: str | 
     return root
 
 
-def create_nexus_file_browser(parent: tk.Misc | None = None, initial_directory: str | None = None) -> RootWithStyle:
+def create_nexus_file_browser(parent: tk.Misc | None = None, initial_directory: str | None = None,
+                              hdf_path: str = '/entry/scan_command') -> RootWithStyle:
     """
     File Browser - Browse directories and open NeXus files
     """
@@ -26,7 +27,7 @@ def create_nexus_file_browser(parent: tk.Misc | None = None, initial_directory: 
 
     root = create_root(parent=parent, window_title='NeXus File Browser')
     topmenu(root, {}, add_themes=False, add_about=True)
-    NexusFolderTreeViewFrame(root, initial_directory)
+    NexusFolderTreeViewFrame(root, initial_directory, hdf_path)
     if parent is None:
         root.mainloop()
     return root

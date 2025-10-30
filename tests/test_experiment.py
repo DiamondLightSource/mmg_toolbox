@@ -5,7 +5,7 @@ Test experiment folder functions
 
 
 from mmg_toolbox.utils.experiment import Experiment
-from mmg_toolbox.nexus.nexus_reader import NexusDataHolder, NexusScan
+from mmg_toolbox.nexus.nexus_scan import NexusScan, NexusDataHolder
 from . import only_dls_file_system
 from .example_files import DIR
 

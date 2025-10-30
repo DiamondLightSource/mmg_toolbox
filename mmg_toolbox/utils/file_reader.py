@@ -29,5 +29,5 @@ def read_gda_terminal_log(filename: str) -> dict[str, list[str]]:
         for line in file:
             time = line2dt(line)
             title = time.strftime(tab_title)
-            tabs[title] += [line]
+            tabs[title] += [line.strip()]
     return tabs

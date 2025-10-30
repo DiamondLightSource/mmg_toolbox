@@ -2,6 +2,7 @@
 Plot Manager for the Experiment object
 """
 
+import numpy as np
 import matplotlib.pyplot as plt
 import hdfmap
 from ..utils.experiment import Experiment
@@ -138,17 +139,25 @@ class ExperimentPlotManager:
         :return: axes object
         """
         scans = self.exp.scans(*scan_files, hdf_map=hdf_map)
+        hdf_map = scans[0].map
 
         plot_data = []
         for scan in scans:
             with hdfmap.load_hdf(scan.filename) as hdf:
-                xdata = scan.map.eval(hdf, xaxis)
-                ydata = scan.map.eval(hdf, yaxis)
-                value = scan.map.eval(hdf, value) if value is not None else None
-                plot_data.append((value, xdata, ydata))
+                xdata = hdf_map.eval(hdf, xaxis)
+                ydata = hdf_map.eval(hdf, yaxis)
+                value_data = np.mean(hdf_map.eval(hdf, value)) if value else None
+                plot_data.append((value_data, xdata, ydata))
 
         axes = plt.subplot() if axes is None else axes
-        plot_lines(axes, *plot_data, **kwargs)
+        lines, sm = plot_lines(axes, *plot_data, **kwargs)
+
+        x_lab, y_lab, value_label = hdf_map.generate_ids(xaxis, yaxis, value, modify_missing=False)
+        axes.set_xlabel(x_lab)
+        axes.set_ylabel(y_lab)
+        axes.set_title(self.exp.generate_scans_title(*scan_files, hdf_map=hdf_map))
+
+        plt.colorbar(sm, ax=axes, label=value_label)
         return axes
 
     def multi_plot(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
@@ -186,7 +195,7 @@ class ExperimentPlotManager:
         """
         Create matplotlib figure with a 2D image
 
-            axes = exp.plot.surface_2d(*range(-10, 0), xaxis='eta', yaxis='roi2_sum', value='Tsample')
+            axes = exp.plot.surface_2d(*range(-10, 0), xaxis='eta', signal='roi2_sum', values='Tsample')
 
         :param scan_files: scan number or filename (multiple allowed)
         :param hdf_map: hdfmap object or None
@@ -199,15 +208,18 @@ class ExperimentPlotManager:
         :param kwargs: given directly to plt.pcolormesh(..., **kwargs)
         :return: axes object
         """
+        first_file = self.exp.get_scan_filename(scan_files[0])
+        hdf_map = hdfmap.create_hdf_map(first_file) if hdf_map is None else hdf_map
         x, y, z = self.exp.generate_mesh(*scan_files, hdf_map=hdf_map,
                                          axes=xaxis, signal=signal, values=values)
 
         axes = plt.subplot() if axes is None else axes
         surf = plot_2d_surface(axes=axes, image=z, xdata=x, ydata=y, clim=clim, axlim=axlim, **kwargs)
         axes.set_title(self.exp.generate_scans_title(*scan_files))
-        #TODO: use scan.map.get_name
-        axes.set_xlabel(xaxis)
-        axes.set_ylabel(values)
+
+        x_lab, y_lab, value_label = hdf_map.generate_ids(xaxis, signal, values, modify_missing=False)
+        axes.set_xlabel(x_lab)
+        axes.set_ylabel(value_label)
         axes.figure.colorbar(surf, ax=axes, label=signal)
         return axes
 
@@ -229,6 +241,8 @@ class ExperimentPlotManager:
         :param kwargs: given directly to plt.plot(..., **kwargs)
         :return: axes object
         """
+        first_file = self.exp.get_scan_filename(scan_files[0])
+        hdf_map = hdfmap.create_hdf_map(first_file) if hdf_map is None else hdf_map
         scans = self.exp.scans(*scan_files, hdf_map=hdf_map)
         data_fields = [signal, xaxis] + ([values] if values is not None else [])
         data = self.exp.join_scan_data(*scan_files, hdf_map=hdf_map, data_fields=data_fields)
@@ -237,10 +251,11 @@ class ExperimentPlotManager:
         axes = plt.subplot(projection='3d') if axes is None else axes
         plot_3d_lines(axes, data[signal], data[xaxis], data.get(values, None), labels=labels, **kwargs)
         axes.set_title(self.exp.generate_scans_title(*scan_files))
-        #TODO: use scan.map.get_name
-        axes.set_xlabel(xaxis)
-        axes.set_ylabel(values)
-        axes.set_zlabel(signal)
+
+        x_lab, signal_label, value_label = hdf_map.generate_ids(xaxis, signal, values, modify_missing=False)
+        axes.set_xlabel(x_lab)
+        axes.set_ylabel(value_label)
+        axes.set_zlabel(signal_label)
         if legend:
             axes.legend()
         return axes
@@ -265,14 +280,17 @@ class ExperimentPlotManager:
         :param kwargs: given directly to plt.pcolormesh(..., **kwargs)
         :return: axes object
         """
+        first_file = self.exp.get_scan_filename(scan_files[0])
+        hdf_map = hdfmap.create_hdf_map(first_file) if hdf_map is None else hdf_map
         x, y, z = self.exp.generate_mesh(*scan_files, hdf_map=hdf_map,
                                          axes=xaxis, signal=signal, values=values)
 
         axes = plt.subplot(projection='3d') if axes is None else axes
         plot_3d_surface(axes=axes, image=z, xdata=x, ydata=y, clim=clim, axlim=axlim, **kwargs)
         axes.set_title(self.exp.generate_scans_title(*scan_files))
-        # TODO: use scan.map.get_name
-        axes.set_xlabel(xaxis)
-        axes.set_ylabel(values)
-        axes.set_zlabel(signal)
+
+        x_lab, signal_label, value_label = hdf_map.generate_ids(xaxis, signal, values, modify_missing=False)
+        axes.set_xlabel(x_lab)
+        axes.set_ylabel(value_label)
+        axes.set_zlabel(signal_label)
         return axes

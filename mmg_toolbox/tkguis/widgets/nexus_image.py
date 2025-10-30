@@ -40,6 +40,7 @@ class NexusDetectorImage:
         self.colormap = tk.StringVar(self.root, self.config.get('default_colormap', DEFAULT_COLORMAP))
         self.image_error = tk.StringVar(self.root, '')
         self.extra_plot_callbacks = []  # calls any function in this list on update_image
+        self.roi_names = []
 
         section = ttk.Frame(self.root)
         section.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
@@ -321,22 +322,23 @@ class NexusDetectorImage:
 
     def add_config_rois(self):
         """add config rois to hdfmap"""
+        self.roi_names.clear()
         rois = self.config.get(C.roi)
+        detector_names = list(self.map.image_data.keys())
         if rois:
             for name, cen_i, cen_j, wid_i, wid_j, det_name in rois:
-                # add_roi(self.map, name, cen_i, cen_j, wid_i, wid_j, det_name)
-                self.map.add_roi(name, cen_i, cen_j, wid_i, wid_j, det_name)
-                new_names = [
-                    f"{name}_total",
-                    f"{name}_max",
-                    f"{name}_min",
-                    f"{name}_mean",
-                    f"{name}_bkg",
-                    f"{name}_rmbkg",
-                    # f"{name}_box",
-                    # f"{name}_bkg_box",
-                ]
-                print('Adding new roi, available names:\n', '\n'.join(new_names))
+                if det_name in detector_names:
+                    self.map.add_roi(name, cen_i, cen_j, wid_i, wid_j, det_name)
+                    self.roi_names.extend([
+                        f"{name}_total",
+                        f"{name}_max",
+                        f"{name}_min",
+                        f"{name}_mean",
+                        f"{name}_bkg",
+                        f"{name}_rmbkg",
+                        # f"{name}_box",
+                        # f"{name}_bkg_box",
+                    ])
 
     def plot_config_rois(self):
         """plot config rois on image"""
@@ -344,6 +346,7 @@ class NexusDetectorImage:
         rois = self.config.get(C.roi)
         detector = self.detector_name.get()
         if rois:
+            #TODO: replace with roi_box from hdfmap
             try:
                 with hdfmap.load_hdf(self.filename) as hdf:
                     for n, (name, cen_i, cen_j, wid_i, wid_j, det_name) in enumerate(rois):
@@ -358,7 +361,7 @@ class NexusDetectorImage:
                                 [cen_i - wid_i // 2, cen_j - wid_j // 2],
                             ])
                             self.plot(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
-                            self.text(cen_i + wid_i // 2, cen_j + wid_j // 2, str(n))
+                            self.text(cen_j + wid_j // 2, cen_i + wid_i // 2, str(n))
             except Exception as e:
                 self._show_error(f'Error plotting ROIs: {e}')
         self.fig.canvas.draw()

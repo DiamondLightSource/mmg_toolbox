@@ -17,7 +17,7 @@ from lmfit.models import (
 )
 from lmfit.model import ModelResult, Model, Parameters
 from .misc_functions import stfm
-from mmg_toolbox.nexus.nexus_reader import NexusScan
+from ..nexus.nexus_scan import NexusScan
 
 # https://lmfit.github.io/lmfit-py/builtin_models.html#peak-like-models
 MODELS = {

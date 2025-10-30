@@ -104,6 +104,9 @@ class NexusDataViewer:
             self.image_widget.view_index.set(index)
             self.image_widget.update_image()
             self.image_frame.pack(side=tk.TOP, fill=tk.X)
+            # add rois to signal drop-down
+            for item in self.image_widget.roi_names:
+                self.plot_widget.listbox.insert("", tk.END, text=item)
         else:
             self.image_frame.pack_forget()
             self.index_line.set_data([], [])

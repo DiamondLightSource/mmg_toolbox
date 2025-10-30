@@ -57,6 +57,7 @@ class ConfigEditor:
         self.create_tuple_param(C.image_size, 'Image Size:')
         self.create_param(C.plot_dpi, 'Figure DPI:')
         self.create_list_param(C.default_colormap, 'Default colormap:', *COLORMAPS)
+        self.create_param(C.metadata_label, 'Metadata label', button=self.metadata_list_window)
         self.create_text_param(C.metadata_string, 'Metadata expression')
 
         # Buttons at bottom
@@ -69,7 +70,7 @@ class ConfigEditor:
         var = ttk.Button(frm, text='Update', command=self.update_config)
         var.pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
 
-    def create_param(self, config_name: str, label: str):
+    def create_param(self, config_name: str, label: str, button=None):
         variable = tk.StringVar(self.root, self.config.get(config_name, ''))
         get_type = type(self.config.get(config_name, ''))
         self.config_setters[config_name] = lambda name=config_name: str(self.config.get(name, ''))
@@ -79,6 +80,8 @@ class ConfigEditor:
         frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
         ttk.Label(frm, text=label, width=20).pack(side=tk.LEFT, padx=2)
         ttk.Entry(frm, textvariable=variable).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        if button is not None:
+            ttk.Button(frm, text='...', command=button, width=3).pack(side=tk.LEFT)
 
 
     def create_tuple_param(self, config_name: str, label: str):
@@ -199,4 +202,56 @@ class ConfigEditor:
     def roi_window(self):
         window = create_root('Regions of Interest (ROIs)', self.root)
         RoiEditor(window, self.config)
+
+    def metadata_list_window(self):
+        MetadataListEditor(self.root, self.config)
+
+
+class MetadataListEditor:
+    """
+    Edit the metadata list
+    """
+
+    def __init__(self, parent: tk.Misc, config: dict | None = None):
+        self.root = create_root('Metadata List', parent)
+        # self.root.wm_overrideredirect(True)
+        self.param_list = []
+
+        if config is None:
+            self.config = get_config()
+        else:
+            self.config = config
+
+        metadata_list = self.config.get(C.metadata_list, {})
+        self.window = ttk.Frame(self.root)
+        self.window.pack(fill=tk.BOTH, expand=tk.YES)
+        for name, expression in metadata_list.items():
+            self.create_entry(name, expression)
+        self.create_entry('', '')
+
+        frm = ttk.Frame(self.root)
+        frm.pack(side=tk.TOP, anchor=tk.W, padx=5)
+        ttk.Button(frm, text='+', command=self.create_entry, width=4).pack(side=tk.LEFT)
+
+        frm = ttk.Frame(self.root)
+        frm.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        ttk.Button(frm, text='Update', command=self.update).pack(fill=tk.X, expand=tk.YES)
+
+    def create_entry(self, name: str = '', expression: str = ''):
+        name_var = tk.StringVar(self.root, name)
+        expression_var = tk.StringVar(self.root, expression)
+        self.param_list.append((name_var, expression_var))
+
+        frm = ttk.Frame(self.window)
+        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
+        ttk.Entry(frm, textvariable=name_var, width=10).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        ttk.Entry(frm, textvariable=expression_var, width=40).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+
+    def update(self):
+        metadata_list = {
+            name.get(): expression.get() for name, expression in self.param_list
+            if name.get() and expression.get()
+        }
+        self.config[C.metadata_list] = metadata_list
+        self.root.destroy()
 

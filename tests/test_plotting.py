@@ -5,6 +5,7 @@ Test plotting functions
 
 import numpy as np
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 import mmg_toolbox.plotting.matplotlib as plots
 from mmg_toolbox.utils.experiment import Experiment
@@ -24,8 +25,9 @@ def test_matplotlib():
     assert len(lines) == 3
 
     plot_data = [(n, x, y + n) for n in range(10)]
-    lines = plots.plot_lines(fig_ax[1][1],*plot_data)
+    lines, sm = plots.plot_lines(fig_ax[1][1],*plot_data)
     assert len(lines) == 10
+    assert isinstance(sm, plt.cm.ScalarMappable)
 
 
 @only_dls_file_system
@@ -36,14 +38,15 @@ def test_exp_plots():
     assert isinstance(ax, plt.Axes)
 
     rng = range(1032510, 1032521)
-    errors = None
-    try:
-        exp.plot(*rng)
-        exp.plot.multi_plot(*rng)
-        exp.plot.surface_2d(*rng)
-        exp.plot.lines_3d(*rng)
-        exp.plot.surface_3d(*rng)
-    except Exception as e:
-        errors = e
-    assert errors is None
+    ax = exp.plot(*rng)
+    assert isinstance(ax, plt.Axes)
+    fig_ax = exp.plot.multi_plot(*rng)
+    fig, ax = fig_ax[0]
+    assert isinstance(ax, plt.Axes)
+    ax = exp.plot.surface_2d(*rng)
+    assert isinstance(ax, plt.Axes)
+    ax = exp.plot.lines_3d(*rng)
+    assert isinstance(ax, Axes3D)
+    ax = exp.plot.surface_3d(*rng)
+    assert isinstance(ax, Axes3D)
 

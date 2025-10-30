@@ -2,6 +2,8 @@
 Specific beamline metadata
 """
 
+META_LABEL = "{(cmd|scan_command)}"
+
 META_STRING = """
 {filename}
 {filepath}

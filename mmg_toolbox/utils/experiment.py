@@ -8,7 +8,7 @@ import hdfmap
 
 from ..utils.misc_functions import numbers2string
 from ..utils.env_functions import scan_number_mapping, last_folder_update
-from ..nexus.nexus_reader import NexusScan, NexusDataHolder
+from ..nexus.nexus_scan import NexusScan, NexusDataHolder
 from ..xas import load_xas_scans, SpectraContainer
 
 DEFAULT_SCAN_DESCRIPTION = '{(cmd|scan_command)}'
@@ -57,6 +57,14 @@ class Experiment:
         self._update_scan_list()
         return list(self.scan_list.keys())
 
+    def add_data_paths(self, *folder_paths: str):
+        """Add additional paths"""
+        new_paths = tuple(
+            path for path in folder_paths
+            if path not in self.folder_paths and os.path.isdir(path)
+        )
+        self.folder_paths = self.folder_paths + new_paths
+
     def all_scans(self) -> dict[int, str]:
         self._update_scan_list()
         return self.scan_list.copy()
@@ -90,7 +98,7 @@ class Experiment:
         return [NexusScan(file, hdf_map) for file in filenames]
 
     def join_scan_data(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
-                       data_fields: list[str] | None = None) -> dict[str, list]:
+                       data_fields: list[str] | None = None, default: np.ndarray = np.array([0.0])) -> dict[str, list]:
         """
         Join data from scans
         """
@@ -100,7 +108,7 @@ class Experiment:
         for scan in scans:
             with scan.load_hdf() as hdf:
                 for name in data_fields:
-                    data[name].append(scan.map.eval(hdf, name))
+                    data[name].append(scan.map.eval(hdf, name, default=default))
         return data
 
     def generate_mesh(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
@@ -129,9 +137,9 @@ class Experiment:
             except ValueError:
                 raise Exception("axes should be specified as axes=('axes0', 'axes1')")
             with scan.load_hdf() as hdf:
-                x_data = scan.map.eval(hdf, x_axis).squeeze()
-                y_data = scan.map.eval(hdf, y_axis).squeeze()
-                z_data = scan.map.eval(hdf, signal).squeeze()
+                x_data = scan.map.eval(hdf, x_axis, default=0.0).squeeze()
+                y_data = scan.map.eval(hdf, y_axis, default=0.0).squeeze()
+                z_data = scan.map.eval(hdf, signal, default=0.0).squeeze()
             if x_data.size != y_data.size:
                 raise Exception(f"arrays '{x_axis}'[{x_data.size}] and '{y_axis}'[{y_data.size}] have different sizes")
             if x_data.ndim == 1 and y_data.ndim == 1:
@@ -146,9 +154,9 @@ class Experiment:
             x_data, y_data, z_data = [], [], []
             for n, scan in enumerate(scans):
                 with scan.load_hdf() as hdf:
-                    x = np.reshape(scan.map.eval(hdf, axes), -1)
-                    y = np.reshape(scan.map.eval(hdf, signal), -1)
-                    val = np.reshape(scan.map.eval(hdf, values), -1) if values is not None else np.array([n])
+                    x = np.reshape(scan.map.eval(hdf, axes, default=0.0), -1)
+                    y = np.reshape(scan.map.eval(hdf, signal, default=0.0), -1)
+                    val = np.reshape(scan.map.eval(hdf, values, default=0.0), -1) if values is not None else np.array([n])
                 if val.size == 1:
                     val = np.tile(val, x.size)
                 if y.size != x.size or val.size != x.size:

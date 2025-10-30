@@ -6,7 +6,7 @@ import os
 import json
 
 from mmg_toolbox.utils.env_functions import TMPDIR, YEAR, get_beamline, get_user, check_file_access
-from .beamline_metadata import BEAMLINE_META, META_STRING
+from .beamline_metadata import BEAMLINE_META, META_STRING, META_LABEL
 from .matplotlib import FIGURE_SIZE, FIGURE_DPI, IMAGE_SIZE, DEFAULT_COLORMAP
 
 
@@ -26,6 +26,7 @@ class C:
     replace_names = 'replace_names'
     metadata_string = 'metadata_string'
     metadata_list = 'metadata_list'
+    metadata_label = 'metadata_label'
     default_colormap = 'default_colormap'
     beamline = 'beamline'
     roi = 'roi'
@@ -69,6 +70,7 @@ CONFIG = {
     C.roi: ROIs,
     C.metadata_string: META_STRING,
     C.metadata_list: META_LIST,
+    C.metadata_label: META_LABEL,
     C.default_colormap: DEFAULT_COLORMAP,
 }
 
