@@ -3,9 +3,8 @@ Handle small screens by adjusting size of elements
 """
 
 import tkinter as tk
-from .styles import SMALL_SCREEN_HEIGHT
 from .config import (C, TEXT_HEIGHT, TEXT_HEIGHT_SMALL, TEXT_WIDTH,
-                     FIGURE_SIZE, IMAGE_SIZE, FIGURE_DPI, MAX_PLOT_SCREEN_PERCENTAGE)
+                     FIGURE_SIZE, IMAGE_SIZE, FIGURE_DPI, MAX_PLOT_SCREEN_PERCENTAGE, SMALL_SCREEN_HEIGHT)
 
 
 def get_screen_size_inches(root: tk.Misc, dpi: int = 60) -> tuple[float, float]:
@@ -17,9 +16,8 @@ def get_screen_size_inches(root: tk.Misc, dpi: int = 60) -> tuple[float, float]:
 def get_text_size(root: tk.Misc, config: dict | None = None) -> tuple[int, int]:
     """Return textbox size adjusted for screen size in [characters, lines]"""
     width, height = root.winfo_screenwidth(), root.winfo_screenheight()
-    if config is None:
-        config = {}
-    if height <= SMALL_SCREEN_HEIGHT:
+    config = config or {}
+    if height <= config.get(C.small_screen_height, SMALL_SCREEN_HEIGHT):
         print(f"Small screen size, reducing Text Height to {TEXT_HEIGHT_SMALL}")
         characters, lines = config.get(C.text_size_small, (TEXT_WIDTH, TEXT_HEIGHT_SMALL))
     else:
@@ -29,8 +27,7 @@ def get_text_size(root: tk.Misc, config: dict | None = None) -> tuple[int, int]:
 
 def get_figure_size(root: tk.Misc, config: dict | None = None, config_label: str = C.plot_size) -> tuple[int, int]:
     """Return figure size adjusted for screen size in [width, height] inches"""
-    if config is None:
-        config = {}
+    config = config or {}
 
     fig_width, fig_height = config.get(config_label, FIGURE_SIZE)
     width_inches, height_inches = get_screen_size_inches(root, config.get(C.plot_dpi, FIGURE_DPI))
@@ -48,9 +45,10 @@ def get_figure_size(root: tk.Misc, config: dict | None = None, config_label: str
 def update_config(root: tk.Misc, config: dict) -> None:
     """Update config for screen size"""
     width, height = root.winfo_screenwidth(), root.winfo_screenheight()
-    scale = 1.0 if height > SMALL_SCREEN_HEIGHT else 0.6
+    small_height = config.get(C.small_screen_height, SMALL_SCREEN_HEIGHT)
+    scale = 1.0 if height > small_height else 0.6
     new = {
-        C.text_size: (TEXT_WIDTH, TEXT_HEIGHT_SMALL if height > SMALL_SCREEN_HEIGHT else TEXT_HEIGHT),
+        C.text_size: (TEXT_WIDTH, TEXT_HEIGHT_SMALL if height > small_height else TEXT_HEIGHT),
         C.plot_size: (FIGURE_SIZE[0], FIGURE_SIZE[1] * scale),
         C.image_size: (IMAGE_SIZE[0], IMAGE_SIZE[1] * scale),
     }

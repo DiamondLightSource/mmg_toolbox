@@ -1,6 +1,7 @@
 """
 Configuration Options
 """
+from __future__ import annotations
 
 import os
 import json
@@ -17,6 +18,7 @@ class C:
     processing_directory = 'processing_directory'
     notebook_directory = 'notebook_directory'
     recent_data_directories = 'recent_data_directories'
+    small_screen_height = 'small_screen_height'
     text_size = 'text_size'
     text_size_small = 'text_size_small'
     plot_size = 'plot_size'
@@ -41,6 +43,7 @@ class C:
 USER = get_user()
 TMPFILE = f'mmg_config_{USER}.json'
 CONFIG_FILE = os.path.join(TMPDIR, TMPFILE)
+SMALL_SCREEN_HEIGHT = 800  # pixels, reduce size if screen smaller than this
 TEXT_WIDTH = 50  # Determines the width of text areas in DataViewer in characters
 TEXT_HEIGHT = 25  # Determines height of text area in Dataviewer in lines
 TEXT_HEIGHT_SMALL = 10  # TEXT_HEIGHT when screen is small
@@ -68,6 +71,7 @@ CONFIG = {
     C.processing_directory: os.path.expanduser('~'),
     C.notebook_directory: os.path.expanduser('~'),
     C.recent_data_directories: [os.path.expanduser('~')],
+    C.small_screen_height: SMALL_SCREEN_HEIGHT,
     C.text_size: (TEXT_WIDTH, TEXT_HEIGHT),
     C.text_size_small: (TEXT_WIDTH, TEXT_HEIGHT_SMALL),
     C.plot_size: FIGURE_SIZE,
@@ -176,3 +180,4 @@ def save_config_as(config_filename: str | None = None, **kwargs):
     config.update(kwargs)
     config[C.conf_file] = config_filename
     save_config(config)
+
