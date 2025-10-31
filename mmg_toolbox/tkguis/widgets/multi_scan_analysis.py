@@ -4,6 +4,7 @@ widget for running scripts
 
 import tkinter as tk
 from tkinter import ttk
+import matplotlib.pyplot as plt
 
 import hdfmap
 
@@ -21,10 +22,11 @@ class MultiScanAnalysis:
     """Frame with """
 
     def __init__(self, root: tk.Misc, config: dict | None = None, exp_directory: str | None = None,
-                 proc_directory: str | None = None, scan_numbers: list[int] | None = None):
+                 proc_directory: str | None = None, scan_numbers: list[int] | None = None,
+                 metadata: str | None = None, x_axis: str | None = None, y_axis: str | None = None):
         logger.info('Creating ScriptRunner')
         self.root = root
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
 
         if exp_directory is None:
             exp_directory = self.config.get(C.current_dir, '')
@@ -34,9 +36,9 @@ class MultiScanAnalysis:
         self.exp_folder = tk.StringVar(root, exp_directory)
         self.proc_folder = tk.StringVar(root, proc_directory)
         self.output_file = tk.StringVar(root, proc_directory + '/file.py')
-        self.x_axis = tk.StringVar(self.root, 'axes')
-        self.y_axis = tk.StringVar(self.root, 'signal')
-        self.metadata_name = tk.StringVar(self.root, '')
+        self.x_axis = tk.StringVar(self.root, 'axes' if x_axis is None else x_axis)
+        self.y_axis = tk.StringVar(self.root, 'signal' if y_axis is None else y_axis)
+        self.metadata_name = tk.StringVar(self.root, '' if metadata is None else metadata)
         self.options = {}
         self.file_list = []
 
@@ -83,10 +85,13 @@ class MultiScanAnalysis:
             self.range.text.insert("1.0", str(scan_numbers))
 
         line = ttk.Frame(self.root)
-        line.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, pady=8, padx=4)
-        ttk.Button(line, text='Plot', command=self.plot, width=10).pack(side=tk.LEFT)
+        line.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
+        ttk.Button(line, text='Plot', command=self.plot_legend, width=10).pack(side=tk.LEFT)
+        ttk.Button(line, text='Plot lines', command=self.plot_lines, width=10).pack(side=tk.LEFT)
+        ttk.Button(line, text='Multi-Plot', command=self.multiplot, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Plot 2D', command=self.plot2d, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Plot 3D', command=self.plot3d, width=10).pack(side=tk.LEFT)
+        ttk.Button(line, text='Plot Surf', command=self.plot3d, width=10).pack(side=tk.LEFT)
 
     def browse_datadir(self):
         folder = select_folder(self.root)
@@ -125,13 +130,22 @@ class MultiScanAnalysis:
     def get_experiment(self):
         return Experiment(self.exp_folder.get(), instrument=self.config.get('beamline', None))
 
-    def plot(self):
+    def plot_legend(self):
+        exp = self.get_experiment()
+        scan_numbers = self.range.generate_scan_numbers()
+        xaxis = self.x_axis.get()
+        yaxis = self.y_axis.get()
+        exp.plot.plot(*scan_numbers, xaxis=xaxis, yaxis=yaxis)
+        plt.show()
+
+    def plot_lines(self):
         exp = self.get_experiment()
         scan_numbers = self.range.generate_scan_numbers()
         xaxis = self.x_axis.get()
         yaxis = self.y_axis.get()
         values = self.metadata_name.get()
-        exp.plot.multi_lines(*scan_numbers, xaxis=xaxis, yaxis=yaxis, values=values)
+        exp.plot.multi_lines(*scan_numbers, xaxis=xaxis, yaxis=yaxis, value=values)
+        plt.show()
 
     def plot2d(self):
         exp = self.get_experiment()
@@ -139,7 +153,9 @@ class MultiScanAnalysis:
         xaxis = self.x_axis.get()
         yaxis = self.y_axis.get()
         values = self.metadata_name.get()
-        exp.plot.surface_2d(*scan_numbers, xaxis=xaxis, yaxis=yaxis, values=values)
+        values = values if values else None
+        exp.plot.surface_2d(*scan_numbers, xaxis=xaxis, signal=yaxis, values=values)
+        plt.show()
 
     def plot3d(self):
         exp = self.get_experiment()
@@ -147,7 +163,29 @@ class MultiScanAnalysis:
         xaxis = self.x_axis.get()
         yaxis = self.y_axis.get()
         values = self.metadata_name.get()
-        exp.plot.lines_3d(*scan_numbers, xaxis=xaxis, yaxis=yaxis, values=values)
+        values = values if values else None
+        exp.plot.lines_3d(*scan_numbers, xaxis=xaxis, signal=yaxis, values=values)
+        plt.show()
+
+    def plot_surf(self):
+        exp = self.get_experiment()
+        scan_numbers = self.range.generate_scan_numbers()
+        xaxis = self.x_axis.get()
+        yaxis = self.y_axis.get()
+        values = self.metadata_name.get()
+        values = values if values else None
+        exp.plot.surface_3d(*scan_numbers, xaxis=xaxis, signal=yaxis, values=values)
+        plt.show()
+
+    def multiplot(self):
+        exp = self.get_experiment()
+        scan_numbers = self.range.generate_scan_numbers()
+        xaxis = self.x_axis.get()
+        yaxis = self.y_axis.get()
+        values = self.metadata_name.get()
+        values = values if values else None
+        exp.plot.multi_plot(*scan_numbers, xaxis=xaxis, yaxis=yaxis, value=values)
+        plt.show()
 
 
 

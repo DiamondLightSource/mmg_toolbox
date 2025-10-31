@@ -24,7 +24,7 @@ class _ScanSelector:
 
     def __init__(self, root: tk.Misc, config: dict | None = None):
         self.root = root
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
         self.search_str = ""
         self.search_time = time.time()
         self.search_reset = 3.0  # seconds
@@ -322,9 +322,9 @@ class FolderScanSelector(_ScanSelector):
         # Build widgets
         # self.ini_folderpath()
         self.ini_file_select()
-        self.tree = folder_treeview(self.root, self.columns, 400, 200)
+        self.tree = folder_treeview(self.root, self.columns)#, 400, 200)
         self.tree.configure(displaycolumns=('modified', ) + self.metadata_names)  # hide columns
-        self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        # self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.tree.bind("<Double-1>", self.on_double_click)
         # self.tree.bind('<KeyPress>', self.on_key_press)
         self.tree.bind("<Button-3>", self.right_click_menu())

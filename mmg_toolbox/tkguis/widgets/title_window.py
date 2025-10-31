@@ -17,7 +17,7 @@ logger = create_logger(__file__)
 class TitleWindow:
     def __init__(self, root: tk.Misc, config: dict | None = None):
         self.root = root
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
 
         self.beamline = tk.StringVar(self.root, '')
         self.visit = tk.StringVar(self.root, '')

@@ -18,8 +18,10 @@ class C:
     notebook_directory = 'notebook_directory'
     recent_data_directories = 'recent_data_directories'
     text_size = 'text_size'
+    text_size_small = 'text_size_small'
     plot_size = 'plot_size'
     image_size = 'image_size'
+    plot_max_percent = 'plot_max_percent'
     plot_dpi = 'plot_dpi'
     plot_title = 'plot_title'
     normalise_factor = 'normalise_factor'
@@ -39,7 +41,10 @@ class C:
 USER = get_user()
 TMPFILE = f'mmg_config_{USER}.json'
 CONFIG_FILE = os.path.join(TMPDIR, TMPFILE)
-TEXT_SIZE = 50  # Determines height of text area in Dataviewer
+TEXT_WIDTH = 50  # Determines the width of text areas in DataViewer in characters
+TEXT_HEIGHT = 25  # Determines height of text area in Dataviewer in lines
+TEXT_HEIGHT_SMALL = 10  # TEXT_HEIGHT when screen is small
+MAX_PLOT_SCREEN_PERCENTAGE = (75, 25)  # (wid, height) max plot size as % of screen
 
 
 META_LIST = {
@@ -63,9 +68,11 @@ CONFIG = {
     C.processing_directory: os.path.expanduser('~'),
     C.notebook_directory: os.path.expanduser('~'),
     C.recent_data_directories: [os.path.expanduser('~')],
-    C.text_size: TEXT_SIZE,
+    C.text_size: (TEXT_WIDTH, TEXT_HEIGHT),
+    C.text_size_small: (TEXT_WIDTH, TEXT_HEIGHT_SMALL),
     C.plot_size: FIGURE_SIZE,
     C.image_size: IMAGE_SIZE,
+    C.plot_max_percent: MAX_PLOT_SCREEN_PERCENTAGE,
     C.plot_dpi: FIGURE_DPI,
     C.plot_title: '{filename}\n{(cmd|scan_command)}',
     C.normalise_factor: '',

@@ -21,7 +21,7 @@ class ScanRangeSelector:
     def __init__(self, root: tk.Misc, initial_directory: str | None = None, config: dict | None = None):
         logger.info('Creating ScanRangeSelector')
         self.root = root
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
 
         # variables
         self.exp_folder = tk.StringVar(self.root, initial_directory)

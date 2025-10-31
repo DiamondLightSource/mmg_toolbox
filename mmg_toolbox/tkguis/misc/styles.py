@@ -23,6 +23,8 @@ logger = create_logger(__name__)
 
 AWTHEMES_PATH = '/dls/science/users/grp66007/tkinter/awthemes-10.4.0'
 DEFAULT_THEME = 'clam'
+SMALL_SCREEN_HEIGHT = 800  # pixels, reduce size if screen smaller than this
+# TODO: handle screens with small height properly, do this through here and initialise in config
 
 
 def create_style(root):

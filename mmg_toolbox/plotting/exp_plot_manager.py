@@ -183,7 +183,7 @@ class ExperimentPlotManager:
 
         for scan, (fig, ax) in zip(scans, fig_ax):
             scan.plot.plot(xaxis=xaxis, yaxis=yaxis, axes=ax, **kwargs)
-            val = scan.format("\n%s = {value}" % value) if value is not None else ""
+            val = scan.format("\n%s = {%s}" % (value, value)) if value is not None else ""
             ttl_exp = scan.title() + val
             ax.set_title(ttl_exp)
         return fig_ax
@@ -209,7 +209,7 @@ class ExperimentPlotManager:
         :return: axes object
         """
         first_file = self.exp.get_scan_filename(scan_files[0])
-        hdf_map = hdfmap.create_hdf_map(first_file) if hdf_map is None else hdf_map
+        hdf_map = hdfmap.create_nexus_map(first_file) if hdf_map is None else hdf_map
         x, y, z = self.exp.generate_mesh(*scan_files, hdf_map=hdf_map,
                                          axes=xaxis, signal=signal, values=values)
 
@@ -242,7 +242,7 @@ class ExperimentPlotManager:
         :return: axes object
         """
         first_file = self.exp.get_scan_filename(scan_files[0])
-        hdf_map = hdfmap.create_hdf_map(first_file) if hdf_map is None else hdf_map
+        hdf_map = hdfmap.create_nexus_map(first_file) if hdf_map is None else hdf_map
         scans = self.exp.scans(*scan_files, hdf_map=hdf_map)
         data_fields = [signal, xaxis] + ([values] if values is not None else [])
         data = self.exp.join_scan_data(*scan_files, hdf_map=hdf_map, data_fields=data_fields)
@@ -281,7 +281,7 @@ class ExperimentPlotManager:
         :return: axes object
         """
         first_file = self.exp.get_scan_filename(scan_files[0])
-        hdf_map = hdfmap.create_hdf_map(first_file) if hdf_map is None else hdf_map
+        hdf_map = hdfmap.create_nexus_map(first_file) if hdf_map is None else hdf_map
         x, y, z = self.exp.generate_mesh(*scan_files, hdf_map=hdf_map,
                                          axes=xaxis, signal=signal, values=values)
 

@@ -11,6 +11,7 @@ from hdfmap import create_nexus_map
 
 from mmg_toolbox.utils.file_functions import read_tiff
 from ..misc.styles import create_hover, create_root
+from ..misc.screen_size import get_figure_size
 from ..misc.matplotlib import ini_image, COLORMAPS, DEFAULT_COLORMAP, add_rectangle
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
@@ -25,7 +26,7 @@ class NexusDetectorImage:
         self.root = root
         self.filename = hdf_filename
         self.map: hdfmap.NexusMap | None = None
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
 
         self.detector_name = tk.StringVar(self.root, 'NXdetector')
         self.view_index = tk.IntVar(self.root, 0)
@@ -37,7 +38,7 @@ class NexusDetectorImage:
         self.cmin = tk.DoubleVar(self.root, 0)
         self.cmax = tk.DoubleVar(self.root, 1)
         self.fixclim = tk.BooleanVar(self.root, False)
-        self.colormap = tk.StringVar(self.root, self.config.get('default_colormap', DEFAULT_COLORMAP))
+        self.colormap = tk.StringVar(self.root, self.config.get(C.default_colormap, DEFAULT_COLORMAP))
         self.image_error = tk.StringVar(self.root, '')
         self.extra_plot_callbacks = []  # calls any function in this list on update_image
         self.roi_names = []
@@ -54,10 +55,11 @@ class NexusDetectorImage:
 
         frm = ttk.Frame(section)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+
         self.fig, self.ax, self.plot_list, self.ax_image, self.colorbar, self.toolbar = ini_image(
             frame=frm,
-            figure_size=self.config.get('image_size'),
-            figure_dpi=self.config.get('figure_dpi'),
+            figure_size=get_figure_size(root, self.config, C.image_size),
+            figure_dpi=self.config.get(C.plot_dpi),
         )
         self.ax.set_xlabel(None)
         self.ax.set_ylabel(None)

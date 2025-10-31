@@ -24,7 +24,7 @@ class ScriptRunner:
     def __init__(self, root: tk.Misc, config: dict | None = None):
         logger.info('Creating ScriptRunner')
         self.root = root
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
 
         exp_directory = self.config.get('default_directory')
         proc_directory = self.config.get('processing_directory')

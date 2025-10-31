@@ -335,6 +335,7 @@ def peak_results(res: ModelResult) -> dict:
     npeaks = len(peak_prefx)
     nn = 1 / len(peak_prefx) if len(peak_prefx) > 0 else 1  # normalise by number of peaks
     comps = res.eval_components()
+    # TODO: standardise these keys
     fit_dict = {
         'lmfit': res,
         'npeaks': npeaks,
@@ -506,11 +507,11 @@ class FitResults:
     def __str__(self):
         return peak_results_str(self.res)
 
-    def results(self):
+    def results(self) -> dict:
         """Returns dict of peak fit results"""
         return self._res
 
-    def fit(self, ntimes=10):
+    def fit(self, ntimes=10) -> tuple[np.ndarray, np.ndarray]:
         """Returns interpolated x, y fit arrays"""
         return peak_results_fit(self.res, ntimes=ntimes)
 

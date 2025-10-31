@@ -15,18 +15,15 @@ def create_data_viewer(initial_folder: str | None = None,
     Create a Data Viewer showing all scans in an experiment folder
     """
     from ..widgets.nexus_data_viewer import NexusDataViewer
-    from mmg_toolbox.tkguis.apps.log_viewer import create_gda_terminal_log_viewer
-    from mmg_toolbox.tkguis.apps.config_editor import ConfigEditor
-    from ..misc.matplotlib import SMALL_FIGURE_DPI
+    from .log_viewer import create_gda_terminal_log_viewer
+    from .config_editor import ConfigEditor
     from .file_browser import create_nexus_file_browser, create_file_browser, create_jupyter_browser
     from .multi_scan_analysis import create_multi_scan_analysis
     from .scans import create_range_selector
     from .python_editor import create_python_editor
 
     root = create_root(parent=parent, window_title='NeXus Data Viewer')
-    config = get_config() if config is None else config
-    if root.winfo_screenheight() <= 800:
-        config[C.plot_dpi] = SMALL_FIGURE_DPI
+    config = config or get_config()
 
     widget = NexusDataViewer(root, initial_folder=initial_folder, config=config)
 
