@@ -58,7 +58,7 @@ def create_scannable_selector(hdf_map: hdfmap.NexusMap,
 
     output_names = []
 
-    def select():
+    def select(event=None):
         output_names.extend([
             widget.tree.item(iid, 'text')
             for iid in widget.tree.selection()

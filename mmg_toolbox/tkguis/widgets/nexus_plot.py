@@ -154,8 +154,9 @@ class NexusDefaultPlot(SimplePlot):
 
         # Fitting
         frm = ttk.Frame(section)
-        frm.pack(side=tk.LEFT, padx=4)
-        ttk.Button(frm, text='Plots', command=self.multiplots, width=5).pack(side=tk.LEFT, fill=tk.Y)
+        frm.pack(side=tk.LEFT, fill=tk.Y, padx=4)
+        ttk.Button(frm, text='Plots', command=self.multiplots, width=5).pack(side=tk.TOP, fill=tk.X)
+        ttk.Button(frm, text='Fit', command=self.peakfiting, width=5).pack(side=tk.TOP, fill=tk.X)
 
         # Error line
         frm = ttk.Frame(section)
@@ -302,6 +303,17 @@ class NexusDefaultPlot(SimplePlot):
         from ..apps.multi_scan_analysis import create_multi_scan_analysis
         # Note that exp directory and proc directory are in config
         create_multi_scan_analysis(
+            parent=self.root,
+            config=self.config,
+            scan_numbers=[get_scan_number(f) for f in self.filenames],
+            x_axis=self.axes_x.get(),
+            y_axis=self.axes_y.get(),
+        )
+
+    def peakfiting(self):
+        from ..apps.peak_fit_analysis import create_peak_fit
+        # Note that exp directory and proc directory are in config
+        create_peak_fit(
             parent=self.root,
             config=self.config,
             scan_numbers=[get_scan_number(f) for f in self.filenames],

@@ -130,6 +130,20 @@ class MultiScanAnalysis:
     def get_experiment(self):
         return Experiment(self.exp_folder.get(), instrument=self.config.get('beamline', None))
 
+    def fitting(self):
+        from ..apps.peak_fit_analysis import create_peak_fit
+        scan_numbers = self.range.generate_scan_numbers()
+        create_peak_fit(
+            parent=self.root,
+            config=self.config,
+            exp_directory=self.exp_folder.get(),
+            proc_directory=self.proc_folder.get(),
+            scan_numbers=scan_numbers,
+            metadata=self.metadata_name.get(),
+            x_axis=self.x_axis.get(),
+            y_axis=self.y_axis.get()
+        )
+
     def plot_legend(self):
         exp = self.get_experiment()
         scan_numbers = self.range.generate_scan_numbers()

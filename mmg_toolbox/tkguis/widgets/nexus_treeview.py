@@ -15,45 +15,7 @@ from ..misc.logging import create_logger
 
 logger = create_logger(__file__)
 
-# TODO: make this more general, add to _Treeview
-def right_click_menu(frame, tree):
-    """
-    Create right-click context menu for hdf_tree objects
-    :param frame: tkinter frame
-    :param tree: ttk.Treeview object
-    :return: menu_popup function
-    """
-
-    def copy_address():
-        for iid in tree.selection():
-            frame.master.clipboard_clear()
-            frame.master.clipboard_append(tree.item(iid)['text'])
-
-    def copy_name():
-        for iid in tree.selection():
-            frame.master.clipboard_clear()
-            frame.master.clipboard_append(tree.item(iid)['values'][-2])
-
-    def copy_value():
-        for iid in tree.selection():
-            frame.master.clipboard_clear()
-            frame.master.clipboard_append(tree.item(iid)['values'][-1])
-
-    # right-click menu - file options
-    m = tk.Menu(frame, tearoff=0)
-    m.add_command(label="Copy address", command=copy_address)
-    m.add_command(label="Copy name", command=copy_name)
-    m.add_command(label="Copy value", command=copy_value)
-
-    def menu_popup(event):
-        # select item
-        iid = tree.identify_row(event.y)
-        if iid:
-            tree.selection_set(iid)
-            post_right_click_menu(m, event.x_root, event.y_root)
-    return menu_popup
-
-
+#TODO: merge this with misc.functions.folder_treeview
 class _Treeview:
     """
     Treeview  widget for NeXus file viewer
@@ -72,16 +34,51 @@ class _Treeview:
         var.pack(side=tk.LEFT, fill=tk.Y)
         tree.configure(yscrollcommand=var.set)
 
+        self.columns = columns
+        self._tree_frame = frm
+        self.tree = tree
         # tree.bind("<<TreeviewSelect>>", self.tree_select)
         # tree.bind("<Double-1>", self.on_double_click)
-        tree.bind("<Button-3>", right_click_menu(frm, tree))
-        self.tree = tree
+        tree.bind("<Button-3>", self.right_click_menu())
 
     def populate(self, **kwargs):
         pass
 
     def delete(self):
         self.tree.delete(*self.tree.get_children())
+
+    def bind_select(self, function):
+        self.tree.bind('<<TreeviewSelect>>', function)
+
+    def right_click_menu(self):
+        """
+        Create right-click context menu for hdf_tree objects
+        :return: menu_popup function
+        """
+
+        def copy_fun(tree_getter):
+            def fun():
+                for iid in self.tree.selection():
+                    self._tree_frame.master.clipboard_clear()
+                    self._tree_frame.master.clipboard_append(tree_getter(iid))
+            return fun
+
+        m = tk.Menu(self._tree_frame, tearoff=0)
+        header_name = self.tree.heading('#0', 'text')
+        header_getter = lambda iid: self.tree.item(iid)['text']
+        m.add_command(label="Copy " + header_name, command=copy_fun(header_getter))
+        for column in self.columns:
+            getter = lambda iid: self.tree.set(iid, column)
+            m.add_command(label="Copy " + column, command=copy_fun(getter))
+
+        def menu_popup(event):
+            # select item
+            iid = self.tree.identify_row(event.y)
+            if iid:
+                self.tree.selection_set(iid)
+                post_right_click_menu(m, event.x_root, event.y_root)
+
+        return menu_popup
 
 
 class HdfTreeview(_Treeview):
