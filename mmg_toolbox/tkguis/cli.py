@@ -5,6 +5,7 @@ Command line interface for Dataviewer
 import sys
 import os
 
+from .misc.config import BEAMLINE_CONFIG
 from .apps.experiment import create_title_window
 from .apps.data_viewer import create_data_viewer
 from .apps.nexus import create_nexus_viewer
@@ -29,6 +30,9 @@ def run(*args):
             return
         elif os.path.isfile(arg):
             create_nexus_viewer(arg)
+            return
+        elif arg in BEAMLINE_CONFIG:
+            create_title_window(arg)
             return
     create_title_window()
     return

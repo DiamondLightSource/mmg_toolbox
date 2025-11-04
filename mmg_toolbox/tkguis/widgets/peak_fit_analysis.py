@@ -15,47 +15,47 @@ from mmg_toolbox.utils.fitting import multipeakfit, FitResults, PEAK_MODELS, BAC
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
 from ..misc.functions import select_folder, show_error
-from ..widgets.nexus_treeview import _Treeview
+from .treeview import CanvasTreeview
 from ..widgets.simple_plot import SimplePlot
 
 logger = create_logger(__file__)
 
 
-class ScanPeakTreeview(_Treeview):
+class ScanFitModel:
+    def __init__(self, scan_no: int, filepath: str, metadata: float,
+                 n_peaks: int, peak_model: str, background_model: str, power: float | None,
+                 distance: int, mask: np.ndarray, title: str, label: str):
+        self.scan_no = scan_no
+        self.filepath = filepath
+        self.metadata = metadata
+        self.n_peaks = n_peaks
+        self.peak_model = peak_model
+        self.background_model = background_model
+        self.power = power
+        self.distance = distance
+        self.mask = mask
+        self.title = title
+        self.label = label
+        self.model: Model | None = None
+
+
+class ScanPeakTreeview(CanvasTreeview):
     """Treeview object for peak details of scans"""
-    def __init__(self, root: tk.Misc):
-        super().__init__(root, 'n_peaks', 'model', 'background', 'pars', 'filepath')
-        # Populate tree
-        self.tree.heading("#0", text="Scan number")
-        self.tree.column("#0", minwidth=100, width=10)
-        self.tree.column("n_peaks", width=10, anchor='c')
-        self.tree.column("model", width=200, anchor='c')
-        self.tree.column("background", width=200, anchor='c')
-        self.tree.column("filepath", width=0)
-        self.tree.column("pars", width=400, anchor='c')
-        self.tree.heading("n_peaks", text="N Peaks")
-        self.tree.heading("model", text="Model")
-        self.tree.heading("background", text="Background")
-        self.tree.heading("pars", text="Parameters")
+    def __init__(self, root: tk.Misc, width: int | None = None, height: int | None = None):
+        columns = [
+            ('#0', 'Scan number', 100, False, None),
+            ('metadata', 'Metadata', 200, False, None),
+            ('model', 'Model', 200, False, None),
+            ('filepath', 'Filepath', 0, False, None),
+        ]
+        super().__init__(root, *columns, width=width, height=height)
 
-    columns = [
-        # (name, text, width, reverse, sort_col)
-        ("#0", 'Scan number', 100, False, None),
-        ("n_peaks", 'N Peaks', 50, True, None),
-        ("power", 'Peak Power', 50, True, None),
-        ("distance", 'Distance', 50, True, None),
-        ("model", 'Model', 200, False, None),
-        ("filepath", 'File Path', 0, False, None),
-    ]
-
-    def populate(self, *scan_details: tuple[int, int, str, str, list, str]):
-        """Load HDF file, populate ttk.treeview object"""
-        for scan_no, n_peaks, model, background, pars, filepath in scan_details:
-            values = str(n_peaks), model, background, pars, filepath
-            self.tree.insert("", tk.END, text=str(scan_no), values=values)
-
-    def get_selection(self) -> list[tuple[int, int, str, str, list, str]]:
-        return [[int(self.tree.item(iid)['text'])] + self.tree.item(iid)['values'] for iid in self.tree.selection()]
+    def populate(self, *scan_details: ScanFitModel):
+        for model in scan_details:
+            metadata_str = f"{model.metadata:.3}"
+            models = f"{model.n_peaks} {model.peak_model} + {model.background_model}"
+            values = (metadata_str, models, model.filepath)
+            self.tree.insert("", tk.END, text=str(model.scan_no), values=values)
 
     def get_current_filepath(self):
         iid = next(iter(self.tree.selection()))
@@ -100,11 +100,9 @@ class PeakFitAnalysis:
         self.scan_background = tk.StringVar(self.root, 'Slope')
         self.scan_title = tk.StringVar(self.root, '')
         self.scan_label = tk.StringVar(self.root, '')
-        self.options = {}
-        self.file_list = []
         self.map: hdfmap.NexusMap | None = None
         self.fit: FitResults | None = None
-        self.mask = np.array([])
+        self.fit_models: list[ScanFitModel] = []
 
         # ---Top section---
         top = ttk.LabelFrame(self.root, text='Folders')
@@ -226,19 +224,6 @@ class PeakFitAnalysis:
         # parameters
         # TODO: add parameters
 
-    def add_scans(self, *scan_numbers: int):
-        scan_files = self.get_scan_files(*scan_numbers)
-
-        n_peaks = self.all_n_peaks.get()
-        model = self.all_model.get()
-        background = self.all_background.get()
-        params = []
-        scan_details = [
-            (n, n_peaks, model, background, params, f)
-            for n, f in zip(scan_numbers, scan_files)
-        ]
-        self.scans.populate(*scan_details)
-
     def browse_datadir(self):
         folder = select_folder(self.root)
         if folder:
@@ -251,25 +236,19 @@ class PeakFitAnalysis:
 
     def browse_x_axis(self):
         from ..apps.namespace_select import create_scannable_selector
-        scan_file = self.scans.first_filepath()
-        hdf_map = hdfmap.create_nexus_map(scan_file)
-        names = create_scannable_selector(hdf_map)
+        names = create_scannable_selector(self.map)
         if names:
             self.x_axis.set(', '.join(name for name in names))
 
     def browse_y_axis(self):
         from ..apps.namespace_select import create_scannable_selector
-        scan_file = self.scans.first_filepath()
-        hdf_map = hdfmap.create_nexus_map(scan_file)
-        names = create_scannable_selector(hdf_map)
+        names = create_scannable_selector(self.map)
         if names:
             self.y_axis.set(', '.join(name for name in names))
 
     def browse_metadata(self):
         from ..apps.namespace_select import create_metadata_selector
-        scan_file = self.scans.first_filepath()
-        hdf_map = hdfmap.create_nexus_map(scan_file)
-        paths = create_metadata_selector(hdf_map)
+        paths = create_metadata_selector(self.map)
         if paths:
             self.metadata_name.set(', '.join(path for path in paths))
 
@@ -290,6 +269,10 @@ class PeakFitAnalysis:
             parent=self.root,
         )
 
+    #######################################################
+    ################## methods ############################
+    #######################################################
+
     def get_experiment(self):
         return Experiment(self.exp_folder.get(), instrument=self.config.get('beamline', None))
 
@@ -302,6 +285,33 @@ class PeakFitAnalysis:
             show_error(e, self.root, raise_exception=False)
             raise e
         return scan_files
+
+    def add_scans(self, *scan_numbers: int):
+        scan_files = self.get_scan_files(*scan_numbers)
+
+        metadata = ["0" for _ in range(len(scan_files))]
+        n_peaks = self.all_n_peaks.get()
+        model = self.all_model.get()
+        background = self.all_background.get()
+        power = self.all_peak_power.get()
+        distance = self.all_peak_distance.get()
+
+        self.fit_models = [
+            ScanFitModel(
+                scan_no=n,
+                filepath=f,
+                metadata=0.0,
+                n_peaks=n_peaks,
+                peak_model=model,
+                background_model=background,
+                power=power,
+                distance=distance,
+                mask=np.array([]),
+                title=str(n),
+                label=f
+            ) for n, f in zip(scan_numbers, scan_files)
+        ]
+        self.scans.populate(*self.fit_models)
 
     def get_scan_xy_data(self, filename: str) -> tuple[np.ndarray, np.ndarray]:
         x_axis = self.x_axis.get()
@@ -317,15 +327,15 @@ class PeakFitAnalysis:
         return self.fit.fit()
 
     def select_scan(self, event=None):
-        select = self.scans.get_selection()
-        if not select:
-            return
-        scan_no, n_peaks, model, background, params, filepath = select[0]
-        self.scan_n_peaks.set(n_peaks)
-        self.scan_model.set(model)
-        self.scan_background.set(background)
-        self.scan_title.set(filepath)
-        self.scan_label.set(str(scan_no))
+        index = self.scans.get_index()
+        model = self.fit_models[index]
+        self.scan_n_peaks.set(model.n_peaks)
+        self.scan_model.set(model.peak_model)
+        self.scan_background.set(model.background_model)
+        self.scan_peak_power.set(model.power)
+        self.scan_peak_distance.set(model.distance)
+        self.scan_title.set(model.title)
+        self.scan_label.set(model.label)
         self.perform_fit()
         self.plot_scan()
 

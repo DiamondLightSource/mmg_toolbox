@@ -11,14 +11,15 @@ from threading import Thread
 from mmg_toolbox.utils.file_functions import list_files, list_path_time, display_timestamp, get_hdf_string, folder_summary
 from mmg_toolbox.utils.env_functions import open_terminal
 from ..misc.styles import create_hover
-from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
+from ..misc.functions import select_folder, post_right_click_menu
 from ..misc.jupyter import launch_jupyter_notebook
 from ..misc.logging import create_logger
+from .treeview import CanvasTreeview
 
 logger = create_logger(__file__)
 
 
-class FolderTreeViewFrame:
+class FolderTreeViewFrame(CanvasTreeview):
     """Frame with TreeView and entry for Folders"""
 
     def __init__(self, extension: str, root: tk.Misc, initial_directory: str | None = None):
@@ -38,7 +39,7 @@ class FolderTreeViewFrame:
         self.search_label = tk.StringVar(root, '')
 
         # Columns
-        self.columns = [
+        columns = [
             # (name, text, width, reverse, sort_col)
             ("#0", 'Folder', 200, False, None),
             ("modified", 'Modified', 150, True, "modified_time"),
@@ -50,8 +51,7 @@ class FolderTreeViewFrame:
 
         # Build widgets
         self.ini_folderpath()
-        self.tree = folder_treeview(self.root, self.columns)
-        self.tree.configure(displaycolumns=('modified', 'files', 'data'))  # hide columns
+        super().__init__(root, *columns)
         self.tree.bind("<<TreeviewOpen>>", self.populate_files)
         self.tree.bind("<Double-1>", self.on_double_click)
         self.tree.bind("<Return>", self.on_double_click)

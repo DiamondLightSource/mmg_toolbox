@@ -13,9 +13,9 @@ __author__ = 'Dan Porter'
 __all__ = ['start_gui', 'version_info', 'title', 'module_info', 'data_file_reader', 'Experiment']
 
 
-def start_gui(beamline: str | None = None):
-    from mmg_toolbox.tkguis import create_title_window
-    create_title_window(beamline)
+def start_gui(*args: str):
+    from mmg_toolbox.tkguis import run
+    run(*args)
 
 
 def version_info():

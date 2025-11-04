@@ -5,97 +5,29 @@ A treeview tkinter frame for displaying the hierachical structure of HDF and Nex
 import os
 import h5py
 import tkinter as tk
-from tkinter import ttk
 
 import hdfmap
 from hdfmap.eval_functions import generate_identifier
 
-from ..misc.functions import post_right_click_menu
+from .treeview import CanvasTreeview
 from ..misc.logging import create_logger
 
 logger = create_logger(__file__)
 
-#TODO: merge this with misc.functions.folder_treeview
-class _Treeview:
-    """
-    Treeview  widget for NeXus file viewer
 
-    params
-     root: tk frame
-    """
-    def __init__(self, root: tk.Misc, *columns: str):
-        frm = ttk.Frame(root)
-        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-
-        tree = ttk.Treeview(frm, columns=columns, selectmode='browse')
-        tree.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-
-        var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
-        var.pack(side=tk.LEFT, fill=tk.Y)
-        tree.configure(yscrollcommand=var.set)
-
-        self.columns = columns
-        self._tree_frame = frm
-        self.tree = tree
-        # tree.bind("<<TreeviewSelect>>", self.tree_select)
-        # tree.bind("<Double-1>", self.on_double_click)
-        tree.bind("<Button-3>", self.right_click_menu())
-
-    def populate(self, **kwargs):
-        pass
-
-    def delete(self):
-        self.tree.delete(*self.tree.get_children())
-
-    def bind_select(self, function):
-        self.tree.bind('<<TreeviewSelect>>', function)
-
-    def right_click_menu(self):
-        """
-        Create right-click context menu for hdf_tree objects
-        :return: menu_popup function
-        """
-
-        def copy_fun(tree_getter):
-            def fun():
-                for iid in self.tree.selection():
-                    self._tree_frame.master.clipboard_clear()
-                    self._tree_frame.master.clipboard_append(tree_getter(iid))
-            return fun
-
-        m = tk.Menu(self._tree_frame, tearoff=0)
-        header_name = self.tree.heading('#0', 'text')
-        header_getter = lambda iid: self.tree.item(iid)['text']
-        m.add_command(label="Copy " + header_name, command=copy_fun(header_getter))
-        for column in self.columns:
-            getter = lambda iid: self.tree.set(iid, column)
-            m.add_command(label="Copy " + column, command=copy_fun(getter))
-
-        def menu_popup(event):
-            # select item
-            iid = self.tree.identify_row(event.y)
-            if iid:
-                self.tree.selection_set(iid)
-                post_right_click_menu(m, event.x_root, event.y_root)
-
-        return menu_popup
-
-
-class HdfTreeview(_Treeview):
+class HdfTreeview(CanvasTreeview):
     """
     HDF Treeview object
     """
-    def __init__(self, root: tk.Misc):
-        super().__init__(root, 'type', 'name', 'value')
-        # Populate tree
-        self.tree.heading("#0", text="HDF Address")
-        self.tree.column("#0", minwidth=50, width=400)
-        self.tree.column("type", width=100, anchor='c')
-        self.tree.column("name", width=100, anchor='c')
-        self.tree.column("value", width=200, anchor='c')
-        self.tree.heading("type", text="Type")
-        self.tree.heading("name", text="Name")
-        self.tree.heading("value", text="Value")
+    def __init__(self, root: tk.Misc, width: int | None = None, height: int | None = None):
+        columns = [
+            ('#0', 'HDF Address', 400, False, None),
+            ('type', 'Type', 100, False, None),
+            ('name', 'Name', 100, False, None),
+            ('value', 'Value', 200, False, None),
+        ]
+        super().__init__(root, *columns, width=width, height=height)
+
 
     def populate(self, hdf_obj: h5py.File, openstate=True):
         """Load HDF file, populate ttk.treeview object"""
@@ -144,21 +76,18 @@ class HdfTreeview(_Treeview):
         recur_func(hdf_obj, "")
 
 
-class HdfNameSpace(_Treeview):
+class HdfNameSpace(CanvasTreeview):
     """
     HDF Namespace object
     """
 
-    def __init__(self, root: tk.Misc):
-        super().__init__(root, 'path', 'value')
-
-        # Populate tree
-        self.tree.heading("#0", text="Name")
-        self.tree.column("#0", minwidth=50, width=100)
-        self.tree.column("path", width=300, anchor='c')
-        self.tree.column("value", width=200, anchor='c')
-        self.tree.heading("path", text="Path")
-        self.tree.heading("value", text="Value")
+    def __init__(self, root: tk.Misc, width: int | None = None, height: int | None = None):
+        columns = [
+            ('#0', 'Name', 100, False, None),
+            ('path', 'Path', 300, False, None),
+            ('value', 'Value', 200, False, None),
+        ]
+        super().__init__(root, *columns, width=width, height=height)
 
     def populate(self, hdf_obj: h5py.File, hdf_map: hdfmap.NexusMap,
                  all: bool = True, group: bool = False, combined: bool = False, values: bool = False,

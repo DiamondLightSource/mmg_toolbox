@@ -11,19 +11,19 @@ from threading import Thread, current_thread
 import hdfmap
 
 from mmg_toolbox.utils.file_functions import list_files, display_timestamp, get_scan_number
-from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
+from ..misc.functions import post_right_click_menu, select_folder
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
+from .treeview import CanvasTreeview
 
 logger = create_logger(__file__)
 
 
-class _ScanSelector:
+class _ScanSelector(CanvasTreeview):
     """Frame with TreeView for selection of folders"""
     tree: ttk.Treeview
 
     def __init__(self, root: tk.Misc, config: dict | None = None):
-        self.root = root
         self.config = config or get_config()
         self.search_str = ""
         self.search_time = time.time()
@@ -37,9 +37,10 @@ class _ScanSelector:
         self.search_matchcase = tk.BooleanVar(root, False)
         self.search_wholeword = tk.BooleanVar(root, True)
         self.select_box = tk.StringVar(root, '')
+        self.map = None
 
         # Columns
-        self.columns = [
+        columns = [
             # (name, text, width, reverse, sort_col)
             ("#0", 'Number', 100, False, None),
             ("modified", 'Date', 150, True, "modified_time"),
@@ -48,10 +49,10 @@ class _ScanSelector:
         ]
         # add values from metadata_list
         self.metadata_names = tuple(self.config.get(C.metadata_list, {}).keys())
-        self.columns += [
+        columns += [
             (name, name, 200, True, None) for name in self.metadata_names
         ]
-        self.map = None
+        super().__init__(root, *columns, pack=False)
 
     "======================================================"
     "=============== populate functions ==================="
@@ -322,9 +323,7 @@ class FolderScanSelector(_ScanSelector):
         # Build widgets
         # self.ini_folderpath()
         self.ini_file_select()
-        self.tree = folder_treeview(self.root, self.columns)#, 400, 200)
-        self.tree.configure(displaycolumns=('modified', ) + self.metadata_names)  # hide columns
-        # self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        self.pack_treeview()  # pack treeview after ini_file_select
         self.tree.bind("<Double-1>", self.on_double_click)
         # self.tree.bind('<KeyPress>', self.on_key_press)
         self.tree.bind("<Button-3>", self.right_click_menu())
@@ -426,15 +425,10 @@ class ScanViewer(_ScanSelector):
     def __init__(self, root: tk.Misc, *scan_files: str, config: dict | None = None, button_name: str = 'Close'):
         logger.info('Creating ScanViewer')
         super().__init__(root, config)
+        self.pack_treeview()
         self.file_list = scan_files
         self.output_files = []
 
-        # Build widgets
-        self.tree = folder_treeview(self.root, self.columns, 600, 200)
-        self.tree.configure(displaycolumns=('modified',) + self.metadata_names + ('filepath', ))  # hide columns
-        # self.tree.bind("<<TreeviewSelect>>", self.on_select)
-        # self.tree.bind("<Double-1>", self.on_double_click)
-        # self.tree.bind('<KeyPress>', self.on_key_press)
         self.tree.bind("<Button-3>", self.right_click_menu())
 
         ttk.Button(self.root, text=button_name, command=self.select_scans).pack(side=tk.TOP, fill=tk.X, expand=tk.YES)

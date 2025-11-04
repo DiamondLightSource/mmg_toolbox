@@ -88,7 +88,6 @@ def create_data_viewer(initial_folder: str | None = None,
     topmenu(root, menu, add_themes=True, add_about=True)
 
     root.update()
-    print(f"Window size (wxh): {root.winfo_reqwidth()}x{root.winfo_reqheight()}")
 
     if parent is None:
         root.mainloop()
