@@ -20,8 +20,7 @@ logger = create_logger(__file__)
 
 
 class _ScanSelector(CanvasTreeview):
-    """Frame with TreeView for selection of folders"""
-    tree: ttk.Treeview
+    """Frame with TreeView for selection of scan files"""
 
     def __init__(self, root: tk.Misc, config: dict | None = None):
         self.config = config or get_config()
@@ -110,15 +109,15 @@ class _ScanSelector(CanvasTreeview):
                     if not self.tree.winfo_exists():
                         return
                     self._add_data(leaf)
-
         th = Thread(target=fn)
-        th.start()  # will run until complete, may error if TreeView is destroyed
+        th.daemon = True  # runs thread in the background, outside mainloop, allowing python to close
+        th.start()
 
     def update_files(self):
         """Check folders in the tree for new files"""
         pass
 
-    def poll_files(self):
+    def poll_files(self, _event=None):
         """Create background thread that checks the folders for new files"""
         def fn():
             while True:
@@ -174,36 +173,26 @@ class _ScanSelector(CanvasTreeview):
         else:
             self.root.clipboard_append(folderpath)
 
+    def _create_menu(self, iid: str | int):
+
+        menu = tk.Menu(self.root, tearoff=0)
+        menu.add_command(label="Copy path", command=self.copy_path)
+
+        filepath = self.tree.set(iid, 'filepath')
+        if os.path.isfile(filepath):
+            menu.add_command(label="open Treeview", command=self.open_nexus_treeview)
+            menu.add_command(label="open Plot", command=self.open_nexus_plot)
+            menu.add_command(label="open Image", command=self.open_nexus_image)
+        return menu
+
     def right_click_menu(self):
         logger.info('Creating right click menu')
-        # right-click menu - file options
-        m_file = tk.Menu(self.root, tearoff=0)
-        m_file.add_command(label="Copy path", command=self.copy_path)
-        m_file.add_command(label="open Treeview", command=self.open_nexus_treeview)
-        m_file.add_command(label="open Plot", command=self.open_nexus_plot)
-        m_file.add_command(label="open Image", command=self.open_nexus_image)
-        # m_file.add_command(mode="open Namespace", command=self.menu_namespace_gui)
-        # m_file.add_command(mode="open Nexus Classes", command=self.menu_class_gui)
-        # right-click menu - folder options
-        m_folder = tk.Menu(self.root, tearoff=0)
-        m_folder.add_command(label="Copy path", command=self.copy_path)
-        # m_folder.add_command(mode="Open Folder Datasets", command=self.menu_folder_files)
-        # m_folder.add_command(mode="Open Folder Plots", command=self.menu_folder_plot)
-        # # m_folder.add_command(mode="Display Contents", command=self.menu_folder_plot)
-        # m_folder.add_command(mode="Display Summary", command=self.menu_folder_summary)
 
         def menu_popup(event):
             # select item
             iid = self.tree.identify_row(event.y)
             if iid:
-                self.tree.selection_set(iid)
-                filename, folderpath = self.get_filepath()
-                if filename:
-                    logger.debug(f"Right click menu created for file: {filename}")
-                    menu = m_file
-                else:
-                    logger.debug(f"Right click menu created for folder: {folderpath}")
-                    menu = m_folder
+                menu = self._create_menu(iid)
                 post_right_click_menu(menu, event.x_root, event.y_root)
         return menu_popup
 
@@ -330,8 +319,9 @@ class FolderScanSelector(_ScanSelector):
 
         # Populate
         if initial_directory:
-            self.add_folder(initial_directory)
-        self.poll_files()
+            # run after mainloop starts to avoid thread issues
+            root.after(0, self.add_folder, initial_directory)
+        root.after(100, self.poll_files, None)
 
     "======================================================"
     "================= init functions ====================="
@@ -445,7 +435,8 @@ class ScanViewer(_ScanSelector):
                 self._add_data(file)
 
         th = Thread(target=fn)
-        th.start()  # will run until complete, may error if TreeView is destroyed
+        th.daemon = True  # runs thread in the background, outside mainloop, allowing python to close
+        th.start()
 
     def select_scans(self):
         self.output_files = [

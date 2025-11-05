@@ -297,8 +297,32 @@ def find_peaks(y: np.ndarray, yerror: np.ndarray | None = None,
     peak_power = np.array([np.sum(peak_power[ii]) for ii in group_signal_idx])
 
     # sort peak order by strength
-    power_sort = np.argsort(peak_power)
+    power_sort = np.argsort(peak_power)[::-1]
     return peaks_idx[power_sort], peak_power[power_sort]
+
+
+def find_peaks_str(x: np.ndarray, y: np.ndarray, yerror: np.ndarray | None = None,
+                   min_peak_power: float | None = None, peak_distance_idx: int = 6) -> str:
+    """
+    Find peak shaps in linear-spaced 1d arrays with poisson like numerical values
+
+    E.G.
+      index, power = find_peaks(ydata, yerror, min_peak_power=None, peak_distance_idx=10)
+      peak_centres = xdata[index]  # ordered by peak strength
+
+    :param x: array(n) of data
+    :param y: array(n) of data
+    :param yerror: array(n) of errors on data, or None to use default error function (sqrt(abs(y)+1))
+    :param min_peak_power: float, only return peaks with power greater than this. If None compare against std(y)
+    :param peak_distance_idx: int, group adjacent maxima if closer in index than this
+    :return index: array(m) of indexes in y of peaks that satisfy conditions
+    :return power: array(m) of estimated power of each peak
+    """
+    index, power = find_peaks(y, yerror, min_peak_power, peak_distance_idx)
+    x_vals = x[index]
+    out = f"Find Peaks:\n len: {len(x)}, max: {np.max(y):.5g}, min: {np.min(y):.5g}\n\n"
+    out += '\n'.join(f"  {idx:4} {_x:10.5}  power={pwr:.3}" for idx, _x, pwr in zip(index, x_vals, power))
+    return out
 
 
 def peak_results(res: ModelResult) -> dict:
@@ -405,14 +429,15 @@ def peak_results_str(res: ModelResult) -> str:
     return out
 
 
-def peak_results_fit(res: ModelResult, ntimes: int = 10) -> tuple[np.ndarray, np.ndarray]:
+def peak_results_fit(res: ModelResult, ntimes: int = 10, x_data: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """
     Generate xfit, yfit data, interpolated to give smoother variation
     :param res: lmfit_result
     :param ntimes: int, number of points * old number of points
+    :param x_data: x data to interpolate or None to use data from fit
     :return: xfit, yfit
     """
-    old_x = res.userkws['x']
+    old_x = res.userkws['x'] if x_data is None else x_data
     xfit = np.linspace(np.min(old_x), np.max(old_x), np.size(old_x) * ntimes)
     yfit = res.eval(x=xfit)
     return xfit, yfit
@@ -497,6 +522,16 @@ class FitResults:
     xdata, yfit = fitres.fit(ntimes=10)  # interpolated fit results
     fig = fitres.plot(axes, xlabel, ylabel, title)  # create plot
     """
+    amplitude: float
+    center: float
+    height: float
+    fwhm: float
+    background: float
+    stderr_amplitude: float
+    stderr_center: float
+    stderr_height: float
+    stderr_fwhm: float
+    stderr_background: float
 
     def __init__(self, results: ModelResult):
         self.res = results
@@ -511,9 +546,9 @@ class FitResults:
         """Returns dict of peak fit results"""
         return self._res
 
-    def fit(self, ntimes=10) -> tuple[np.ndarray, np.ndarray]:
+    def fit_data(self, x_data: np.ndarray | None = None, ntimes=10) -> tuple[np.ndarray, np.ndarray]:
         """Returns interpolated x, y fit arrays"""
-        return peak_results_fit(self.res, ntimes=ntimes)
+        return peak_results_fit(self.res, ntimes=ntimes, x_data=x_data)
 
     def plot(self, axes=None, xlabel=None, ylabel=None, title=None):
         """Plot peak fit results"""

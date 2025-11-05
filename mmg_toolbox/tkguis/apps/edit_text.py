@@ -16,9 +16,9 @@ class EditText:
     :param parent: tk root
     """
 
-    def __init__(self, expression: str, parent: tk.Misc | None = None, textwidth=30):
+    def __init__(self, expression: str, parent: tk.Misc | None = None, textwidth=30, title="Edit text"):
         self.output = expression
-        self.root = create_root('Configure text', parent=parent)
+        self.root = create_root(title, parent=parent)
 
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)

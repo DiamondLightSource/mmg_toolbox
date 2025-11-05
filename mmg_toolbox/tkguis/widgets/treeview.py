@@ -134,6 +134,9 @@ class CanvasTreeview:
         self.tree = tree
         tree.bind("<Button-3>", self.right_click_menu())
 
+    def first_item(self):
+        return next(iter(self.tree.get_children()))
+
     def get_row(self, iid: str | int) -> dict:
         """Return data from row"""
         return {name: getter(iid) for name, getter in self.getters.items()}
@@ -143,7 +146,7 @@ class CanvasTreeview:
         return [self.get_row(iid) for iid in self.tree.selection()]
 
     def get_index(self):
-        iid = next(iter(self.tree.selection()))
+        iid = next(iter(self.tree.selection()), next(iter(self.tree.get_children())))
         return self.tree.index(iid)
 
     def populate(self, **kwargs):

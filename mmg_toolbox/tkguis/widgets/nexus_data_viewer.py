@@ -72,16 +72,17 @@ class NexusDataViewer:
             self.index_line.set_data([xval, xval], ylim)
             self.plot_widget.update_axes()
         self.image_widget.extra_plot_callbacks.append(update_index_line)  # runs on update_image
+        # select first file if it exists
+        self.root.after(100, self.select_first_file, None)
 
-        if initial_folder and len(self.selector_widget.tree.get_children()) > 0:
-            # Open first scan
+        # self._log_size()
+    def select_first_file(self, _event=None):
+        if len(self.selector_widget.tree.get_children()) > 0:
             first_folder = next(iter(self.selector_widget.tree.get_children()))
             if len(self.selector_widget.tree.get_children(first_folder)) > 0:
                 first_scan = next(iter(self.selector_widget.tree.get_children(first_folder)))
                 self.selector_widget.tree.item(first_folder, open=True)
                 self.selector_widget.tree.selection_set(first_scan)
-
-        # self._log_size()
 
     def on_file_select(self, event=None):
         filename, folder = self.selector_widget.get_filepath()
