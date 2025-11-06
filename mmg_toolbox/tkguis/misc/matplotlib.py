@@ -15,8 +15,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from .styles import create_root
 
 # parameters
-FIGURE_SIZE = (6, 5)
-IMAGE_SIZE = (6, 4)
+FIGURE_SIZE = (8, 3)
+IMAGE_SIZE = (8, 3)
 FIGURE_DPI = 60
 SMALL_FIGURE_DPI = 40
 COLORMAPS = ['viridis', 'Spectral', 'plasma', 'inferno', 'Greys', 'Blues', 'winter', 'autumn',
@@ -92,6 +92,7 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     plot_list: list[plt.Line2D] = []
 
     frm = ttk.Frame(frame)
+    # TODO: provide pack options input to control packing options
     frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH, pady=2, padx=5)
     canvas = FigureCanvasTkAgg(fig, frm)
     canvas.get_tk_widget().configure(bg='black')
@@ -105,7 +106,7 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     toolbar = CustomToolbar(canvas, frm2)
     toolbar.config(background=bg)
     toolbar.update()
-    toolbar.pack(fill=tk.X, expand=tk.YES)
+    toolbar.pack(fill=tk.X)#, expand=tk.YES)
     return fig, ax1, plot_list, toolbar
 
 
@@ -121,7 +122,11 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
     bg = style.lookup('.', 'background')
 
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
-    fig.patch.set_facecolor(bg)
+    try:
+        fig.patch.set_facecolor(bg)
+    except ValueError:
+        print(f"Cannot set background color of {bg}")
+        bg = '#dcdad5'
 
     ax1 = fig.add_subplot(111)
     # zeros = np.array([[0 for n in range(10)] for m in range(10)])
@@ -150,6 +155,7 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
     frm2.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=5, pady=2)
     # toolbar = NavigationToolbar2Tk(canvas, frm)
     toolbar = CustomToolbar(canvas, frm2)
+    toolbar.config(background=bg)
     toolbar.update()
     toolbar.pack(fill=tk.X, expand=tk.YES)
     return fig, ax1, plot_list, ax1_image, cb1, toolbar

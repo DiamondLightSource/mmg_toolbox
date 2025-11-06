@@ -8,6 +8,7 @@ import os
 SCRIPTS = {
     # name: (filename, description)
     'example': ('example_script.py', 'a simple example'),
+    'plot multi-line': ('experiment_multiline.py', 'create a multi-line plot'),
     'spectra': ('spectra_script.py', 'normalise spectra and subtract polarisations')
 }
 
@@ -20,9 +21,12 @@ TEMPLATE = {
     # {{template}}: replacement
     'description': 'a short description',
     'filepaths': "'file1.nxs', 'file2.nxs', 'file3.nxs'",
+    'experiment_dir': 'path/to/dir',
+    'scan_numbers': 'range(-10, 0)',
     'title': 'a nice plot',
     'x-axis': 'axes',
     'y-axis': 'signal',
+    'value': 'Ta'
 }
 
 

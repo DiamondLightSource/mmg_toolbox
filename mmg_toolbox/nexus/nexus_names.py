@@ -52,11 +52,6 @@ NX_OFFSET_UNITS = 'offset_units'
 ENTRY_CLASSES = ['NXentry', 'NXsubentry']
 XAS_DEFINITIONS = ['NXxas', 'NXxas_new']
 SEARCH_ATTRS = (NX_CLASS, 'local_name')  # DLS attribute 'local_name' helps match metadata to scan commands
-METERS = {  # conversion to meters
-    'km': 1e3, 'm': 1, 'cm': 0.1, 'mm': 1e-3,
-    'um': 1e-6, 'μm': 1e-6, 'nm': 1e-9,
-    'A': 1e-10, 'Å': 1e-10
-}
 
 # Polarisation field names inside NeXus groups
 # See https://manual.nexusformat.org/classes/base_classes/NXbeam.html#nxbeam

@@ -2,9 +2,12 @@
 a tkinter frame with a single plot
 """
 import tkinter as tk
+
+import matplotlib.pyplot as plt
 from numpy import ndarray
 
 from ..misc.config import C
+from ..misc.screen_size import get_figure_size, get_screen_size_inches
 from ..misc.matplotlib import ini_plot
 from ..misc.logging import create_logger
 
@@ -21,9 +24,13 @@ class SimplePlot:
         self.root = root
         self.config = config or {}
 
+        fig_size = get_figure_size(root, self.config, C.plot_size)
+        # screen_size = get_screen_size_inches(root, self.config.get(C.plot_dpi))
+        # wp, hp = (100*(fig / screen) for screen, fig in zip(screen_size, fig_size))
+        # print(f"Figure size as % of screen: {screen_size[0]:.2f}x{screen_size[1]:.2f}\" = {wp:.0f}x{hp:.0f}%")
         self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(
             frame=self.root,
-            figure_size=self.config.get(C.plot_size, None),
+            figure_size=fig_size,
             figure_dpi=self.config.get(C.plot_dpi, None),
         )
         self.ax1.set_xlabel(xlabel)
@@ -32,10 +39,11 @@ class SimplePlot:
         self.plot(xdata, ydata)
         self._y_axis_expansion_factor = 0.1
 
-    def plot(self, *args, **kwargs):
+    def plot(self, *args, **kwargs) -> list[plt.Line2D]:
         lines = self.ax1.plot(*args, **kwargs)
         self.plot_list.extend(lines)
         self.update_axes()
+        return lines
 
     def update_labels(self, x_label: str | None = None, y_label: str | None = None,
                       title: str | None = None, legend: bool = False):
@@ -90,10 +98,10 @@ class SimplePlot:
     def _relim(self):
         if not any(len(line.get_xdata()) for line in self.plot_list):
             return
-        max_x_val = max(max(line.get_xdata()) for line in self.plot_list)
-        min_x_val = min(min(line.get_xdata()) for line in self.plot_list)
-        max_y_val = max(max(line.get_ydata()) for line in self.plot_list)
-        min_y_val = min(min(line.get_ydata()) for line in self.plot_list)
+        max_x_val = max(max(x) for line in self.plot_list if len(x := line.get_xdata()) > 0)
+        min_x_val = min(min(x) for line in self.plot_list if len(x := line.get_xdata()) > 0)
+        max_y_val = max(max(y) for line in self.plot_list if len(y := line.get_ydata()) > 0)
+        min_y_val = min(min(y) for line in self.plot_list if len(y := line.get_ydata()) > 0)
         # expand y-axis slightly beyond data
         y_diff = max_y_val - min_y_val
         if y_diff == 0:

@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 
-from mmg_toolbox.utils.env_functions import get_notebook_directory, open_terminal
+from mmg_toolbox.utils.env_functions import get_notebook_directory, open_terminal, get_scan_number
 from mmg_toolbox.tkguis.misc.config import get_config, C
 from mmg_toolbox.tkguis.misc.functions import topmenu
 from mmg_toolbox.tkguis.misc.styles import RootWithStyle, create_root
@@ -15,17 +15,14 @@ def create_data_viewer(initial_folder: str | None = None,
     Create a Data Viewer showing all scans in an experiment folder
     """
     from ..widgets.nexus_data_viewer import NexusDataViewer
-    from mmg_toolbox.tkguis.apps.log_viewer import create_gda_terminal_log_viewer
-    from mmg_toolbox.tkguis.apps.config_editor import ConfigEditor
-    from ..misc.matplotlib import SMALL_FIGURE_DPI
+    from .log_viewer import create_gda_terminal_log_viewer
     from .file_browser import create_nexus_file_browser, create_file_browser, create_jupyter_browser
+    from .multi_scan_analysis import create_multi_scan_analysis
     from .scans import create_range_selector
     from .python_editor import create_python_editor
 
     root = create_root(parent=parent, window_title='NeXus Data Viewer')
-    config = get_config() if config is None else config
-    if root.winfo_screenheight() <= 800:
-        config[C.plot_dpi] = SMALL_FIGURE_DPI
+    config = config or get_config()
 
     widget = NexusDataViewer(root, initial_folder=initial_folder, config=config)
 
@@ -55,6 +52,12 @@ def create_data_viewer(initial_folder: str | None = None,
         create_notebook(new_file, template, **get_replacements(filename))
         launch_jupyter_notebook('notebook', file=new_file)
 
+    def start_multi_scan_plot():
+        filename, folder = widget.selector_widget.get_filepath()
+        filenames = widget.selector_widget.get_multi_filepath()
+        scan_numbers = [get_scan_number(f) for f in filenames]
+        create_multi_scan_analysis(root, config, exp_directory=folder, scan_numbers=scan_numbers)
+
     menu = {
         'File': {
             'New Data Viewer': lambda: create_data_viewer(parent=root, config=config),
@@ -65,10 +68,8 @@ def create_data_viewer(initial_folder: str | None = None,
             'Range selector': lambda: create_range_selector(initial_folder, root, config),
             'Log viewer': lambda: create_gda_terminal_log_viewer(get_filepath(), root)
         },
-        'Config.': {
-            'Edit Config.': lambda: ConfigEditor(root, config),
-        },
         'Processing': {
+            'Multi-Scan': start_multi_scan_plot,
             'Script Editor': lambda: create_python_editor(None, root, config),
             'Open a terminal': lambda: open_terminal(f"cd {get_filepath()}"),
             'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', get_filepath() + '/processing'),
@@ -80,10 +81,9 @@ def create_data_viewer(initial_folder: str | None = None,
     }
     menu.update(widget.image_widget.options_menu())
 
-    topmenu(root, menu, add_themes=True, add_about=True)
+    topmenu(root, menu, add_themes=True, add_about=True, config=config)
 
     root.update()
-    print(f"Window size (wxh): {root.winfo_reqwidth()}x{root.winfo_reqheight()}")
 
     if parent is None:
         root.mainloop()

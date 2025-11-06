@@ -1,12 +1,13 @@
 """
 Configuration Options
 """
+from __future__ import annotations
 
 import os
 import json
 
 from mmg_toolbox.utils.env_functions import TMPDIR, YEAR, get_beamline, get_user, check_file_access
-from .beamline_metadata import BEAMLINE_META, META_STRING
+from .beamline_metadata import BEAMLINE_META, META_STRING, META_LABEL
 from .matplotlib import FIGURE_SIZE, FIGURE_DPI, IMAGE_SIZE, DEFAULT_COLORMAP
 
 
@@ -17,25 +18,36 @@ class C:
     processing_directory = 'processing_directory'
     notebook_directory = 'notebook_directory'
     recent_data_directories = 'recent_data_directories'
+    small_screen_height = 'small_screen_height'
     text_size = 'text_size'
+    text_size_small = 'text_size_small'
     plot_size = 'plot_size'
     image_size = 'image_size'
+    plot_max_percent = 'plot_max_percent'
     plot_dpi = 'plot_dpi'
     plot_title = 'plot_title'
     normalise_factor = 'normalise_factor'
     replace_names = 'replace_names'
     metadata_string = 'metadata_string'
     metadata_list = 'metadata_list'
+    metadata_label = 'metadata_label'
     default_colormap = 'default_colormap'
     beamline = 'beamline'
     roi = 'roi'
+    current_dir = 'current_dir'
+    current_proc = 'current_proc'
+    current_nb = 'current_nb'
 
 
 # config name (saved in TMPDIR)
 USER = get_user()
 TMPFILE = f'mmg_config_{USER}.json'
 CONFIG_FILE = os.path.join(TMPDIR, TMPFILE)
-TEXT_SIZE = 50  # Determines height of text area in Dataviewer
+SMALL_SCREEN_HEIGHT = 800  # pixels, reduce size if screen smaller than this
+TEXT_WIDTH = 50  # Determines the width of text areas in DataViewer in characters
+TEXT_HEIGHT = 25  # Determines height of text area in Dataviewer in lines
+TEXT_HEIGHT_SMALL = 10  # TEXT_HEIGHT when screen is small
+MAX_PLOT_SCREEN_PERCENTAGE = (75, 25)  # (wid, height) max plot size as % of screen
 
 
 META_LIST = {
@@ -59,9 +71,12 @@ CONFIG = {
     C.processing_directory: os.path.expanduser('~'),
     C.notebook_directory: os.path.expanduser('~'),
     C.recent_data_directories: [os.path.expanduser('~')],
-    C.text_size: TEXT_SIZE,
+    C.small_screen_height: SMALL_SCREEN_HEIGHT,
+    C.text_size: (TEXT_WIDTH, TEXT_HEIGHT),
+    C.text_size_small: (TEXT_WIDTH, TEXT_HEIGHT_SMALL),
     C.plot_size: FIGURE_SIZE,
     C.image_size: IMAGE_SIZE,
+    C.plot_max_percent: MAX_PLOT_SCREEN_PERCENTAGE,
     C.plot_dpi: FIGURE_DPI,
     C.plot_title: '{filename}\n{(cmd|scan_command)}',
     C.normalise_factor: '',
@@ -69,6 +84,7 @@ CONFIG = {
     C.roi: ROIs,
     C.metadata_string: META_STRING,
     C.metadata_list: META_LIST,
+    C.metadata_label: META_LABEL,
     C.default_colormap: DEFAULT_COLORMAP,
 }
 
@@ -152,6 +168,13 @@ def get_config(config_filename: str | None = None, beamline: str | None = None) 
     return config
 
 
+def reset_config(config: dict) -> None:
+    """Reset config dict in place with default values of beamline"""
+    beamline = config.get(C.beamline, None)
+    config.clear()
+    config.update(default_config(beamline))
+
+
 def save_config(config: dict):
     config_filename = config.get(C.conf_file, CONFIG_FILE)
     with open(config_filename, 'w') as f:
@@ -164,3 +187,4 @@ def save_config_as(config_filename: str | None = None, **kwargs):
     config.update(kwargs)
     config[C.conf_file] = config_filename
     save_config(config)
+

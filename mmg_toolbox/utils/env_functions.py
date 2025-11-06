@@ -4,10 +4,11 @@ Environment functions
 
 import os
 import subprocess
+import sys
 import tempfile
 from datetime import datetime
 
-from mmg_toolbox.utils.file_functions import get_scan_number
+from mmg_toolbox.utils.file_functions import get_scan_number, list_files
 
 # environment variables on beamline computers
 BEAMLINE = 'BEAMLINE'
@@ -102,17 +103,26 @@ def get_dls_visits(instrument: str | None = None, year: str | int | None = None)
 
 def get_first_file(folder: str, extension='.nxs') -> str:
     """Return first scan in folder"""
-    from mmg_toolbox.utils.file_functions import list_files
     return next(iter(list_files(folder, extension=extension)))
 
 
 def get_scan_numbers(folder: str) -> list[int]:
     """Return ordered list of scans numbers from nexus files in directory"""
-    from mmg_toolbox.utils.file_functions import list_files
     return sorted(
         number for filename in list_files(folder, extension='.nxs')
         if (number := get_scan_number(filename)) > 0
     )
+
+
+def scan_number_mapping(*folders: str) -> dict[int, str]:
+    """Build mapping of scan number to scan file"""
+    mapping = {
+        number: filename
+        for folder in folders
+        for filename in list_files(folder, extension='.nxs')
+        if (number := get_scan_number(filename)) > 0
+    }
+    return dict(sorted(mapping.items()))
 
 
 def get_last_scan_number(folder: str) -> int:
@@ -120,9 +130,14 @@ def get_last_scan_number(folder: str) -> int:
     return get_scan_numbers(folder)[-1]
 
 
+def last_folder_update(folder: str) -> datetime:
+    """Returns datetime timestamp of last folder update"""
+    modified = os.path.getmtime(folder)
+    return datetime.fromtimestamp(modified)
+
+
 def get_scan_notebooks(scan: int | str, data_directory: str | None = None) -> list[str]:
     """Return list of processed jupyter notebooks for scan"""
-    from mmg_toolbox.utils.file_functions import list_files
     try:
         data_directory, filename = os.path.split(scan)
         scan = get_scan_number(filename)
@@ -143,6 +158,7 @@ def run_command(command: str):
     print(f"Running command:\n{command}\n\n\n")
     output = subprocess.run(command, shell=True, capture_output=True)
     print(output.stdout.decode())
+    print(output.stderr.decode())
     print('\n\n\n################# Finished ###################\n\n\n')
 
 
@@ -158,7 +174,7 @@ def run_python_script(script_filename: str):
     """
     Run shell command, print output to terminal
     """
-    command = f"python {script_filename}"
+    command = f"{sys.executable} {script_filename}"
     run_command(command)
 
 

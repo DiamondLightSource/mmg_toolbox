@@ -17,7 +17,7 @@ logger = create_logger(__file__)
 class TitleWindow:
     def __init__(self, root: tk.Misc, config: dict | None = None):
         self.root = root
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
 
         self.beamline = tk.StringVar(self.root, '')
         self.visit = tk.StringVar(self.root, '')
@@ -117,28 +117,37 @@ class TitleWindow:
         self.config[C.recent_data_directories] = recent
         self.update_config()
 
+    def set_current_directories(self):
+        self.config[C.current_dir] = self.data_dir.get()
+        self.config[C.current_proc] = self.proc_dir.get()
+        self.config[C.current_nb] = self.notebook_dir.get()
+
     def choose_visit(self, event=None):
         visit_folder = self.visits[self.visit.get()]
         self.dls_directories(visit_folder)
 
     def browse_datadir(self):
-        folder = select_folder(self.root)
+        current_folder = self.data_dir.get()
+        folder = select_folder(self.root, initial_directory=current_folder if current_folder else None)
         if folder:
             self.dls_directories(folder)
 
     def browse_analysis(self):
-        folder = select_folder(self.root)
+        current_folder = self.proc_dir.get()
+        folder = select_folder(self.root, initial_directory=current_folder if current_folder else None)
         if folder:
             self.proc_dir.set(folder)
 
     def browse_notebook(self):
-        folder = select_folder(self.root)
+        current_folder = self.notebook_dir.get()
+        folder = select_folder(self.root, initial_directory=current_folder if current_folder else None)
         if folder:
             self.notebook_dir.set(folder)
 
     def open_data_viewer(self):
         from .. import create_data_viewer
         self.add_recent_directory(self.data_dir.get())
+        self.set_current_directories()
         create_data_viewer(self.data_dir.get(), self.root, self.config)
 
     def open_file_browser(self):

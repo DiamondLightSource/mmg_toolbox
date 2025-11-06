@@ -9,7 +9,6 @@ from mmg_toolbox.utils.env_functions import open_terminal
 def create_title_window(beamline: str | None = None):
     """Title Window"""
     from ..widgets.title_window import TitleWindow
-    from .config_editor import ConfigEditor
     from .log_viewer import create_gda_terminal_log_viewer
     from .file_browser import create_nexus_file_browser, create_file_browser, create_jupyter_browser
     from .scans import create_range_selector
@@ -31,9 +30,6 @@ def create_title_window(beamline: str | None = None):
             'Range selector': lambda: create_range_selector(widget.data_dir.get(), root, config),
             'Log viewer': lambda: create_gda_terminal_log_viewer(widget.data_dir.get(), root)
         },
-        'Config.': {
-            'Edit Config.': lambda: ConfigEditor(root, config),
-        },
         'Processing': {
             'Script Editor': lambda: create_python_editor(None, root, config),
             'Open a terminal': lambda: open_terminal(f"cd {widget.data_dir.get()}"),
@@ -44,7 +40,7 @@ def create_title_window(beamline: str | None = None):
     }
     menu.update(widget.menu_items())
 
-    topmenu(root, menu, add_themes=True, add_about=True)
+    topmenu(root, menu, add_themes=True, add_about=True, config=config)
 
     root.mainloop()
     return root

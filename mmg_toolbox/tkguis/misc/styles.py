@@ -24,7 +24,6 @@ logger = create_logger(__name__)
 AWTHEMES_PATH = '/dls/science/users/grp66007/tkinter/awthemes-10.4.0'
 DEFAULT_THEME = 'clam'
 
-
 def create_style(root):
     style = ttk.Style(root)
     if os.path.isdir(AWTHEMES_PATH):

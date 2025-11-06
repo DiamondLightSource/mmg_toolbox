@@ -3,7 +3,6 @@ repo_name: mmg_toolbox
 repo_url: https://github.com/DiamondLightSource/mmg_toolbox
 plugins:
 - techdocs-diamond
-- search
 - mkdocstrings:
     handlers:
       python:
@@ -88,11 +87,6 @@ nav:
   - diffraction:
     - description/diffraction_diffcalc.md
 markdown_extensions:
-- pymdownx.superfences:
-    custom_fences:
-    - name: mermaid
-      class: mermaid
-      format: !!python/name:pymdownx.superfences.fence_code_format
 - pymdownx.highlight:
     anchor_linenums: true
     line_spans: __span

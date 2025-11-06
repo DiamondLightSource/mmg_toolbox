@@ -12,12 +12,11 @@ from hdfmap import create_nexus_map
 from mmg_toolbox.utils.env_functions import get_scan_notebooks, TMPDIR
 from ..misc.functions import post_right_click_menu, show_error
 from ..misc.logging import create_logger
-from ..misc.config import get_config
-from mmg_toolbox.tkguis.apps.edit_text import EditText
+from ..misc.config import get_config, C
+from ..misc.screen_size import get_text_size
+from ..apps.edit_text import EditText
 
 logger = create_logger(__file__)
-
-TEXTWIDTH = 50  # characters, width of textboxes
 
 
 class NexusDetails:
@@ -26,11 +25,11 @@ class NexusDetails:
         self.root = root
         self.filename = hdf_filename
         self.map: hdfmap.NexusMap | None = None
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
 
         self.terminal_history = ['']
         self.terminal_history_index = 0
-        self._text_expression = self.config.get('metadata_string', '')
+        self._text_expression = self.config.get(C.metadata_string, '')
         self.terminal_entry = tk.StringVar(self.root, self.terminal_history[self.terminal_history_index])
         self.notebook = tk.StringVar(self.root, 'None')
         self.notebooks = {}  # notebook: filepath
@@ -38,7 +37,6 @@ class NexusDetails:
         self.terminal = self.ini_terminal(self.root)  # pack from bottom
         self.combo_notebook = self.ini_notebooks(self.root)  # pack from bottom
         self.textbox = self.ini_textbox(self.root)
-
 
         if hdf_filename:
             self.update_data_from_file(hdf_filename)
@@ -50,7 +48,9 @@ class NexusDetails:
         xfrm = ttk.Frame(frm)
         xfrm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
 
-        text = tk.Text(xfrm, state=tk.DISABLED, wrap=tk.NONE, width=TEXTWIDTH)
+        # reduce text height if screen is small
+        text_chars, text_lines = get_text_size(self.root, self.config)
+        text = tk.Text(xfrm, state=tk.DISABLED, wrap=tk.NONE, width=text_chars, height=text_lines)
         text.pack(fill=tk.BOTH, expand=tk.YES)
         # text.bind("<Double-1>", self.text_double_click)
 
@@ -62,7 +62,7 @@ class NexusDetails:
         # right-click menu
         m = tk.Menu(frame, tearoff=0)
         m.add_command(label="edit Text", command=self.edit_expression)
-        # m.add_command(mode="open Namespace", command=self.view_namespace)
+        m.add_command(label="view Metadata", command=self.view_metadata)
 
         def menu_popup(event):
             post_right_click_menu(m, event.x_root, event.y_root)
@@ -77,7 +77,8 @@ class NexusDetails:
         tfrm = ttk.Frame(frm, relief=tk.RIDGE)
         tfrm.pack(side=tk.TOP, fill=tk.BOTH)
 
-        terminal = tk.Text(tfrm, state=tk.DISABLED, wrap=tk.NONE, height=3, width=TEXTWIDTH)
+        text_chars, text_lines = get_text_size(self.root, self.config)
+        terminal = tk.Text(tfrm, state=tk.DISABLED, wrap=tk.NONE, height=3, width=text_chars)
         terminal.pack(side=tk.LEFT, fill=tk.X, expand=tk.NO)
 
         var = ttk.Scrollbar(tfrm, orient=tk.VERTICAL)
@@ -139,6 +140,11 @@ class NexusDetails:
         """Double-click on text display => open config str"""
         self._text_expression = EditText(self._text_expression, self.root).show()
         self.update_text()
+
+    def view_metadata(self):
+        from ..apps.namespace_select import create_metadata_selector
+        hdf_map = self.map or create_nexus_map(self.filename)
+        create_metadata_selector(hdf_map, self.root, self.config)
 
     def run_notebook(self):
         from mmg_toolbox.utils.nb_runner import view_jupyter_notebook, view_notebook_html

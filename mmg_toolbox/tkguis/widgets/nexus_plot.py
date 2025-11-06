@@ -5,14 +5,15 @@ import os
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
-import h5py
 
 import hdfmap
 from hdfmap import create_nexus_map
 from hdfmap.eval_functions import generate_identifier
 
+from mmg_toolbox.utils.env_functions import get_scan_number
+from mmg_toolbox.utils.fitting import multipeakfit, FitResults, find_peaks_str
 from ..misc.logging import create_logger
-from ..misc.config import get_config, C
+from ..misc.config import get_config
 from .simple_plot import SimplePlot
 
 logger = create_logger(__file__)
@@ -32,15 +33,19 @@ class NexusDefaultPlot(SimplePlot):
         self.root = root
         self.filenames = hdf_filenames
         self.map: hdfmap.NexusMap | None = None
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
         self._plot_data: list[dict] = []
-        self._scannable_data: list[dict[str, np.ndarray]] = []
+        self._scannable_data: list[dict[str, np.ndarray]] = []  # plot data: list of dicts of arrays
+        self._fit_result: FitResults | None = None
 
         self.axes_x = tk.StringVar(self.root, 'axes')
         self.axes_y = tk.StringVar(self.root, 'signal')
         self.normalise = tk.BooleanVar(self.root, False)
         self.fix_x = tk.BooleanVar(self.root, False)
         self.fix_y = tk.BooleanVar(self.root, False)
+        self.fit_model = tk.StringVar(self.root, 'Gaussian')
+        self.max_peaks = tk.IntVar(self.root, 1)
+        self.do_fit = tk.BooleanVar(self.root, False)
         self.error_message = tk.StringVar(self.root, '')
 
         self.combo_x, self.combo_y = self.ini_axes_select()
@@ -91,40 +96,70 @@ class NexusDefaultPlot(SimplePlot):
         section.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
 
         frm = ttk.Frame(section)
-        frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
-        var = ttk.Label(frm, text='X Axes:', width=10)
+        frm.pack(side=tk.LEFT)
+        line = ttk.Frame(frm)
+        line.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        var = ttk.Label(line, text='X Axes:', width=10)
         var.pack(side=tk.LEFT)
-        combo_x = ttk.Combobox(frm, values=axes_options,
+        combo_x = ttk.Combobox(line, values=axes_options,
                                textvariable=selection_x, width=20)
         combo_x.pack(side=tk.LEFT, padx=5)
         combo_x.bind('<<ComboboxSelected>>', select_x)
-        var = ttk.Entry(frm, textvariable=self.axes_x, width=30)
-        var.pack(side=tk.LEFT)
+        var = ttk.Entry(line, textvariable=self.axes_x, width=30)
+        # var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
-        var = ttk.Checkbutton(frm, text='Fix', variable=self.fix_x)
+        var = ttk.Checkbutton(line, text='Fix', variable=self.fix_x)
         var.pack(side=tk.LEFT)
 
-        frm = ttk.Frame(section)
-        frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
-        var = ttk.Label(frm, text='Y Axes:', width=10)
+        line = ttk.Frame(frm)
+        line.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        var = ttk.Label(line, text='Y Axes:', width=10)
         var.pack(side=tk.LEFT)
-        combo_y = ttk.Combobox(frm, values=signal_options,
+        combo_y = ttk.Combobox(line, values=signal_options,
                                textvariable=selection_y, width=20)
         combo_y.pack(side=tk.LEFT, padx=5)
         combo_y.bind('<<ComboboxSelected>>', select_y)
-        var = ttk.Entry(frm, textvariable=self.axes_y, width=30)
-        var.pack(side=tk.LEFT)
+        var = ttk.Entry(line, textvariable=self.axes_y, width=30)
+        # var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
-        var = ttk.Checkbutton(frm, text='Fix', variable=self.fix_y)
+        var = ttk.Checkbutton(line, text='Fix', variable=self.fix_y)
         var.pack(side=tk.LEFT)
-        var = ttk.Checkbutton(frm, text='Normalise', variable=self.normalise, command=self.normalise_signal)
+        var = ttk.Checkbutton(line, text='Normalise', variable=self.normalise, command=self.normalise_signal)
         var.pack(side=tk.LEFT)
 
+        # Fitting
+        frm = ttk.Frame(section, relief=tk.RIDGE, borderwidth=2)
+        frm.pack(side=tk.LEFT, padx=4)
+        line = ttk.Frame(frm)
+        line.pack(side=tk.TOP, fill=tk.X)
+        ttk.Label(line, text='Max peaks:').pack(side=tk.LEFT)
+        var = ttk.Entry(line, textvariable=self.max_peaks, width=2)
+        var.pack(side=tk.LEFT)
+        var.bind('<Return>', self.perform_fit)
+        var.bind('<KP_Enter>', self.perform_fit)
+        ttk.Checkbutton(line, variable=self.do_fit).pack(side=tk.LEFT)
+
+        line = ttk.Frame(frm)
+        line.pack(side=tk.TOP, fill=tk.X)
+        fit_options = ['Line', 'Gaussian', 'Lorentzian', 'pVoight']  # TODO: get this from somewhere else
+        var = ttk.Combobox(line, values=fit_options,
+                           textvariable=self.fit_model, width=12)
+        var.pack(side=tk.LEFT)
+        var.bind('<<ComboboxSelected>>', self.perform_fit)
+        ttk.Button(line, text=':', command=self.fit_results, width=1, padding=0).pack(side=tk.LEFT, padx=1)
+
+        # Fitting
         frm = ttk.Frame(section)
+        frm.pack(side=tk.LEFT, fill=tk.Y, padx=4)
+        ttk.Button(frm, text='Plots', command=self.multiplots, width=5).pack(side=tk.TOP, fill=tk.X)
+        ttk.Button(frm, text='Fits', command=self.peakfiting, width=5).pack(side=tk.TOP, fill=tk.X)
+
+        # Error line
+        frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
         ttk.Label(frm, textvariable=self.error_message, style='error.TLabel').pack()
         return combo_x, combo_y
@@ -219,7 +254,9 @@ class NexusDefaultPlot(SimplePlot):
     def update_axis_choice(self, event=None):
         x_label = self.axes_x.get()
         y_label = self.axes_y.get()
-        xdata, ydata = self.get_xy_data(x_label, y_label)
+        if not x_label or not y_label:
+            return
+        xdata, ydata = self.get_xy_data(x_label, *y_label.split(','))
         self.update_from_data(
             x_data=xdata,
             y_data=ydata,
@@ -229,6 +266,80 @@ class NexusDefaultPlot(SimplePlot):
             legend=[os.path.basename(filename) for filename in self.filenames],
         )
         self.line = self.plot_list[0]
+
+    def _perform_fit(self) -> tuple[FitResults | None, str]:
+        """Returns (FitResults, label)"""
+        x_label = self.axes_x.get()
+        y_label = self.axes_y.get()
+        model = self.fit_model.get()
+        if not x_label or not y_label:
+            return None, ''
+        xdata, ydata = self.get_xy_data(x_label, y_label)
+        result = multipeakfit(
+            xvals=xdata[0],
+            yvals=ydata[0],
+            npeaks=self.max_peaks.get(),
+            model=model,
+        )
+        x_fit, y_fit = result.fit_data(ntimes=1)  # don't interpolate as x will be the wrong
+        label = f"fit_{y_label}_{model}"
+        self._scannable_data[0][label] = y_fit
+        self._fit_result = result
+        return result, label
+
+    def perform_fit(self, event=None):
+        result, label = self._perform_fit()
+        if result is None:
+            return
+        x, y = result.fit_data()
+        lines = self.ax1.plot(x, y, label=label)
+        self.plot_list.extend(lines)
+        self.update_labels(legend=True)
+        self.update_axes()
+
+    def fit_options(self):
+        pass
+
+    def fit_results(self):
+        from ..apps.edit_text import EditText
+
+        x_axis = self.axes_x.get()
+        y_axis = self.axes_y.get()
+        if not x_axis or not y_axis:
+            return
+        xdata, ydata = self.get_xy_data(x_axis, y_axis)
+        peak_str = find_peaks_str(xdata[0], ydata[0])
+
+        title = os.path.basename(self.filenames[0])
+        x_label, y_label = self.map.generate_ids(x_axis, y_axis)
+        label = f"{x_label} vs {y_label}"
+        out = f"{title}\n{label}\n\n"
+        out += peak_str + '\n\n'
+        if self._fit_result is not None:
+            out += str(self._fit_result)
+        EditText(out, parent=self.root, title=title)
+
+    def multiplots(self):
+        from ..apps.multi_scan_analysis import create_multi_scan_analysis
+        # Note that exp directory and proc directory are in config
+        create_multi_scan_analysis(
+            parent=self.root,
+            config=self.config,
+            scan_numbers=[get_scan_number(f) for f in self.filenames],
+            x_axis=self.axes_x.get(),
+            y_axis=self.axes_y.get(),
+        )
+
+    def peakfiting(self):
+        from ..apps.peak_fit_analysis import create_peak_fit
+        # Note that exp directory and proc directory are in config
+        create_peak_fit(
+            parent=self.root,
+            config=self.config,
+            scan_numbers=[get_scan_number(f) for f in self.filenames],
+            x_axis=self.axes_x.get(),
+            y_axis=self.axes_y.get(),
+        )
 
 
 class NexusMultiAxisPlot(NexusDefaultPlot):
@@ -266,7 +377,6 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
             if item == auto_signal:
                 self.listbox.focus()
 
-
     def select_listbox_items(self, event=None):
         if len(self.listbox.selection()) == 0:
             return
@@ -283,6 +393,8 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
             legend=labels,
         )
         self.line = self.plot_list[0]
+        if self.do_fit:
+            self.perform_fit()
 
     def update_axis_choice(self, event=None):
         # select item in list if it matches
@@ -295,3 +407,14 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
             self.listbox.selection_set(in_listbox)
             self.listbox.see(in_listbox)
         super().update_axis_choice(event)
+
+    def perform_fit(self, event=None):
+        result, label = self._perform_fit()
+        if result is None:
+            return
+        self.listbox.insert("", tk.END, text=label)
+        x, y = result.fit_data()
+        lines = self.ax1.plot(x, y, label=label)
+        self.plot_list.extend(lines)
+        self.update_labels(legend=True)
+        self.update_axes()

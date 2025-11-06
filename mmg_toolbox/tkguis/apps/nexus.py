@@ -1,18 +1,22 @@
+"""
+
+"""
+
 import tkinter as tk
 
 from mmg_toolbox.tkguis.misc.functions import topmenu, select_hdf_file
 from mmg_toolbox.tkguis.misc.styles import RootWithStyle, create_root
 
 
-def create_nexus_viewer(filename: str, parent: tk.Misc | None = None) -> RootWithStyle:
+def create_nexus_viewer(filename: str, parent: tk.Misc | None = None, config: dict | None = None) -> RootWithStyle:
     """
     File Viewer of the NeXus structure
     """
-    from ..widgets.nexus_treeview import HDFViewer
+    from mmg_toolbox.tkguis.widgets.hdf_viewer import HDFViewer
 
     root = create_root(parent=parent, window_title='NeXus File Viewer')
 
-    widget = HDFViewer(root, filename)
+    widget = HDFViewer(root, filename, config)
 
     menu = {
         'File': {

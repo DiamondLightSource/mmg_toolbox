@@ -11,10 +11,13 @@ fit.plot()
 """
 
 import numpy as np
-from lmfit.models import GaussianModel, LorentzianModel, VoigtModel, PseudoVoigtModel, LinearModel, ExponentialModel
+from lmfit.models import (
+    GaussianModel, LorentzianModel, VoigtModel, PseudoVoigtModel, LinearModel, ExponentialModel,
+    SineModel
+)
 from lmfit.model import ModelResult, Model, Parameters
 from .misc_functions import stfm
-from mmg_toolbox.nexus.nexus_reader import NexusDataHolder
+from ..nexus.nexus_scan import NexusScan
 
 # https://lmfit.github.io/lmfit-py/builtin_models.html#peak-like-models
 MODELS = {
@@ -23,7 +26,8 @@ MODELS = {
     'voight': VoigtModel,
     'pvoight': PseudoVoigtModel,
     'linear': LinearModel,
-    'exponential': ExponentialModel
+    'exponential': ExponentialModel,
+    'SineModel': SineModel,
 }  # list of available lmfit models
 
 PEAK_MODELS = {
@@ -293,8 +297,32 @@ def find_peaks(y: np.ndarray, yerror: np.ndarray | None = None,
     peak_power = np.array([np.sum(peak_power[ii]) for ii in group_signal_idx])
 
     # sort peak order by strength
-    power_sort = np.argsort(peak_power)
+    power_sort = np.argsort(peak_power)[::-1]
     return peaks_idx[power_sort], peak_power[power_sort]
+
+
+def find_peaks_str(x: np.ndarray, y: np.ndarray, yerror: np.ndarray | None = None,
+                   min_peak_power: float | None = None, peak_distance_idx: int = 6) -> str:
+    """
+    Find peak shaps in linear-spaced 1d arrays with poisson like numerical values
+
+    E.G.
+      index, power = find_peaks(ydata, yerror, min_peak_power=None, peak_distance_idx=10)
+      peak_centres = xdata[index]  # ordered by peak strength
+
+    :param x: array(n) of data
+    :param y: array(n) of data
+    :param yerror: array(n) of errors on data, or None to use default error function (sqrt(abs(y)+1))
+    :param min_peak_power: float, only return peaks with power greater than this. If None compare against std(y)
+    :param peak_distance_idx: int, group adjacent maxima if closer in index than this
+    :return index: array(m) of indexes in y of peaks that satisfy conditions
+    :return power: array(m) of estimated power of each peak
+    """
+    index, power = find_peaks(y, yerror, min_peak_power, peak_distance_idx)
+    x_vals = x[index]
+    out = f"Find Peaks:\n len: {len(x)}, max: {np.max(y):.5g}, min: {np.min(y):.5g}\n\n"
+    out += '\n'.join(f"  {idx:4} {_x:10.5}  power={pwr:.3}" for idx, _x, pwr in zip(index, x_vals, power))
+    return out
 
 
 def peak_results(res: ModelResult) -> dict:
@@ -331,6 +359,7 @@ def peak_results(res: ModelResult) -> dict:
     npeaks = len(peak_prefx)
     nn = 1 / len(peak_prefx) if len(peak_prefx) > 0 else 1  # normalise by number of peaks
     comps = res.eval_components()
+    # TODO: standardise these keys
     fit_dict = {
         'lmfit': res,
         'npeaks': npeaks,
@@ -400,14 +429,15 @@ def peak_results_str(res: ModelResult) -> str:
     return out
 
 
-def peak_results_fit(res: ModelResult, ntimes: int = 10) -> tuple[np.ndarray, np.ndarray]:
+def peak_results_fit(res: ModelResult, ntimes: int = 10, x_data: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """
     Generate xfit, yfit data, interpolated to give smoother variation
     :param res: lmfit_result
     :param ntimes: int, number of points * old number of points
+    :param x_data: x data to interpolate or None to use data from fit
     :return: xfit, yfit
     """
-    old_x = res.userkws['x']
+    old_x = res.userkws['x'] if x_data is None else x_data
     xfit = np.linspace(np.min(old_x), np.max(old_x), np.size(old_x) * ntimes)
     yfit = res.eval(x=xfit)
     return xfit, yfit
@@ -492,6 +522,16 @@ class FitResults:
     xdata, yfit = fitres.fit(ntimes=10)  # interpolated fit results
     fig = fitres.plot(axes, xlabel, ylabel, title)  # create plot
     """
+    amplitude: float
+    center: float
+    height: float
+    fwhm: float
+    background: float
+    stderr_amplitude: float
+    stderr_center: float
+    stderr_height: float
+    stderr_fwhm: float
+    stderr_background: float
 
     def __init__(self, results: ModelResult):
         self.res = results
@@ -502,13 +542,20 @@ class FitResults:
     def __str__(self):
         return peak_results_str(self.res)
 
-    def results(self):
+    def get_value(self, name: str) -> tuple[float | None, float]:
+        """Returns fit parameter value and associated error"""
+        err_name = f"stderr_{name}"
+        value = self._res.get(name, None)
+        error = self._res.get(err_name, 0)
+        return value, error
+
+    def results(self) -> dict:
         """Returns dict of peak fit results"""
         return self._res
 
-    def fit(self, ntimes=10):
+    def fit_data(self, x_data: np.ndarray | None = None, ntimes=10) -> tuple[np.ndarray, np.ndarray]:
         """Returns interpolated x, y fit arrays"""
-        return peak_results_fit(self.res, ntimes=ntimes)
+        return peak_results_fit(self.res, ntimes=ntimes, x_data=x_data)
 
     def plot(self, axes=None, xlabel=None, ylabel=None, title=None):
         """Plot peak fit results"""
@@ -778,7 +825,7 @@ def generate_model_script(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndar
                           npeaks: int | None = None, min_peak_power: float | None = None, peak_distance_idx: int = 6,
                           model: str = 'Gaussian', background: str = 'slope', 
                           initial_parameters: dict | None = None, fix_parameters: dict | None = None,
-                          only_lmfit: str = False) -> str:
+                          only_lmfit: bool = False) -> str:
     """
     Generate script to create lmfit profile models
     E.G.:
@@ -970,7 +1017,7 @@ class ScanFitManager:
     :param scan: babelscan.Scan
     """
 
-    def __init__(self, scan: NexusDataHolder):
+    def __init__(self, scan: NexusScan):
         self.scan = scan
 
     def __call__(self, *args, **kwargs) -> FitResults:
@@ -1211,19 +1258,22 @@ class ScanFitManager:
         # lmfit
         res = model.fit(ydata, pars, x=xdata, weights=weights, method=method)
 
-        self.scan.add2namespace('lmfit', res, 'fit_result')
-        self.scan.add2namespace('fit', res.best_fit, other_names=['fit_%s' % yname])
-        fit_dict = {}
+        fit_dict = {
+            'lmfit': res,
+            'fit_result': res,
+            'fit': res.best_fit,
+            f"fit_{yname}": res.best_fit,
+        }
         for pname, param in res.params.items():
             ename = 'stderr_' + pname
             fit_dict[pname] = param.value
             fit_dict[ename] = param.stderr
-        for name, value in fit_dict.items():
-            self.scan.add2namespace(name, value)
+
         # Add peak components
         comps = res.eval_components(x=xdata)
         for component in comps.keys():
-            self.scan.add2namespace('%sfit' % component, comps[component])
+            fit_dict[f"{component}fit"] = comps[component]
+        self.scan.map.add_local(**fit_dict)
 
         if print_result:
             print(self.scan.title())
@@ -1328,11 +1378,7 @@ class ScanFitManager:
         :param parameter_name: str, name from last fit e.g. 'amplitude', 'center', 'fwhm', 'background'
         :returns:  value, error
         """
-        if not self.scan.isinnamespace('lmfit'): #TODO: fix this
-            self.fit()
         lmfit = self.scan('lmfit')
-        if parameter_name is None:
-            return FitResults(lmfit)
         param = lmfit.params[parameter_name]
         return param.value, param.stderr
 
@@ -1341,8 +1387,6 @@ class ScanFitManager:
         Returns FitResults object from last fit
         :return: PeakResults obect
         """
-        if not self.scan.isinnamespace('fitobj'):  #TODO: fix this
-            self.fit()
         return self.scan('fitobj')
 
     def fit_report(self) -> str:

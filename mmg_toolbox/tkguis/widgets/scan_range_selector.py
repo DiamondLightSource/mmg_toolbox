@@ -6,6 +6,7 @@ import os
 import tkinter as tk
 from tkinter import ttk
 
+from mmg_toolbox import Experiment
 from mmg_toolbox.utils.env_functions import (get_scan_numbers, get_last_scan_number, get_first_file)
 from mmg_toolbox.utils.file_functions import get_scan_number, replace_scan_number
 from ..misc.logging import create_logger
@@ -20,15 +21,13 @@ class ScanRangeSelector:
     def __init__(self, root: tk.Misc, initial_directory: str | None = None, config: dict | None = None):
         logger.info('Creating ScanRangeSelector')
         self.root = root
-        self.config = get_config() if config is None else config
+        self.config = config or get_config()
 
         # variables
         self.exp_folder = tk.StringVar(self.root, initial_directory)
-        self.save_folder = tk.StringVar(self.root, '')
         self.number_start = tk.StringVar(self.root, '-10')
         self.number_end = tk.StringVar(self.root, '-1')
         self.number_step = tk.IntVar(self.root, 1)
-        self.metadata_name = tk.StringVar(self.root, '')
         self.file_list = []
 
         # Range selection
@@ -49,7 +48,7 @@ class ScanRangeSelector:
         var.bind("<Return>", self.update_numbers)
         ttk.Button(frm, text='Get numbers', command=self.numbers_from_exp).pack(side=tk.LEFT)
         ttk.Button(frm, text='Generate', command=self.update_numbers).pack(side=tk.LEFT, padx=4)
-        ttk.Button(frm, text='Select Files', command=self.select_files).pack(side=tk.RIGHT, padx=4)
+        ttk.Button(frm, text='Select Files', command=self.select_files).pack(side=tk.LEFT, padx=4)
 
         # Text box
         frm = ttk.Frame(self.root)
@@ -62,15 +61,12 @@ class ScanRangeSelector:
         var = ttk.Scrollbar(frm, orient=tk.VERTICAL, command=self.text.yview)
         var.pack(side=tk.LEFT, fill=tk.Y)
         self.text.configure(yscrollcommand=var.set)
-
-        frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
-        ttk.Button(frm, text='Check', command=self.show_metadata).pack()
+        ttk.Button(frm, text='Check', command=self.show_metadata).pack(side=tk.LEFT, fill=tk.Y)
 
     def numbers_from_exp(self):
         exp_folder = self.exp_folder.get()
         if exp_folder:
-            numbers = get_scan_numbers(exp_folder)
+            numbers = get_scan_numbers(exp_folder)  # TODO: use scan_number_mapping
             self.number_start.set(str(numbers[0]))
             self.number_end.set(str(numbers[-1]))
 
@@ -93,33 +89,39 @@ class ScanRangeSelector:
             # if first < numbers[0] and last < numbers[0]:
             #     scan_range = [numbers[idx] for idx in range(first, last+1, step)]
 
+        # TODO: check scan numbers exist before adding
         scan_range = list(range(first, last+1, step))
         self.text.replace("1.0", tk.END, str(scan_range))
 
     def generate_scan_numbers(self) -> list[int]:
         scan_text = self.text.get("1.0", tk.END)
+        if not scan_text.strip():
+            return []
+        # TODO: replace eval with asteval
         scan_numbers = eval(scan_text)
         return scan_numbers
 
-    def numbers2files(self, scan_numbers: list[int]) -> list[str]:
+    def numbers2files(self, scan_numbers: list[int]) -> dict[int, str]:
         exp_folder = self.exp_folder.get()
         scan_file_template = get_first_file(exp_folder)
         scan_files = (replace_scan_number(scan_file_template, number) for number in scan_numbers)
-        return [file for file in scan_files if os.path.isfile(file)]
+        return {number: file for number, file in zip(scan_numbers, scan_files) if os.path.isfile(file)}
 
-    def generate_scan_files(self) -> list[str]:
+    def generate_scan_files(self) -> dict[int, str]:
         scan_numbers = self.generate_scan_numbers()
         return self.numbers2files(scan_numbers)
 
     def select_files(self):
-        from ..apps.scans import select_scans
-        files = select_scans(self.exp_folder.get(), self.root, self.config)
+        from ..apps.scans import list_scans
+        file_list = list_scans(self.exp_folder.get())
+        files = list_scans(*file_list, parent=self.root, config=self.config, button_name='Select')
         if files:
             numbers = [get_scan_number(file) for file in files]
             self.text.replace("1.0", tk.END, str(numbers))
 
     def show_metadata(self):
         from ..apps.scans import list_scans
-        metadata_list = self.metadata_name.get().split(',')
-        file_list = self.generate_scan_files()
-        list_scans(*file_list, parent=self.root, config=self.config, metadata_list=metadata_list)
+        file_list = self.generate_scan_files().values()
+        if len(file_list) == 0:
+            return
+        list_scans(*file_list, parent=self.root, config=self.config)

@@ -11,14 +11,15 @@ from threading import Thread
 from mmg_toolbox.utils.file_functions import list_files, list_path_time, display_timestamp, get_hdf_string, folder_summary
 from mmg_toolbox.utils.env_functions import open_terminal
 from ..misc.styles import create_hover
-from ..misc.functions import folder_treeview, post_right_click_menu, select_folder
+from ..misc.functions import select_folder, post_right_click_menu
 from ..misc.jupyter import launch_jupyter_notebook
 from ..misc.logging import create_logger
+from .treeview import CanvasTreeview
 
 logger = create_logger(__file__)
 
 
-class FolderTreeViewFrame:
+class FolderTreeViewFrame(CanvasTreeview):
     """Frame with TreeView and entry for Folders"""
 
     def __init__(self, extension: str, root: tk.Misc, initial_directory: str | None = None):
@@ -38,7 +39,7 @@ class FolderTreeViewFrame:
         self.search_label = tk.StringVar(root, '')
 
         # Columns
-        self.columns = [
+        columns = [
             # (name, text, width, reverse, sort_col)
             ("#0", 'Folder', 200, False, None),
             ("modified", 'Modified', 150, True, "modified_time"),
@@ -50,8 +51,7 @@ class FolderTreeViewFrame:
 
         # Build widgets
         self.ini_folderpath()
-        self.tree = folder_treeview(self.root, self.columns)
-        self.tree.configure(displaycolumns=('modified', 'files', 'data'))  # hide columns
+        super().__init__(root, *columns)
         self.tree.bind("<<TreeviewOpen>>", self.populate_files)
         self.tree.bind("<Double-1>", self.on_double_click)
         self.tree.bind("<Return>", self.on_double_click)
@@ -142,6 +142,7 @@ class FolderTreeViewFrame:
                     self.tree.insert(branch, tk.END)  # empty
                     self.tree.item(branch, open=False)
         th = Thread(target=fun)
+        #TODO: add deamon?
         th.start()  # will run until complete, may error if TreeView is destroyed
 
     def populate_files(self, event=None):
@@ -306,7 +307,8 @@ class FolderTreeViewFrame:
         m_folder = tk.Menu(self.root, tearoff=0)
         m_folder.add_command(label="Copy path", command=self.copy_path)
         m_folder.add_command(label="Open Terminal", command=self.open_terminal)
-        m_folder.add_command(label='Launch Jupyter', command=self.launch_jupyter)
+        # TODO: add these
+        # m_folder.add_command(label='Launch Jupyter', command=self.launch_jupyter)
         # m_folder.add_command(mode="Open Folder Datasets", command=self.menu_folder_files)
         # m_folder.add_command(mode="Open Folder Plots", command=self.menu_folder_plot)
         # # m_folder.add_command(mode="Display Contents", command=self.menu_folder_plot)
@@ -316,6 +318,7 @@ class FolderTreeViewFrame:
     def _right_click_file(self) -> tk.Menu:
         # right-click menu - file options
         m_file = tk.Menu(self.root, tearoff=0)
+        #TODO: add these
         m_file.add_command(label="Copy path", command=self.copy_path)
         # m_file.add_command(mode="open Treeview", command=self.open_nexus_treeview)
         # m_file.add_command(mode="open Plot", command=self.open_nexus_plot)
@@ -435,10 +438,12 @@ class FolderTreeViewFrame:
 
 
 class NexusFolderTreeViewFrame(FolderTreeViewFrame):
-    def __init__(self, root: tk.Misc, initial_directory: str | None = None):
+    def __init__(self, root: tk.Misc, initial_directory: str | None = None, hdf_path: str | None = None):
         logger.info('Creating NexusFolderTreeViewFrame')
         super().__init__('.nxs', root, initial_directory)
         self.extensions = ('.nxs', '.hdf', '.hdf5', '.h5', '.*')
+        if hdf_path:
+            self.hdf_path.set(hdf_path)
 
     def _right_click_file(self) -> tk.Menu:
         # right-click menu - file options

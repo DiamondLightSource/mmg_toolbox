@@ -10,19 +10,23 @@ from PIL import ImageGrab
 from .styles import RootWithStyle, theme_menu
 
 
-def topmenu(root: RootWithStyle, menu_dict: dict, add_themes=False, add_about=False):
+def topmenu(root: RootWithStyle, menu_dict: dict, add_themes=False, add_about=False,
+            config: dict | None = None):
     """
     Add a file menu to root
     :param root: tkinter root
     :param menu_dict: {Menu name: {Item name: function}}
     :param add_themes: add themes menu item
     :param add_about: add about menu item
+    :param config: add Config menu if config dict is added
     :return: None
     """
+    if config is not None:
+        menu_dict.update(config_menu(root, config))
     if add_themes and hasattr(root, 'style'):
         menu_dict.update(theme_menu(root.style))
     if add_about:
-        menu_dict.update(about_menu())
+        menu_dict.update(about_menu(root))
 
     def add_menu(menu: tk.Menu, **this_menu_dict):
         for name, item in this_menu_dict.items():
@@ -38,12 +42,25 @@ def topmenu(root: RootWithStyle, menu_dict: dict, add_themes=False, add_about=Fa
     root.config(menu=menubar)
 
 
-def about_menu():
+def about_menu(root: tk.Misc | None = None):
     """About menu items"""
     menu = {
         'Help': {
-            'Docs': lambda: print('None'),
-            'About': popup_about
+            'Docs': open_docs,
+            'About': lambda: popup_about(root)
+        }
+    }
+    return menu
+
+
+def config_menu(root: tk.Misc, config: dict) -> dict:
+    """Config menu items"""
+    from ..apps.config_editor import ConfigEditor
+    from .config import reset_config
+    menu = {
+        'Config': {
+            'Edit Config.': lambda: ConfigEditor(root, config),
+            'Reset Config.': lambda: reset_config(config),
         }
     }
     return menu
@@ -69,9 +86,10 @@ def select_hdf_file(parent):
     return filename
 
 
-def select_folder(parent):
+def select_folder(parent, initial_directory: str | None = None):
     """Select folder"""
     foldername = filedialog.askdirectory(
+        initialdir=initial_directory,
         title='Select folder...',
         mustexist=True,
         parent=parent,
@@ -129,14 +147,24 @@ def show_error(message, parent=None, raise_exception=True):
         raise Exception(message)
 
 
-def popup_about(root=None):
+def open_docs():
+    """Open web-browser at docs site"""
+    import webbrowser
+    webbrowser.open_new_tab("https://diamondlightsource.github.io/mmg_toolbox/")
+
+
+def popup_about(root: tk.Misc | None = None):
     """Create about message"""
     from mmg_toolbox import version_info, module_info, title
-    msg = "%s\n\n" \
-          "A selection of useful functions and methods for the mmg beamlines at Diamond" \
-          "\n\n" \
-          "Module Info:\n%s\n\n" \
-          "By Dan Porter, Diamond Light Source Ltd" % (version_info(), module_info())
+    msg = (
+        f"{version_info()}\n\n" +
+        "A selection of useful functions and methods for the mmg beamlines at Diamond" +
+        "\n\n" +
+        f"Module Info:\n{module_info()}\n\n" +
+        "By Dan Porter, Diamond Light Source Ltd"
+    )
+    if root is not None:
+        msg += f"\n\nScreen size: {root.winfo_screenwidth()}x{root.winfo_screenheight()}"
     messagebox.showinfo(
         title=f"About: {title()}",
         message=msg,
