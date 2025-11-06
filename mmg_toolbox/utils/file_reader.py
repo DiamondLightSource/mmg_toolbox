@@ -27,7 +27,10 @@ def read_gda_terminal_log(filename: str) -> dict[str, list[str]]:
     tabs = defaultdict(list)
     with open(filename) as file:
         for line in file:
-            time = line2dt(line)
-            title = time.strftime(tab_title)
-            tabs[title] += [line.strip()]
+            try:
+                time = line2dt(line)
+                title = time.strftime(tab_title)
+                tabs[title] += [line.strip()]
+            except ValueError as e:
+                pass
     return tabs

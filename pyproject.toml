@@ -37,10 +37,40 @@ classifiers = [
   'Development Status :: 3 - Alpha',
 ]
 
+[project.optional-dependencies]
+# minimal install
+base = [
+  "numpy",
+  "h5py",
+  "hdf5plugin",
+  "hdfmap>=1.1.0",
+  "matplotlib",
+  "imageio",
+  "lmfit",
+]
+# full install with additional packages
+full = [
+  "numpy",
+  "h5py",
+  "hdf5plugin",
+  "hdfmap>=1.1.0",
+  "matplotlib",
+  "imageio",
+  "scipy",
+  "lmfit",
+  "diffcalc-core",
+  "ipython",
+  "jupyter",
+  "nbconvert",
+  "nbformat",
+  "nexpy"
+]
+
 [tool.setuptools]
 packages = [
   'mmg_toolbox', 'mmg_toolbox.beamline_metadata', 'mmg_toolbox.data', 'mmg_toolbox.scripts',
-  'mmg_toolbox.tkguis', 'mmg_toolbox.tkguis.misc', 'mmg_toolbox.tkguis.widgets'
+  'mmg_toolbox.diffraction', 'mmg_toolbox.plotting', 'mmg_toolbox.nexus', 'mmg_toolbox.utils', 'mmg_toolbox.xas',
+  'mmg_toolbox.tkguis', 'mmg_toolbox.tkguis.misc', 'mmg_toolbox.tkguis.widgets', 'mmg_toolbox.tkguis.apps'
 ]
 
 [tool.setuptools.package-data]
@@ -48,3 +78,6 @@ packages = [
 
 [tool.setuptools.dynamic]
 version = {attr = "mmg_toolbox.__version__"}
+
+[project.scripts]
+dataviewer = "mmg_toolbox.tkguis:cli_run"

@@ -16,7 +16,6 @@ def create_data_viewer(initial_folder: str | None = None,
     """
     from ..widgets.nexus_data_viewer import NexusDataViewer
     from .log_viewer import create_gda_terminal_log_viewer
-    from .config_editor import ConfigEditor
     from .file_browser import create_nexus_file_browser, create_file_browser, create_jupyter_browser
     from .multi_scan_analysis import create_multi_scan_analysis
     from .scans import create_range_selector
@@ -69,9 +68,6 @@ def create_data_viewer(initial_folder: str | None = None,
             'Range selector': lambda: create_range_selector(initial_folder, root, config),
             'Log viewer': lambda: create_gda_terminal_log_viewer(get_filepath(), root)
         },
-        'Config.': {
-            'Edit Config.': lambda: ConfigEditor(root, config),
-        },
         'Processing': {
             'Multi-Scan': start_multi_scan_plot,
             'Script Editor': lambda: create_python_editor(None, root, config),
@@ -85,7 +81,7 @@ def create_data_viewer(initial_folder: str | None = None,
     }
     menu.update(widget.image_widget.options_menu())
 
-    topmenu(root, menu, add_themes=True, add_about=True)
+    topmenu(root, menu, add_themes=True, add_about=True, config=config)
 
     root.update()
 

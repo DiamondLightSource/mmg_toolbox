@@ -22,6 +22,8 @@ from ..widgets.simple_plot import SimplePlot
 
 logger = create_logger(__file__)
 
+FIT_PARAMETERS = ['amplitude', 'center', 'fwhm', 'background']
+
 
 class ScanFitModel:
     def __init__(self, scan_no: int, filepath: str, metadata: float, title: str, label: str):
@@ -64,7 +66,7 @@ class ScanPeakTreeview(CanvasTreeview):
     def __init__(self, root: tk.Misc, width: int | None = None, height: int | None = None):
         columns = [
             ('#0', 'Scan number', 100, False, None),
-            ('metadata', 'Metadata', 200, False, None),
+            ('metadata', 'Metadata', 100, False, None),
             ('model', 'Model', 200, False, None),
             ('filepath', 'Filepath', 0, False, None),
         ]
@@ -100,11 +102,10 @@ class PeakFitAnalysis:
         logger.info('Creating PeakFitAnalysis')
         self.root = root
         self.config = config or get_config()
-        exp_directory = exp_directory or self.config.get(C.current_dir, '')
-        proc_directory = proc_directory or self.config.get(C.current_proc, get_processing_directory(exp_directory))
+        self.exp_directory = exp_directory or self.config.get(C.current_dir, '')
+        self.proc_directory = proc_directory or self.config.get(C.current_proc, get_processing_directory(self.exp_directory))
 
-        # TODO: remove tk Var for exp_folder and proc_folder
-        self.exp_folder = tk.StringVar(root, exp_directory)
+        # self.exp_folder = tk.StringVar(root, exp_directory)
         # self.proc_folder = tk.StringVar(root, proc_directory)
         # self.output_file = tk.StringVar(root, proc_directory + '/file.py')
         self.x_axis = tk.StringVar(self.root, 'axes' if x_axis is None else x_axis)
@@ -125,6 +126,7 @@ class PeakFitAnalysis:
         self.scan_background = tk.StringVar(self.root, 'Slope')
         self.scan_title = tk.StringVar(self.root, '')
         self.scan_label = tk.StringVar(self.root, '')
+        self.plot_option = tk.StringVar(self.root, FIT_PARAMETERS[0])
         self.map: hdfmap.NexusMap | None = None
         self.fit_models: list[ScanFitModel] = []
 
@@ -165,7 +167,10 @@ class PeakFitAnalysis:
         # ---Bottom---
         bottom = ttk.Frame(self.root)
         bottom.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
-        ttk.Button(bottom, text='Fit', command=self.fit_all, width=10).pack(side=tk.LEFT)
+        ttk.Button(bottom, text='Plot All', command=self.fit_plots).pack(side=tk.LEFT)
+        ttk.Button(bottom, text='Plot Fit results', command=self.fit_all).pack(side=tk.LEFT)
+        options = ['All'] + FIT_PARAMETERS
+        ttk.Combobox(bottom, textvariable=self.plot_option, values=options).pack(side=tk.LEFT, padx=2)
 
         # ---Start---
         self.add_scans(*scan_numbers)
@@ -243,7 +248,7 @@ class PeakFitAnalysis:
         left.pack(side=tk.LEFT)
         line = ttk.Frame(left)
         line.pack(side=tk.TOP)
-        ttk.Checkbutton(line, variable=self.scan_use_scan).pack(side=tk.LEFT)
+        ttk.Checkbutton(line, variable=self.scan_use_scan, command=self.update_model).pack(side=tk.LEFT)
         ttk.Label(line, textvariable=self.scan_title).pack(side=tk.LEFT, fill=tk.X, padx=5, pady=2)
         ttk.Label(left, textvariable=self.scan_label, width=20).pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
         right = ttk.Frame(frm)
@@ -253,16 +258,22 @@ class PeakFitAnalysis:
 
         frm = ttk.Frame(root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4, pady=2)
-        ttk.Label(frm, text='N Peaks:', width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(frm, textvariable=self.scan_n_peaks, width=3).pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, variable=self.scan_use_peaks).pack(side=tk.LEFT, padx=2)
+        opt = ttk.Frame(frm, relief=tk.GROOVE)
+        opt.pack(side=tk.LEFT, padx=5, pady=4)
+        ttk.Label(opt, text='N Peaks:', width=10).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(opt, textvariable=self.scan_n_peaks, width=3).pack(side=tk.LEFT)
+        ttk.Checkbutton(opt, variable=self.scan_use_peaks, command=self.update_model, padding=0).pack(side=tk.LEFT, padx=2)
 
-        ttk.Label(frm, text='Power:', width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(frm, textvariable=self.scan_peak_power, width=3).pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, variable=self.scan_use_power).pack(side=tk.LEFT, padx=2)
+        opt = ttk.Frame(frm, relief=tk.GROOVE)
+        opt.pack(side=tk.LEFT, padx=5, pady=4)
+        ttk.Label(opt, text='Power:', width=10).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(opt, textvariable=self.scan_peak_power, width=3).pack(side=tk.LEFT)
+        ttk.Checkbutton(opt, variable=self.scan_use_power, command=self.update_model, padding=0).pack(side=tk.LEFT, padx=2)
 
-        ttk.Label(frm, text='Distance:', width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(frm, textvariable=self.scan_peak_distance, width=3).pack(side=tk.LEFT)
+        opt = ttk.Frame(frm, relief=tk.GROOVE)
+        opt.pack(side=tk.LEFT, padx=5, pady=4)
+        ttk.Label(opt, text='Distance:', width=10).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(opt, textvariable=self.scan_peak_distance, width=3).pack(side=tk.LEFT)
 
         frm = ttk.Frame(root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4, pady=2)
@@ -279,8 +290,8 @@ class PeakFitAnalysis:
         ttk.Button(frm, text='Mask Region', command=self.select_mask).pack(side=tk.LEFT, padx=2)
         ttk.Button(frm, text='Reset', command=self.reset_mask).pack(side=tk.LEFT, padx=2)
 
-        frm = ttk.Frame(root)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
+        # frm = ttk.Frame(root)
+        # frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
         # parameters
         # TODO: add parameters
 
@@ -327,7 +338,7 @@ class PeakFitAnalysis:
     #######################################################
 
     def get_experiment(self):
-        return Experiment(self.exp_folder.get(), instrument=self.config.get('beamline', None))
+        return Experiment(self.exp_directory, instrument=self.config.get('beamline', None))
 
     def get_scan_files(self, *scan_numbers: int) -> list[str]:
         try:
@@ -381,14 +392,6 @@ class PeakFitAnalysis:
         with self.map.load_hdf(filename) as hdf:
             x_data = self.map.eval(hdf, x_axis)
             y_data = self.map.eval(hdf, y_axis)
-        return x_data, y_data
-
-    def get_mask_xy_data(self) -> tuple[np.ndarray, np.ndarray]:
-        x_data, y_data = self.get_scan_xy_data()
-        mask = self.fit_models[self.scans.get_index()].mask
-        if mask is not None:
-            x_data = x_data[mask]
-            y_data = y_data[mask]
         return x_data, y_data
 
     def select_scan(self, event=None):
@@ -474,23 +477,82 @@ class PeakFitAnalysis:
         out += str(model.result)
         EditText(out, parent=self.root, title=model.label)
 
+    def scans_title(self):
+        scan_numbers = [model.scan_no for model in self.fit_models]
+        exp = self.get_experiment()
+        return exp.generate_scans_title(*scan_numbers, hdf_map=self.map)
+
     def fit_all(self):
-        metadata, amplitude = [], []
+        option = self.plot_option.get()
+        if option == 'All':
+            self._plot_all_results()
+            return
+
+        metadata, value, error = [], [], []
         for n in range(len(self.fit_models)):
             model = self.update_model(n)
             if model.use_dataset:
                 result = model.fit()
                 metadata.append(model.metadata)
-                amplitude.append(result.amplitude)
+                val, err = result.get_value(option)
+                value.append(val)
+                error.append(err)
 
         x_label = self.metadata_name.get()
-        y_label = 'Amplitude'
+        y_label = option.capitalize()
 
         fig, ax = plt.subplots()
-        ax.plot(metadata, amplitude)
+        ax.errorbar(metadata, value, error, fmt='-o')
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
-        ax.set_title('title')
+        ax.set_title(self.scans_title())
+        plt.show()
+
+    def _plot_all_results(self):
+        dpi = self.config.get(C.plot_dpi)
+        fig, axes = plt.subplots(2, 2, figsize=[12, 12], dpi=dpi)
+        fig.suptitle(self.scans_title())
+        axes = axes.flatten()
+        x_label = self.metadata_name.get()
+        metadata = [model.metadata for model in self.fit_models]
+        results = [model.fit() for model in self.fit_models]
+        for ax, option in zip(axes, FIT_PARAMETERS):
+            values, errors = zip(*[result.get_value(option) for result in results])
+            ax.errorbar(metadata, values, errors, fmt='-o', label=option)
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(option.capitalize())
+        plt.show()
+
+    def fit_plots(self):
+        x_label, y_label, name = self.map.generate_ids(self.x_axis.get(), self.y_axis.get(), self.metadata_name.get())
+
+        fig_axes = generate_subplots(len(self.fit_models))
+        for n, (fig, axes) in enumerate(fig_axes):
+            model = self.update_model(n)
+            x_data, y_data = self.get_scan_xy_data(model.filepath)
+            if model.mask is not None:
+                x_mask = x_data[model.mask]
+                y_mask = y_data[model.mask]
+                x_data = x_data[~model.mask]
+                y_data = y_data[~model.mask]
+            else:
+                x_mask, y_mask = [], []
+
+            if model.use_dataset:
+                result = model.fit()
+                x_fit, y_fit = result.fit_data(x_data)
+            else:
+                x_fit, y_fit = [], []
+
+            title = f"{model.title}\n{name} = {model.metadata:.5g}"
+
+            axes.plot(x_mask, y_mask, 'b.', label=None)
+            axes.plot(x_data, y_data, 'b-o', label='Data')
+            axes.plot(x_fit, y_fit, 'r-', label='Fit')
+            axes.set_xlabel(x_label)
+            axes.set_ylabel(y_label)
+            axes.legend()
+            axes.set_title(title)
         plt.show()
 
     "------------------------------------------------------------------------"

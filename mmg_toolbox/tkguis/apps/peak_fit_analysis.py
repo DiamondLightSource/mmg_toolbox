@@ -14,7 +14,7 @@ def create_peak_fit(parent: tk.Misc | None = None, config: dict | None = None,
     from ..widgets.peak_fit_analysis import PeakFitAnalysis
 
     root = create_root(parent=parent, window_title='Peak Fitting')
-    config = get_config() if config is None else config
+    config = config or get_config()
 
     PeakFitAnalysis(root, config, exp_directory=exp_directory,
                     proc_directory=proc_directory, scan_numbers=scan_numbers,

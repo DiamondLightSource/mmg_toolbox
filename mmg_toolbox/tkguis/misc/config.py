@@ -168,6 +168,13 @@ def get_config(config_filename: str | None = None, beamline: str | None = None) 
     return config
 
 
+def reset_config(config: dict) -> None:
+    """Reset config dict in place with default values of beamline"""
+    beamline = config.get(C.beamline, None)
+    config.clear()
+    config.update(default_config(beamline))
+
+
 def save_config(config: dict):
     config_filename = config.get(C.conf_file, CONFIG_FILE)
     with open(config_filename, 'w') as f:

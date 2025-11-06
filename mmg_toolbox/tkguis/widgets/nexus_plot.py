@@ -106,7 +106,7 @@ class NexusDefaultPlot(SimplePlot):
         combo_x.pack(side=tk.LEFT, padx=5)
         combo_x.bind('<<ComboboxSelected>>', select_x)
         var = ttk.Entry(line, textvariable=self.axes_x, width=30)
-        var.pack(side=tk.LEFT)
+        # var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
@@ -122,7 +122,7 @@ class NexusDefaultPlot(SimplePlot):
         combo_y.pack(side=tk.LEFT, padx=5)
         combo_y.bind('<<ComboboxSelected>>', select_y)
         var = ttk.Entry(line, textvariable=self.axes_y, width=30)
-        var.pack(side=tk.LEFT)
+        # var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
@@ -156,10 +156,10 @@ class NexusDefaultPlot(SimplePlot):
         frm = ttk.Frame(section)
         frm.pack(side=tk.LEFT, fill=tk.Y, padx=4)
         ttk.Button(frm, text='Plots', command=self.multiplots, width=5).pack(side=tk.TOP, fill=tk.X)
-        ttk.Button(frm, text='Fit', command=self.peakfiting, width=5).pack(side=tk.TOP, fill=tk.X)
+        ttk.Button(frm, text='Fits', command=self.peakfiting, width=5).pack(side=tk.TOP, fill=tk.X)
 
         # Error line
-        frm = ttk.Frame(section)
+        frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
         ttk.Label(frm, textvariable=self.error_message, style='error.TLabel').pack()
         return combo_x, combo_y

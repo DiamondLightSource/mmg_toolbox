@@ -542,6 +542,13 @@ class FitResults:
     def __str__(self):
         return peak_results_str(self.res)
 
+    def get_value(self, name: str) -> tuple[float | None, float]:
+        """Returns fit parameter value and associated error"""
+        err_name = f"stderr_{name}"
+        value = self._res.get(name, None)
+        error = self._res.get(err_name, 0)
+        return value, error
+
     def results(self) -> dict:
         """Returns dict of peak fit results"""
         return self._res

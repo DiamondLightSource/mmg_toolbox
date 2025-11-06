@@ -66,7 +66,7 @@ class ScanRangeSelector:
     def numbers_from_exp(self):
         exp_folder = self.exp_folder.get()
         if exp_folder:
-            numbers = get_scan_numbers(exp_folder)
+            numbers = get_scan_numbers(exp_folder)  # TODO: use scan_number_mapping
             self.number_start.set(str(numbers[0]))
             self.number_end.set(str(numbers[-1]))
 
@@ -89,6 +89,7 @@ class ScanRangeSelector:
             # if first < numbers[0] and last < numbers[0]:
             #     scan_range = [numbers[idx] for idx in range(first, last+1, step)]
 
+        # TODO: check scan numbers exist before adding
         scan_range = list(range(first, last+1, step))
         self.text.replace("1.0", tk.END, str(scan_range))
 

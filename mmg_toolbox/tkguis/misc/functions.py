@@ -10,15 +10,19 @@ from PIL import ImageGrab
 from .styles import RootWithStyle, theme_menu
 
 
-def topmenu(root: RootWithStyle, menu_dict: dict, add_themes=False, add_about=False):
+def topmenu(root: RootWithStyle, menu_dict: dict, add_themes=False, add_about=False,
+            config: dict | None = None):
     """
     Add a file menu to root
     :param root: tkinter root
     :param menu_dict: {Menu name: {Item name: function}}
     :param add_themes: add themes menu item
     :param add_about: add about menu item
+    :param config: add Config menu if config dict is added
     :return: None
     """
+    if config is not None:
+        menu_dict.update(config_menu(root, config))
     if add_themes and hasattr(root, 'style'):
         menu_dict.update(theme_menu(root.style))
     if add_about:
@@ -44,6 +48,19 @@ def about_menu(root: tk.Misc | None = None):
         'Help': {
             'Docs': open_docs,
             'About': lambda: popup_about(root)
+        }
+    }
+    return menu
+
+
+def config_menu(root: tk.Misc, config: dict) -> dict:
+    """Config menu items"""
+    from ..apps.config_editor import ConfigEditor
+    from .config import reset_config
+    menu = {
+        'Config': {
+            'Edit Config.': lambda: ConfigEditor(root, config),
+            'Reset Config.': lambda: reset_config(config),
         }
     }
     return menu

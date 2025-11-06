@@ -92,6 +92,7 @@ class MultiScanAnalysis:
         ttk.Button(line, text='Plot 2D', command=self.plot2d, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Plot 3D', command=self.plot3d, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Plot Surf', command=self.plot3d, width=10).pack(side=tk.LEFT)
+        ttk.Button(line, text='Fits', command=self.fitting, width=10).pack(side=tk.LEFT)
 
     def browse_datadir(self):
         folder = select_folder(self.root)
