@@ -121,7 +121,8 @@ class NexusDetails:
             for file in get_scan_notebooks(filename)
         }
         if self.notebooks:
-            self.combo_notebook.set_menu(*self.notebooks.keys())
+            first_notebook = next(iter(self.notebooks))
+            self.combo_notebook.set_menu(first_notebook, *self.notebooks)
         else:
             self.combo_notebook.set_menu('None')
 

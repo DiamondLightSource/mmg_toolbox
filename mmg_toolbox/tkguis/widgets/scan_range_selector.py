@@ -2,13 +2,12 @@
 widget for selecting scan numbers and s
 """
 
-import os
 import tkinter as tk
 from tkinter import ttk
+import asteval
 
-from mmg_toolbox import Experiment
-from mmg_toolbox.utils.env_functions import (get_scan_numbers, get_last_scan_number, get_first_file)
-from mmg_toolbox.utils.file_functions import get_scan_number, replace_scan_number
+from mmg_toolbox.utils.env_functions import (get_scan_numbers, scan_number_mapping)
+from mmg_toolbox.utils.file_functions import get_scan_number
 from ..misc.logging import create_logger
 from ..misc.config import get_config
 
@@ -66,7 +65,7 @@ class ScanRangeSelector:
     def numbers_from_exp(self):
         exp_folder = self.exp_folder.get()
         if exp_folder:
-            numbers = get_scan_numbers(exp_folder)  # TODO: use scan_number_mapping
+            numbers = get_scan_numbers(exp_folder)
             self.number_start.set(str(numbers[0]))
             self.number_end.set(str(numbers[-1]))
 
@@ -79,37 +78,31 @@ class ScanRangeSelector:
             raise IOError('Range is too large')
 
         exp_folder = self.exp_folder.get()
-        if exp_folder and (first < 1 or last < 1):
-            last_scan = get_last_scan_number(exp_folder)
+        if not exp_folder:
+            return
+        scan_numbers = get_scan_numbers(exp_folder)
+        if first < 1 or last < 1:
+            last_scan = scan_numbers[-1]
             if first < 1:
                 first = last_scan + first
             if last < 1:
                 last = last_scan + last
-            # numbers = get_scan_numbers(exp_folder)
-            # if first < numbers[0] and last < numbers[0]:
-            #     scan_range = [numbers[idx] for idx in range(first, last+1, step)]
 
-        # TODO: check scan numbers exist before adding
-        scan_range = list(range(first, last+1, step))
+        scan_range = [n for n in range(first, last+1, step) if n in scan_numbers]
         self.text.replace("1.0", tk.END, str(scan_range))
 
     def generate_scan_numbers(self) -> list[int]:
         scan_text = self.text.get("1.0", tk.END)
         if not scan_text.strip():
             return []
-        # TODO: replace eval with asteval
-        scan_numbers = eval(scan_text)
+        safe_eval = asteval.Interpreter(use_numpy=True)
+        scan_numbers = safe_eval(scan_text)
         return scan_numbers
-
-    def numbers2files(self, scan_numbers: list[int]) -> dict[int, str]:
-        exp_folder = self.exp_folder.get()
-        scan_file_template = get_first_file(exp_folder)
-        scan_files = (replace_scan_number(scan_file_template, number) for number in scan_numbers)
-        return {number: file for number, file in zip(scan_numbers, scan_files) if os.path.isfile(file)}
 
     def generate_scan_files(self) -> dict[int, str]:
         scan_numbers = self.generate_scan_numbers()
-        return self.numbers2files(scan_numbers)
+        scan_files = scan_number_mapping(self.exp_folder.get())
+        return {number: scan_files[number] for number in scan_numbers if number in scan_files}
 
     def select_files(self):
         from ..apps.scans import list_scans

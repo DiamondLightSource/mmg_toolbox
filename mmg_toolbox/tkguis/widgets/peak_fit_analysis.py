@@ -10,7 +10,7 @@ import hdfmap
 import numpy as np
 
 from mmg_toolbox import Experiment
-from mmg_toolbox.plotting.matplotlib import generate_subplots
+from mmg_toolbox.plotting.matplotlib import generate_subplots, set_span_bounds
 from mmg_toolbox.utils.env_functions import get_processing_directory
 from mmg_toolbox.utils.fitting import (multipeakfit, FitResults, PEAK_MODELS, BACKGROUND_MODELS,
                                        Model, find_peaks, find_peaks_str)
@@ -390,8 +390,8 @@ class PeakFitAnalysis:
         x_axis = self.x_axis.get()
         y_axis = self.y_axis.get()
         with self.map.load_hdf(filename) as hdf:
-            x_data = self.map.eval(hdf, x_axis)
-            y_data = self.map.eval(hdf, y_axis)
+            x_data = self.map.eval(hdf, x_axis, np.arange(self.map.scannables_length()))
+            y_data = self.map.eval(hdf, y_axis, np.ones_like(x_data))
         return x_data, y_data
 
     def select_scan(self, event=None):
@@ -454,7 +454,8 @@ class PeakFitAnalysis:
         self.fit_line.set_ydata(y_fit)
         self.plot.ax1.set_xlabel(x_label)
         self.plot.ax1.set_ylabel(y_label)
-        self.pl_span.set_bounds(x_data[0], y_data[0], 0, 0)
+        set_span_bounds(self.pl_span, x_data[0], x_data[0], y_data[0], y_data[0])
+        # self.pl_span.set_bounds(x_data[0], y_data[0], 0, 0)
         self.plot.update_axes()
 
     def perform_fit(self):
@@ -657,7 +658,8 @@ class PeakFitAnalysis:
                 ax_ymin, ax_ymax = self.plot.ax1.get_ylim()
                 # span = [[xval[0], ax_ymin], [xval[0], ax_ymax], [x_max, ax_ymax], [x_max, ax_ymin], [xval[0], ax_ymin]]
                 # self.pl_span.set_xy(span)
-                self.pl_span.set_bounds(xval[0], ax_ymin, x_max - xval[0], ax_ymax - ax_ymin)
+                set_span_bounds(self.pl_span, xval[0], x_max, ax_ymin, ax_ymax)
+                # self.pl_span.set_bounds(xval[0], ax_ymin, x_max - xval[0], ax_ymax - ax_ymin)
                 self.plot.update_axes()
 
         def mouse_release(event):
@@ -710,7 +712,8 @@ class PeakFitAnalysis:
                 ax_ymin, ax_ymax = self.plot.ax1.get_ylim()
                 # span = [[xval[0], ax_ymin], [xval[0], ax_ymax], [x_max, ax_ymax], [x_max, ax_ymin], [xval[0], ax_ymin]]
                 # self.pl_span.set_xy(span)
-                self.pl_span.set_bounds(xval[0], ax_ymin, x_max - xval[0], ax_ymax - ax_ymin)
+                set_span_bounds(self.pl_span, xval[0], x_max, ax_ymin, ax_ymax)
+                # self.pl_span.set_bounds(xval[0], ax_ymin, x_max - xval[0], ax_ymax - ax_ymin)
                 self.plot.update_axes()
 
         def mouse_release(event):

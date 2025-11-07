@@ -155,8 +155,8 @@ class NexusDefaultPlot(SimplePlot):
         # Fitting
         frm = ttk.Frame(section)
         frm.pack(side=tk.LEFT, fill=tk.Y, padx=4)
-        ttk.Button(frm, text='Plots', command=self.multiplots, width=5).pack(side=tk.TOP, fill=tk.X)
-        ttk.Button(frm, text='Fits', command=self.peakfiting, width=5).pack(side=tk.TOP, fill=tk.X)
+        ttk.Button(frm, text='Processing', command=self.multiplots).pack(side=tk.TOP, fill=tk.X)
+        ttk.Button(frm, text='Fitting', command=self.peakfiting).pack(side=tk.TOP, fill=tk.X)
 
         # Error line
         frm = ttk.Frame(self.root)

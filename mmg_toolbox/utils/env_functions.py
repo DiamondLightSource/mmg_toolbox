@@ -178,6 +178,15 @@ def run_python_script(script_filename: str):
     run_command(command)
 
 
+def run_python_string(script: str):
+    """
+    Run shell command, print output to terminal
+    """
+    # command = f"{sys.executable} -c {script}"
+    # run_command(command)
+    subprocess.run([sys.executable, '-c', script])
+
+
 def run_jupyter_notebook(notebook_filename: str):
     """
     Run a jupyter notebook

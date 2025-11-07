@@ -71,7 +71,8 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
     """Create tkinter root object with style attribute"""
     if parent:
         root = tk.Toplevel(parent)
-        root.geometry(f"+{parent.winfo_x()+100}+{parent.winfo_y()+100}")
+        # root.geometry(f"+{parent.winfo_x()+100}+{parent.winfo_y()+100}")
+        root.transient(parent)
         if hasattr(parent, 'style'):
             root.style = parent.style
     else:

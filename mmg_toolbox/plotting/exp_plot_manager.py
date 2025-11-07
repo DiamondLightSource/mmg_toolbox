@@ -48,7 +48,8 @@ class ExperimentPlotManager:
         :return: axes object
         """
         scans = self.exp.scans(*scan_files, hdf_map=hdf_map)
-        axes = plt.subplot() if axes is None else axes
+        if axes is None:
+            fig, axes = plt.subplots()
         for scan in scans:
             scan.plot.plot(xaxis, yaxis, axes=axes, **kwargs)
         if len(scan_files) > 1:
@@ -149,7 +150,8 @@ class ExperimentPlotManager:
                 value_data = np.mean(hdf_map.eval(hdf, value)) if value else None
                 plot_data.append((value_data, xdata, ydata))
 
-        axes = plt.subplot() if axes is None else axes
+        if axes is None:
+            fig, axes = plt.subplots()
         lines, sm = plot_lines(axes, *plot_data, **kwargs)
 
         x_lab, y_lab, value_label = hdf_map.generate_ids(xaxis, yaxis, value, modify_missing=False)
@@ -213,7 +215,8 @@ class ExperimentPlotManager:
         x, y, z = self.exp.generate_mesh(*scan_files, hdf_map=hdf_map,
                                          axes=xaxis, signal=signal, values=values)
 
-        axes = plt.subplot() if axes is None else axes
+        if axes is None:
+            fig, axes = plt.subplots()
         surf = plot_2d_surface(axes=axes, image=z, xdata=x, ydata=y, clim=clim, axlim=axlim, **kwargs)
         axes.set_title(self.exp.generate_scans_title(*scan_files))
 
@@ -248,7 +251,9 @@ class ExperimentPlotManager:
         data = self.exp.join_scan_data(*scan_files, hdf_map=hdf_map, data_fields=data_fields)
         labels = [scan.label() for scan in scans]
 
-        axes = plt.subplot(projection='3d') if axes is None else axes
+        if axes is None:
+            fig = plt.figure()
+            axes = fig.add_subplot(111, projection='3d')
         plot_3d_lines(axes, data[signal], data[xaxis], data.get(values, None), labels=labels, **kwargs)
         axes.set_title(self.exp.generate_scans_title(*scan_files))
 
@@ -274,7 +279,7 @@ class ExperimentPlotManager:
         :param xaxis: str name or path of array to plot on x axis
         :param signal: str name or path of array to plot on z axis
         :param values: str name or path of float value to distinguish different scans
-        :param axes: matplotlib.axes subplot, or None to create a figure
+        :param axes: matplotlib.axes3D subplot, or None to create a figure
         :param clim: None or [min, max] values for color cutoff from plt.clim
         :param axlim: axis limits from plt.axis
         :param kwargs: given directly to plt.pcolormesh(..., **kwargs)
@@ -285,7 +290,9 @@ class ExperimentPlotManager:
         x, y, z = self.exp.generate_mesh(*scan_files, hdf_map=hdf_map,
                                          axes=xaxis, signal=signal, values=values)
 
-        axes = plt.subplot(projection='3d') if axes is None else axes
+        if axes is None:
+            fig = plt.figure()
+            axes = fig.add_subplot(111, projection='3d')
         plot_3d_surface(axes=axes, image=z, xdata=x, ydata=y, clim=clim, axlim=axlim, **kwargs)
         axes.set_title(self.exp.generate_scans_title(*scan_files))
 
@@ -293,4 +300,34 @@ class ExperimentPlotManager:
         axes.set_xlabel(x_lab)
         axes.set_ylabel(value_label)
         axes.set_zlabel(signal_label)
+        return axes
+
+    def metadata(self, *scan_files: int | str, values: str | list[str], hdf_map: hdfmap.NexusMap | None = None,
+                 axes: plt.Axes | None = None) -> plt.Axes:
+        """
+        Create matplotlib figure with plot of metadata vs scan number
+
+        :param scan_files: scan number or filename (multiple allowed)
+        :param values: field name or path of float value to distinguish different scans
+        :param hdf_map: hdfmap object or None
+        :param axes: matplotlib.axes subplot, or None to create a figure
+        :return: axes object
+        """
+        scans = self.exp.scans(*scan_files, hdf_map=hdf_map)
+        ttl = self.exp.generate_scans_title(*scan_files)
+
+        values = [values] if isinstance(values, str) else values
+        data = {
+            name: np.array([scan.values(name) for scan in scans])
+            for name in values
+        }
+
+        x_data = [scan.scan_number() for scan in scans]
+        if axes is None:
+            fig, axes = plt.subplots()
+        for name in data:
+            axes.plot(x_data, data[name], '-o', label=name)
+        axes.set_xlabel('Scan number')
+        axes.legend()
+        axes.set_title(ttl)
         return axes

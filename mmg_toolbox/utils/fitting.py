@@ -1187,9 +1187,9 @@ class ScanFitManager:
         :param plot_result: if True, plots the results using fit.plot()
         :return: FitResults object
         """
-        xdata, ydata = self.scan.arrays(xaxis, yaxis)
+        xdata, ydata = self.scan.eval(f"{xaxis}, {yaxis}", default=np.zeros(self.scan.map.scannables_length()))
         errors = np.sqrt(ydata + 0.1)
-        xname, yname = self.scan.labels(xaxis, yaxis)
+        xname, yname = self.scan.map.generate_ids(xaxis, yaxis)
 
         # lmfit
         res = multipeakfit(xdata, ydata, errors, npeaks=npeaks, min_peak_power=min_peak_power,
@@ -1378,9 +1378,8 @@ class ScanFitManager:
         :param parameter_name: str, name from last fit e.g. 'amplitude', 'center', 'fwhm', 'background'
         :returns:  value, error
         """
-        lmfit = self.scan('lmfit')
-        param = lmfit.params[parameter_name]
-        return param.value, param.stderr
+        fitobj = self.fit_result()
+        return fitobj.get_value(parameter_name)
 
     def fit_result(self) -> FitResults:
         """
