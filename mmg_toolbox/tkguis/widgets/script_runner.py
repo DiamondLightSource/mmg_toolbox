@@ -78,7 +78,7 @@ class ScriptRunner:
 
         line = ttk.Frame(sec)
         line.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
-        var = ttk.OptionMenu(line, self.script_name, *scripts.SCRIPTS.keys(),
+        var = ttk.OptionMenu(line, self.script_name, self.script_name.get(), *scripts.SCRIPTS.keys(),
                              command=self.script_select)
         var.pack(side=tk.LEFT, padx=4)
         ttk.Label(line, textvariable=self.script_desc).pack(side=tk.LEFT)
@@ -87,7 +87,7 @@ class ScriptRunner:
         sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
         line = ttk.Frame(sec)
         line.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
-        var = ttk.OptionMenu(line, self.notebook_name, *scripts.NOTEBOOKS.keys(),
+        var = ttk.OptionMenu(line, self.notebook_name, self.notebook_name.get(), *scripts.NOTEBOOKS.keys(),
                              command=self.notebook_select)
         var.pack(side=tk.LEFT, padx=4)
         ttk.Label(line, textvariable=self.notebook_desc).pack(side=tk.LEFT)

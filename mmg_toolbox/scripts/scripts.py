@@ -3,12 +3,14 @@ Script & Notebook templates
 """
 
 import os
+import datetime
 
 
 SCRIPTS = {
     # name: (filename, description)
     'example': ('example_script.py', 'a simple example'),
     'plot multi-line': ('experiment_multiline.py', 'create a multi-line plot'),
+    'peak fitting': ('experiment_fitting.py', 'fit peaks and plot the results'),
     'spectra': ('spectra_script.py', 'normalise spectra and subtract polarisations')
 }
 
@@ -36,6 +38,7 @@ def create_script(new_script_path: str, template_name: str, **replacements):
     template_file = os.path.join(os.path.dirname(__file__), template_file)
     template_changes = TEMPLATE.copy()
     template_changes.update(replacements)
+    template_changes['date'] = str(datetime.date.today())
     print(template_file)
     print(template_changes)
 

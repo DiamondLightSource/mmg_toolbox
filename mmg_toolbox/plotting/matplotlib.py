@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import Axes, Line2D
 from matplotlib.collections import QuadMesh
+from matplotlib.patches import Polygon, Rectangle
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -270,3 +271,22 @@ def plot_3d_surface(axes: Axes3D, image: np.ndarray,
     axes.axis(axlim)
     return surface
 
+
+
+def set_span_bounds(span: Rectangle | Polygon, xmin: float, xmax: float, ymin: float, ymax: float):
+    """Set bounds for span=ax.axvspan, working for old matplotlib versions"""
+    if hasattr(span, "set_bounds"):
+        # Rectangle patch
+        width = xmax - xmin
+        height = ymax - ymin
+        span.set_bounds(xmin, ymin, width, height)
+    else:
+        # Polygon patch: update vertices
+        new_verts = [
+            (xmin, ymin),
+            (xmin, ymax),
+            (xmax, ymax),
+            (xmax, ymin),
+            (xmin, ymin),
+        ]
+        span.set_xy(new_verts)

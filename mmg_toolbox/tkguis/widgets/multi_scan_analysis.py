@@ -3,7 +3,7 @@ widget for running scripts
 """
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 
 import hdfmap
@@ -88,11 +88,16 @@ class MultiScanAnalysis:
         line.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
         ttk.Button(line, text='Plot', command=self.plot_legend, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Plot lines', command=self.plot_lines, width=10).pack(side=tk.LEFT)
+        ttk.Button(line, text='Plot Meta', command=self.plot_metadata, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Multi-Plot', command=self.multiplot, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Plot 2D', command=self.plot2d, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Plot 3D', command=self.plot3d, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Plot Surf', command=self.plot3d, width=10).pack(side=tk.LEFT)
+
+        line = ttk.Frame(self.root)
+        line.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
         ttk.Button(line, text='Fits', command=self.fitting, width=10).pack(side=tk.LEFT)
+        ttk.Button(line, text='Convert', command=self.convert2dat, width=10).pack(side=tk.LEFT)
 
     def browse_datadir(self):
         folder = select_folder(self.root)
@@ -144,6 +149,23 @@ class MultiScanAnalysis:
             x_axis=self.x_axis.get(),
             y_axis=self.y_axis.get()
         )
+
+    def convert2dat(self):
+        from nexus2srs import run_nexus2srs
+        scan_files = self.range.generate_scan_files()
+        answer = messagebox.askokcancel(
+            title='Nexus2SRS',
+            message=f'Convert {len(scan_files)} NeXus files to .dat format?',
+            icon='warning',
+            parent=self.root
+        )
+        if answer:
+            run_nexus2srs('-tiff', *scan_files.values())
+            messagebox.showinfo(
+                title='Nexus2SRS',
+                message='Conversion complete!',
+                parent=self.root
+            )
 
     def plot_legend(self):
         exp = self.get_experiment()
@@ -201,6 +223,14 @@ class MultiScanAnalysis:
         values = values if values else None
         exp.plot.multi_plot(*scan_numbers, xaxis=xaxis, yaxis=yaxis, value=values)
         plt.show()
+
+    def plot_metadata(self):
+        exp = self.get_experiment()
+        scan_numbers = self.range.generate_scan_numbers()
+        values = self.metadata_name.get().split(',')
+        exp.plot.metadata(*scan_numbers, values=values)
+        plt.show()
+
 
 
 

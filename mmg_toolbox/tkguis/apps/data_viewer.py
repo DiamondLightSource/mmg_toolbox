@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 
-from mmg_toolbox.utils.env_functions import get_notebook_directory, open_terminal, get_scan_number
+from mmg_toolbox.utils.env_functions import get_notebook_directory, open_terminal, get_scan_number, check_file_access
 from mmg_toolbox.tkguis.misc.config import get_config, C
 from mmg_toolbox.tkguis.misc.functions import topmenu
 from mmg_toolbox.tkguis.misc.styles import RootWithStyle, create_root
@@ -30,25 +30,31 @@ def create_data_viewer(initial_folder: str | None = None,
         filename, folder = widget.selector_widget.get_filepath()
         return folder
 
-    def get_replacements(*filenames):
+    def get_replacements():
+        filename, folder = widget.selector_widget.get_filepath()
+        filenames = widget.selector_widget.get_multi_filepath()
+        scan_numbers = [get_scan_number(f) for f in filenames]
         return {
             # {{template}}: replacement
             'description': 'an example script',
             'filepaths': ', '.join(f"'{f}'" for f in filenames),
-            'title': f"Example Script: {os.path.basename(filenames[0])}",
+            'experiment_dir': folder,
+            'scan_numbers': str(scan_numbers),
+            'title': f"Example Script: {os.path.basename(filename)}",
             'x-axis': widget.plot_widget.axes_x.get(),
             'y-axis': widget.plot_widget.axes_y.get(),
+            'beamline': config.get(C.beamline),
         }
 
     def create_script_template(template='example'):
         filename, folder = widget.selector_widget.get_filepath()
-        new_file = folder + '/processing/example_script.py'
-        create_script(new_file, template, **get_replacements(filename))
+        new_file = check_file_access(folder + '/processing/example_script.py')
+        create_script(new_file, template, **get_replacements())
         create_python_editor(open(new_file).read(), root, config),
 
     def create_notebook_template(template='example'):
         filename, folder = widget.selector_widget.get_filepath()
-        new_file = folder + '/processing/example.ipynb'
+        new_file = check_file_access(folder + '/processing/example.ipynb')
         create_notebook(new_file, template, **get_replacements(filename))
         launch_jupyter_notebook('notebook', file=new_file)
 

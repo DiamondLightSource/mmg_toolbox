@@ -103,10 +103,10 @@ class NexusDefaultPlot(SimplePlot):
         var.pack(side=tk.LEFT)
         combo_x = ttk.Combobox(line, values=axes_options,
                                textvariable=selection_x, width=20)
-        combo_x.pack(side=tk.LEFT, padx=5)
-        combo_x.bind('<<ComboboxSelected>>', select_x)
+        # combo_x.pack(side=tk.LEFT, padx=5)
+        # combo_x.bind('<<ComboboxSelected>>', select_x)
         var = ttk.Entry(line, textvariable=self.axes_x, width=30)
-        # var.pack(side=tk.LEFT)
+        var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
@@ -119,10 +119,10 @@ class NexusDefaultPlot(SimplePlot):
         var.pack(side=tk.LEFT)
         combo_y = ttk.Combobox(line, values=signal_options,
                                textvariable=selection_y, width=20)
-        combo_y.pack(side=tk.LEFT, padx=5)
-        combo_y.bind('<<ComboboxSelected>>', select_y)
+        # combo_y.pack(side=tk.LEFT, padx=5)
+        # combo_y.bind('<<ComboboxSelected>>', select_y)
         var = ttk.Entry(line, textvariable=self.axes_y, width=30)
-        # var.pack(side=tk.LEFT)
+        var.pack(side=tk.LEFT)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
@@ -155,8 +155,8 @@ class NexusDefaultPlot(SimplePlot):
         # Fitting
         frm = ttk.Frame(section)
         frm.pack(side=tk.LEFT, fill=tk.Y, padx=4)
-        ttk.Button(frm, text='Plots', command=self.multiplots, width=5).pack(side=tk.TOP, fill=tk.X)
-        ttk.Button(frm, text='Fits', command=self.peakfiting, width=5).pack(side=tk.TOP, fill=tk.X)
+        ttk.Button(frm, text='Processing', command=self.multiplots).pack(side=tk.TOP, fill=tk.X)
+        ttk.Button(frm, text='Fitting', command=self.peakfiting).pack(side=tk.TOP, fill=tk.X)
 
         # Error line
         frm = ttk.Frame(self.root)
@@ -272,17 +272,18 @@ class NexusDefaultPlot(SimplePlot):
         x_label = self.axes_x.get()
         y_label = self.axes_y.get()
         model = self.fit_model.get()
+        peaks = self.max_peaks.get()
         if not x_label or not y_label:
             return None, ''
         xdata, ydata = self.get_xy_data(x_label, y_label)
         result = multipeakfit(
             xvals=xdata[0],
             yvals=ydata[0],
-            npeaks=self.max_peaks.get(),
+            npeaks=peaks,
             model=model,
         )
         x_fit, y_fit = result.fit_data(ntimes=1)  # don't interpolate as x will be the wrong
-        label = f"fit_{y_label}_{model}"
+        label = f"fit_{y_label}_{peaks}{model}"
         self._scannable_data[0][label] = y_fit
         self._fit_result = result
         return result, label
@@ -383,6 +384,7 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
         self.remove_lines()
         x_label = self.axes_x.get()
         labels = [self.listbox.item(item)['text'] for item in self.listbox.selection()]
+        self.axes_y.set(labels[0])
         xdata, ydata = self.get_xy_data(x_label, *labels)
         self.update_from_data(
             x_data=xdata,
@@ -393,7 +395,7 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
             legend=labels,
         )
         self.line = self.plot_list[0]
-        if self.do_fit:
+        if self.do_fit.get():
             self.perform_fit()
 
     def update_axis_choice(self, event=None):
@@ -412,9 +414,8 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
         result, label = self._perform_fit()
         if result is None:
             return
-        self.listbox.insert("", tk.END, text=label)
-        x, y = result.fit_data()
-        lines = self.ax1.plot(x, y, label=label)
-        self.plot_list.extend(lines)
-        self.update_labels(legend=True)
-        self.update_axes()
+        if label not in (self.listbox.item(iid, 'text') for iid in self.listbox.get_children()):
+            iid = self.listbox.insert("", tk.END, text=label)
+        else:
+            iid = next(iid for iid in self.listbox.get_children() if self.listbox.item(iid, 'text') == label)
+        self.listbox.selection_add(iid)

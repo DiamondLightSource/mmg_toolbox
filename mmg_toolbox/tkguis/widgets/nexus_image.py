@@ -22,10 +22,10 @@ logger = create_logger(__file__)
 
 class NexusDetectorImage:
     def __init__(self, root: tk.Misc, hdf_filename: str | None = None,
-                 config: dict | None = None):
+                 config: dict | None = None, hdf_map: hdfmap.NexusMap | None = None):
         self.root = root
         self.filename = hdf_filename
-        self.map: hdfmap.NexusMap | None = None
+        self.map = hdf_map
         self.config = config or get_config()
 
         self.detector_name = tk.StringVar(self.root, 'NXdetector')
@@ -48,8 +48,9 @@ class NexusDetectorImage:
 
         frm = ttk.Frame(section)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        ttk.Button(frm, text='Window', command=self.new_window).pack(side=tk.LEFT, padx=5)
         ttk.Button(frm, text='ROIs', command=self.roi_frame).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Select', command=self.mouse_select_roi).pack(side=tk.LEFT)
+        ttk.Button(frm, text='Draw new ROI', command=self.mouse_select_roi).pack(side=tk.LEFT)
         self.detector_menu = ttk.OptionMenu(frm, self.detector_name, None, 'NXdetector', command=self.update_plot)
         self.detector_menu.pack(side=tk.RIGHT)
 
@@ -73,7 +74,7 @@ class NexusDetectorImage:
         self.slider = self.ini_slider()
 
         if hdf_filename:
-            self.update_data_from_file(hdf_filename)
+            self.update_data_from_file(hdf_filename, hdf_map)
 
     def ini_slider(self):
         frm = ttk.Frame(self.root)
@@ -136,7 +137,8 @@ class NexusDetectorImage:
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
-        var = ttk.OptionMenu(frm, self.colormap, *COLORMAPS, command=self.update_colormap_details)
+        var = ttk.OptionMenu(frm, self.colormap, self.colormap.get(), *COLORMAPS,
+                             command=self.update_colormap_details)
         var.pack(side=tk.LEFT)
 
         var = ttk.Label(frm, text='clim:')
@@ -177,6 +179,11 @@ class NexusDetectorImage:
             }
         }
         return menu
+
+    def new_window(self):
+        window = create_root(self.filename, self.root)
+        widget = NexusDetectorImage(window, self.filename, self.config, self.map)
+        return widget
 
     def _clear_error(self):
         self.error_label.pack_forget()
@@ -341,6 +348,7 @@ class NexusDetectorImage:
                         # f"{name}_box",
                         # f"{name}_bkg_box",
                     ])
+            # TODO: add way of updating plot listbox
 
     def plot_config_rois(self):
         """plot config rois on image"""

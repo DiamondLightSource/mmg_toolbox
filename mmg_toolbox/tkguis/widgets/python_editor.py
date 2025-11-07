@@ -4,6 +4,9 @@ import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
+from mmg_toolbox.utils.env_functions import run_python_string
+
+
 # Define colors for the various types of tokens
 class Colours:
     normal = '#eaeaea'  # rgb((234, 234, 234))
@@ -125,6 +128,11 @@ class PythonEditorFrame:
         scanx.config(command=self.text.xview)
         scany.config(command=self.text.yview)
 
+        frm = ttk.Frame(root, relief=tk.RIDGE, borderwidth=2)
+        frm.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        ttk.Button(frm, text='RUN', command=self.run).pack(side=tk.RIGHT, pady=5)
+
+
         self.changes()
 
     "------------------------------------------------------------------------"
@@ -184,6 +192,10 @@ class PythonEditorFrame:
         with open(self.filename, 'w') as f:
             f.write(self.script_string)
         print('Written script to %s' % self.filename)
+
+    def run(self):
+        """Run script"""
+        run_python_string(self.script_string)
 
     "------------------------------------------------------------------------"
     "--------------------------General Functions-----------------------------"
