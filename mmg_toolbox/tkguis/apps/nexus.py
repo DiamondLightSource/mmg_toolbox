@@ -85,3 +85,35 @@ def create_nexus_image_plotter(filename: str, parent: tk.Misc | None = None, con
     if parent is None:
         root.mainloop()
     return root
+
+
+def create_nexus_plot_and_image(*filenames: str, parent: tk.Misc | None = None, config: dict | None = None) -> RootWithStyle:
+    """
+    Plot 1D line and image data from a NeXus file
+    """
+    from ..widgets.nexus_plot_and_image import NexusPlotAndImage
+    from mmg_toolbox.tkguis.apps.config_editor import ConfigEditor
+
+    root = create_root('NeXus File Default Plot', parent=parent)
+    widget = NexusPlotAndImage(root, *filenames, config=config, horizontal_alignment=True)
+
+    def load_file():
+        new_filename = select_hdf_file(root)
+        if new_filename:
+            widget.update_data_from_files(new_filename)
+
+    menu = {
+        'File': {
+            'Open': load_file,
+        },
+        'Config.': {
+            'Edit Config.': lambda: ConfigEditor(root, config),
+        }
+    }
+
+    topmenu(root, menu, add_themes=False, add_about=True)
+    if parent is None:
+        root.mainloop()
+    return root
+
+
