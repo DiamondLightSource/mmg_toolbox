@@ -1,5 +1,9 @@
 """
-a tkinter frame with a single plot
+a tkinter frame with 4 sections:
+    NW: File selection treeview
+    SW: NeXus metadata viewer
+    NE: 2D Line plot
+    SE: Image plot
 """
 import tkinter as tk
 from tkinter import ttk
@@ -32,10 +36,18 @@ class NexusDataViewer:
         self.root = root
         self.map = None
         self.config = config or get_config()
+
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(0, weight=1)
         grid_options = dict(padx=5, pady=5, sticky='nsew')
 
         window = ttk.Frame(self.root)
-        window.pack()
+        # window.pack(fill=tk.BOTH, expand=tk.YES)
+        window.grid(column=0, row=0, **grid_options)
+        window.rowconfigure(0, weight=1)
+        window.rowconfigure(1, weight=1)
+        window.columnconfigure(0, weight=0)
+        window.columnconfigure(1, weight=1)
 
         # TOP-LEFT
         frm = ttk.LabelFrame(window, text='Files')
@@ -50,10 +62,11 @@ class NexusDataViewer:
         self.detail_widget = NexusDetails(frm, config=self.config)
 
         # TOP-RIGHT
+        #TODO: combine Plot and Image
         frm = ttk.LabelFrame(window, text='Plot')
         frm.grid(column=1, row=0, **grid_options)
         sec = ttk.Frame(frm)
-        sec.pack(side=tk.TOP, fill=tk.BOTH)
+        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
         self.plot_widget = NexusMultiAxisPlot(sec, config=self.config)
         self.index_line, = self.plot_widget.ax1.plot([], [], ls='--', c='k', scaley=False, label=None)
 
@@ -108,7 +121,7 @@ class NexusDataViewer:
             self.plot_widget.update_axes()
             self.image_widget.view_index.set(index)
             self.image_widget.update_image()
-            self.image_frame.pack(side=tk.TOP, fill=tk.BOTH)
+            self.image_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
             # add rois to signal drop-down
             for item in self.image_widget.roi_names:
                 self.plot_widget.listbox.insert("", tk.END, text=item)
