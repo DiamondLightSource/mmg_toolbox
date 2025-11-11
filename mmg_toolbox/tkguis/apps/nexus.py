@@ -73,7 +73,7 @@ def create_nexus_image_plotter(filename: str, parent: tk.Misc | None = None, con
     def load_file():
         new_filename = select_hdf_file(root)
         if new_filename:
-            widget.update_data_from_file(new_filename)
+            widget.update_image_data_from_file(new_filename)
 
     menu = {
         'File': {

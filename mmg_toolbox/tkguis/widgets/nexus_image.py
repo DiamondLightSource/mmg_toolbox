@@ -23,27 +23,27 @@ logger = create_logger(__file__)
 class NexusDetectorImage:
     def __init__(self, root: tk.Misc, hdf_filename: str | None = None,
                  config: dict | None = None, hdf_map: hdfmap.NexusMap | None = None):
-        self.root = root
         self.filename = hdf_filename
+        self.parent = root
         self.map = hdf_map
         self.config = config or get_config()
 
-        self.detector_name = tk.StringVar(self.root, 'NXdetector')
-        self.view_index = tk.IntVar(self.root, 0)
-        self.axis_name = tk.StringVar(self.root, 'axis = ')
-        self.axis_value = tk.DoubleVar(self.root, 0)
-        self.logplot = tk.BooleanVar(self.root, False)
-        self.difplot = tk.BooleanVar(self.root, False)
-        self.mask = tk.DoubleVar(self.root, 0)
-        self.cmin = tk.DoubleVar(self.root, 0)
-        self.cmax = tk.DoubleVar(self.root, 1)
-        self.fixclim = tk.BooleanVar(self.root, False)
-        self.colormap = tk.StringVar(self.root, self.config.get(C.default_colormap, DEFAULT_COLORMAP))
-        self.image_error = tk.StringVar(self.root, '')
+        self.detector_name = tk.StringVar(root, 'NXdetector')
+        self.view_index = tk.IntVar(root, 0)
+        self.axis_name = tk.StringVar(root, 'axis = ')
+        self.axis_value = tk.DoubleVar(root, 0)
+        self.logplot = tk.BooleanVar(root, False)
+        self.difplot = tk.BooleanVar(root, False)
+        self.mask = tk.DoubleVar(root, 0)
+        self.cmin = tk.DoubleVar(root, 0)
+        self.cmax = tk.DoubleVar(root, 1)
+        self.fixclim = tk.BooleanVar(root, False)
+        self.colormap = tk.StringVar(root, self.config.get(C.default_colormap, DEFAULT_COLORMAP))
+        self.image_error = tk.StringVar(root, '')
         self.extra_plot_callbacks = []  # calls any function in this list on update_image
         self.roi_names = []
 
-        section = ttk.Frame(self.root)
+        section = ttk.Frame(root)
         section.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
 
         frm = ttk.Frame(section)
@@ -51,33 +51,33 @@ class NexusDetectorImage:
         ttk.Button(frm, text='Window', command=self.new_window).pack(side=tk.LEFT, padx=5)
         ttk.Button(frm, text='ROIs', command=self.roi_frame).pack(side=tk.LEFT)
         ttk.Button(frm, text='Draw new ROI', command=self.mouse_select_roi).pack(side=tk.LEFT)
-        self.detector_menu = ttk.OptionMenu(frm, self.detector_name, None, 'NXdetector', command=self.update_plot)
+        self.detector_menu = ttk.OptionMenu(frm, self.detector_name, None, 'NXdetector', command=self.update_image_plot)
         self.detector_menu.pack(side=tk.RIGHT)
 
         frm = ttk.Frame(section)
         frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
 
-        self.fig, self.ax, self.plot_list, self.ax_image, self.colorbar, self.toolbar = ini_image(
+        self.im_fig, self.im_ax, self._im_lines, self.ax_image, self.colorbar, self.toolbar = ini_image(
             frame=frm,
             figure_size=get_figure_size(root, self.config, C.image_size),
             figure_dpi=self.config.get(C.plot_dpi),
         )
-        self.ax.set_xlabel(None)
-        self.ax.set_ylabel(None)
-        self.rectangle = self.ax.axvspan(0, 0, alpha=0.2)
+        self.im_ax.set_xlabel(None)
+        self.im_ax.set_ylabel(None)
+        self.rectangle = self.im_ax.axvspan(0, 0, alpha=0.2)
 
         # Error message
         frm = ttk.Frame(section)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
         self.error_label = ttk.Label(frm, textvariable=self.image_error)  # only pack this on error
 
-        self.slider = self.ini_slider()
+        self.slider = self.ini_slider(root)
 
         if hdf_filename:
-            self.update_data_from_file(hdf_filename, hdf_map)
+            self.update_image_data_from_file(hdf_filename, hdf_map)
 
-    def ini_slider(self):
-        frm = ttk.Frame(self.root)
+    def ini_slider(self, root: tk.Misc):
+        frm = ttk.Frame(root)
         frm.pack(expand=tk.NO, pady=2, padx=5)
 
         def inc():
@@ -120,7 +120,7 @@ class NexusDetectorImage:
 
     def options_frame(self):
         """A hovering frame with options"""
-        window, fun_close = create_hover(self.root)
+        window, fun_close = create_hover(self.parent)
 
         frm = ttk.LabelFrame(window, text='Options', relief=tk.RIDGE)
         frm.pack(expand=tk.NO, pady=2, padx=5)
@@ -161,8 +161,8 @@ class NexusDetectorImage:
 
     def roi_frame(self):
         """a hovering frame with ROIs"""
-        # window, fun_close = create_hover(self.root)
-        window = create_root('Regions of Interest (ROIs)', self.root)
+        # window, fun_close = create_hover(root)
+        window = create_root('Regions of Interest (ROIs)', self.parent)
 
         def on_close():
             window.destroy()
@@ -181,7 +181,7 @@ class NexusDetectorImage:
         return menu
 
     def new_window(self):
-        window = create_root(self.filename, self.root)
+        window = create_root(self.filename, self.parent)
         widget = NexusDetectorImage(window, self.filename, self.config, self.map)
         return widget
 
@@ -192,20 +192,20 @@ class NexusDetectorImage:
         self.image_error.set(message)
         self.error_label.pack()
 
-    def plot(self, *args, **kwargs):
-        lines = self.ax.plot(*args, **kwargs)
-        self.plot_list.extend(lines)
+    def im_line(self, *args, **kwargs):
+        lines = self.im_ax.plot(*args, **kwargs)
+        self._im_lines.extend(lines)
 
     def text(self, *args, **kwargs):
-        text = self.ax.text(*args, **kwargs)
-        self.plot_list.append(text)
+        text = self.im_ax.text(*args, **kwargs)
+        self._im_lines.append(text)
 
-    def remove_lines(self):
-        for obj in self.plot_list:
+    def remove_im_lines(self):
+        for obj in self._im_lines:
             obj.remove()
-        self.plot_list.clear()
+        self._im_lines.clear()
 
-    def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
+    def update_image_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
         self._clear_error()
         self.filename = filename
         self.map = create_nexus_map(self.filename) if hdf_map is None else hdf_map
@@ -220,7 +220,7 @@ class NexusDetectorImage:
         # TODO add axis_name and value
         self.add_config_rois()
         self.view_index.set(0)
-        self.update_plot()
+        self.update_image_plot()
 
     def _get_image(self):
         try:
@@ -250,7 +250,7 @@ class NexusDetectorImage:
             value = np.nan
         return image, value
 
-    def update_plot(self, event=None):
+    def update_image_plot(self, event=None):
         """replace plot instance (e.g. on loading new file)"""
         self._clear_error()
         if self.filename is None:
@@ -273,15 +273,15 @@ class NexusDetectorImage:
         # Add plot by removing old one
         self.ax_image.remove()
         self.rectangle.remove()
-        self.ax_image = self.ax.pcolormesh(image, shading='auto', clim=[cmin, cmax], cmap=cmap)
-        self.ax.set_xlim([0, image.shape[1]])
-        self.ax.set_ylim([0, image.shape[0]])
+        self.ax_image = self.im_ax.pcolormesh(image, shading='auto', clim=[cmin, cmax], cmap=cmap)
+        self.im_ax.set_xlim([0, image.shape[1]])
+        self.im_ax.set_ylim([0, image.shape[0]])
         # self.rectangle = self.ax.axvspan(0, 0, alpha=0.9, facecolor='k', zorder=2)
-        self.rectangle = add_rectangle(self.ax, 0, 0, 0, 0)
+        self.rectangle = add_rectangle(self.im_ax, 0, 0, 0, 0)
         self.plot_config_rois()
         self.colorbar.update_normal(self.ax_image)
         self.toolbar.update()
-        self.fig.canvas.draw()
+        self.im_fig.canvas.draw()
         # Load axis mode
         self.axis_value.set(value)
         # Run additional callbacks
@@ -318,7 +318,7 @@ class NexusDetectorImage:
         self.ax_image.set_cmap(cmap)
         self.colorbar.update_normal(self.ax_image)
         self.toolbar.update()
-        self.fig.canvas.draw()
+        self.im_fig.canvas.draw()
 
     def add_roi(self, name: str, cen_i: int | str, cen_j: int | str,
                 wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE'):
@@ -348,11 +348,10 @@ class NexusDetectorImage:
                         # f"{name}_box",
                         # f"{name}_bkg_box",
                     ])
-            # TODO: add way of updating plot listbox
 
     def plot_config_rois(self):
         """plot config rois on image"""
-        self.remove_lines()
+        self.remove_im_lines()
         rois = self.config.get(C.roi)
         detector = self.detector_name.get()
         if rois:
@@ -370,11 +369,11 @@ class NexusDetectorImage:
                                 [cen_i + wid_i // 2, cen_j - wid_j // 2],
                                 [cen_i - wid_i // 2, cen_j - wid_j // 2],
                             ])
-                            self.plot(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
+                            self.im_line(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
                             self.text(cen_j + wid_j // 2, cen_i + wid_i // 2, str(n))
             except Exception as e:
                 self._show_error(f'Error plotting ROIs: {e}')
-        self.fig.canvas.draw()
+        self.im_fig.canvas.draw()
 
     def mouse_select_roi(self):
         """Select a roi with the mouse"""
@@ -383,11 +382,10 @@ class NexusDetectorImage:
         ipress = [False]
 
         def disconnect():
-            self.fig.canvas.mpl_disconnect(press)
-            self.fig.canvas.mpl_disconnect(move)
-            self.fig.canvas.mpl_disconnect(release)
-            self.fig.canvas._tkcanvas.master.config(cursor="arrow")
-            # self.root.config(cursor="arrow")
+            self.im_fig.canvas.mpl_disconnect(press)
+            self.im_fig.canvas.mpl_disconnect(move)
+            self.im_fig.canvas.mpl_disconnect(release)
+            self.im_fig.canvas._tkcanvas.master.config(cursor="arrow")
 
         def mouse_press(event):
             if event.inaxes:
@@ -402,7 +400,7 @@ class NexusDetectorImage:
                 x_end = event.xdata
                 y_end = event.ydata
                 self.rectangle.set_bounds(x_start[0], y_start[0], x_end - x_start[0], y_end - y_start[0])
-                self.fig.canvas.draw()
+                self.im_fig.canvas.draw()
 
         def mouse_release(event):
             x_end = event.xdata
@@ -426,12 +424,10 @@ class NexusDetectorImage:
                 image_name=detector
             )
             self.rectangle.set_bounds(0, 0, 0, 0)
-            self.fig.canvas.draw()
+            self.im_fig.canvas.draw()
             disconnect()
 
-        press = self.fig.canvas.mpl_connect('button_press_event', mouse_press)
-        move = self.fig.canvas.mpl_connect('motion_notify_event', mouse_move)
-        release = self.fig.canvas.mpl_connect('button_release_event', mouse_release)
-        # self.root.bind("<Button-1>", get_mouseposition)
-        # self.root.config(cursor="crosshair")
-        self.fig.canvas._tkcanvas.master.config(cursor="crosshair")
+        press = self.im_fig.canvas.mpl_connect('button_press_event', mouse_press)
+        move = self.im_fig.canvas.mpl_connect('motion_notify_event', mouse_move)
+        release = self.im_fig.canvas.mpl_connect('button_release_event', mouse_release)
+        self.im_fig.canvas._tkcanvas.master.config(cursor="crosshair")

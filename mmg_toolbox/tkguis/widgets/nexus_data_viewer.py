@@ -16,8 +16,7 @@ from ..misc.logging import create_logger
 from ..misc.config import get_config, C
 from .scan_selector import FolderScanSelector
 from .nexus_details import NexusDetails
-from .nexus_plot import NexusMultiAxisPlot
-from .nexus_image import NexusDetectorImage
+from .nexus_plot_and_image import NexusPlotAndImage
 
 logger = create_logger(__file__)
 
@@ -61,34 +60,14 @@ class NexusDataViewer:
         frm.grid(column=0, row=1, **grid_options)
         self.detail_widget = NexusDetails(frm, config=self.config)
 
-        # TOP-RIGHT
-        #TODO: combine Plot and Image
-        frm = ttk.LabelFrame(window, text='Plot')
-        frm.grid(column=1, row=0, **grid_options)
-        sec = ttk.Frame(frm)
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-        self.plot_widget = NexusMultiAxisPlot(sec, config=self.config)
-        self.index_line, = self.plot_widget.ax1.plot([], [], ls='--', c='k', scaley=False, label=None)
+        # RIGHT-SIDE
+        frm = ttk.Frame(window)
+        frm.grid(column=1, row=0, rowspan=2, **grid_options)
+        self.plot_widget = NexusPlotAndImage(frm, config=self.config)
 
-        # BOTTOM-RIGHT
-        frm = ttk.LabelFrame(window, text='Image')
-        frm.grid(column=1, row=1, **grid_options)
-        self.image_frame = ttk.Frame(frm)  # image frame will be packed when required
-        self.image_widget = NexusDetectorImage(self.image_frame, config=self.config)
-
-        # update image_widget update_image to add plot line
-        def update_index_line():
-            xvals, yvals = self.plot_widget.line.get_data()
-            index = self.image_widget.view_index.get()
-            ylim = self.plot_widget.ax1.get_ylim()
-            xval = xvals[index]
-            self.index_line.set_data([xval, xval], ylim)
-            self.plot_widget.update_axes()
-        self.image_widget.extra_plot_callbacks.append(update_index_line)  # runs on update_image
         # select first file if it exists
         self.root.after(100, self.select_first_file, None)
 
-        # self._log_size()
     def select_first_file(self, _event=None):
         if len(self.selector_widget.tree.get_children()) > 0:
             first_folder = next(iter(self.selector_widget.tree.get_children()))
@@ -110,27 +89,3 @@ class NexusDataViewer:
         self.map = create_nexus_map(filename)
         self.detail_widget.update_data_from_file(filename, self.map)
         self.plot_widget.update_data_from_files(*filenames, hdf_map=self.map)
-
-        if self.map.image_data:
-            self.image_widget.update_data_from_file(filename, self.map)
-            xvals, yvals = self.plot_widget.line.get_data()
-            index = np.nanargmax(yvals)
-            xval = xvals[index]
-            ylim = self.plot_widget.ax1.get_ylim()
-            self.index_line.set_data([xval, xval], ylim)
-            self.plot_widget.update_axes()
-            self.image_widget.view_index.set(index)
-            self.image_widget.update_image()
-            self.image_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-            # add rois to signal drop-down
-            for item in self.image_widget.roi_names:
-                self.plot_widget.listbox.insert("", tk.END, text=item)
-        else:
-            self.image_frame.pack_forget()
-            self.index_line.set_data([], [])
-            self.plot_widget.update_axes()
-
-    def _log_size(self):
-        self.root.update()
-        logger.info(f"Geometry: {self.root.winfo_geometry()}")
-        logger.info(f"Screen Width x Height: {self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}")

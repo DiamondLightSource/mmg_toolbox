@@ -23,11 +23,9 @@ class SimplePlot:
                  xlabel: str = '', ylabel: str = '', title: str = '', config: dict | None = None):
         self.root = root
         self.config = config or {}
+        self._y_axis_expansion_factor = 0.1
 
         fig_size = get_figure_size(root, self.config, C.plot_size)
-        # screen_size = get_screen_size_inches(root, self.config.get(C.plot_dpi))
-        # wp, hp = (100*(fig / screen) for screen, fig in zip(screen_size, fig_size))
-        # print(f"Figure size as % of screen: {screen_size[0]:.2f}x{screen_size[1]:.2f}\" = {wp:.0f}x{hp:.0f}%")
         self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(
             frame=self.root,
             figure_size=fig_size,
@@ -37,7 +35,6 @@ class SimplePlot:
         self.ax1.set_ylabel(ylabel)
         self.ax1.set_title(title)
         self.plot(xdata, ydata)
-        self._y_axis_expansion_factor = 0.1
 
     def plot(self, *args, **kwargs) -> list[plt.Line2D]:
         lines = self.ax1.plot(*args, **kwargs)

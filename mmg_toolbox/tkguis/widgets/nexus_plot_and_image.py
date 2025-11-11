@@ -6,6 +6,7 @@ from tkinter import ttk
 
 import hdfmap
 
+from ..misc.styles import create_root
 from ..misc.logging import create_logger
 from .nexus_plot import NexusMultiAxisPlot
 from .nexus_image import NexusDetectorImage
@@ -23,6 +24,8 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
     def __init__(self, root: tk.Misc, *hdf_filenames: str,
                  config: dict | None = None, horizontal_alignment: bool = False):
         grid_options = dict(padx=5, pady=5, sticky='nsew')
+        root.rowconfigure(0, weight=1)
+        root.columnconfigure(0, weight=1)
 
         # 2D Plot
         frm = ttk.LabelFrame(root, text='Plot')
@@ -66,11 +69,8 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
         hdf_map = hdf_map or hdfmap.create_nexus_map(filenames[0])
         NexusMultiAxisPlot.update_data_from_files(self, *filenames, hdf_map=hdf_map)
         if hdf_map.image_data:
-            NexusDetectorImage.update_data_from_file(self, filenames[0], hdf_map=hdf_map)
+            NexusDetectorImage.update_image_data_from_file(self, filenames[0], hdf_map=hdf_map)
             self.update_index_line()
-            # add rois to signal drop-down
-            for item in self.roi_names:
-                self.listbox.insert("", tk.END, text=item)
             self.pack_image()
         else:
             self.index_line.set_data([], [])
@@ -80,3 +80,14 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
         super().update_image(event)
         self.update_index_line()
 
+    def add_config_rois(self):
+        super().add_config_rois()
+        # add rois to signal drop-down
+        for item in self.roi_names:
+            self.listbox.insert("", tk.END, text=item)
+
+    def new_window(self):
+        window = create_root(self.filename, self.parent)
+        widget = NexusPlotAndImage(window, config=self.config, horizontal_alignment=True)
+        widget.update_data_from_files(self.filename, hdf_map=self.map)
+        return widget

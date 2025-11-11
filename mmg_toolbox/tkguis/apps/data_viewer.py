@@ -85,7 +85,7 @@ def create_data_viewer(initial_folder: str | None = None,
             'Notebooks:': {name: lambda n=name: create_notebook_template(n) for name in NOTEBOOKS},
         }
     }
-    menu.update(widget.image_widget.options_menu())
+    menu.update(widget.plot_widget.options_menu())
 
     topmenu(root, menu, add_themes=True, add_about=True, config=config)
 
