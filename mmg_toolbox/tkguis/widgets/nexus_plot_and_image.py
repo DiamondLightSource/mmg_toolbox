@@ -68,6 +68,9 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
         if hdf_map.image_data:
             NexusDetectorImage.update_data_from_file(self, filenames[0], hdf_map=hdf_map)
             self.update_index_line()
+            # add rois to signal drop-down
+            for item in self.roi_names:
+                self.listbox.insert("", tk.END, text=item)
             self.pack_image()
         else:
             self.index_line.set_data([], [])
