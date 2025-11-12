@@ -14,7 +14,7 @@ logger = create_logger(__file__)
 
 
 def create_python_editor(script_string: str | None = None, parent: tk.Misc | None = None,
-                         config: dict | None = None) -> RootWithStyle:
+                         config: dict | None = None, filename: str | None = None) -> RootWithStyle:
     """
     ScriptGenerator GUI
     Python code editor with special features for I16 scripts
@@ -22,13 +22,15 @@ def create_python_editor(script_string: str | None = None, parent: tk.Misc | Non
     :param script_string: string to display
     :param parent: tkinter parent object
     :param config: config dict
+    :param filename: initial filename
     """
-    from ..widgets.python_editor import PythonEditorFrame, default_script
+    from ..widgets.python_editor import PythonEditorFrame
 
-    root = create_root('Python Editor', parent=parent)
+    title = filename or 'Python Editor'
+    root = create_root(title, parent=parent)
     config = get_config() if config is None else config
 
-    widget = PythonEditorFrame(root, script_string, config)
+    widget = PythonEditorFrame(root, script_string, config, filename=filename)
 
     menu = {
         'File': {

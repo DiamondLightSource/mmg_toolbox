@@ -410,13 +410,14 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
     def update_axis_choice(self, event=None):
         # select item in list if it matches
         yaxis = self.axes_y.get()
-        in_listbox = next((
+        iid = next((
             item for item in self.listbox.get_children()
             if yaxis == self.listbox.item(item)['text']
         ), None)
-        if in_listbox:
-            self.listbox.selection_set(in_listbox)
-            self.listbox.see(in_listbox)
+        if not iid:
+            iid = self.listbox.insert("", tk.END, text=yaxis)
+        self.listbox.selection_set(iid)
+        self.listbox.see(iid)
         super().update_axis_choice(event)
 
     def perform_fit(self, event=None):

@@ -111,8 +111,16 @@ def create_hover(parent: tk.Misc | RootWithStyle):
     :returns: ttk.Frame object inside tk.TopLevel with no window management
     :returns: function close() -> None (releases widget and destroys hover window)
     """
-    root = create_root('', parent)
-    root.wm_overrideredirect(True)
+    # root = create_root('', parent)
+    # root.wm_overrideredirect(True)
+
+    base_x = parent.master.winfo_x()
+    base_y = parent.master.winfo_y()
+    base_height = parent.master.winfo_height()
+
+    root = ttk.Frame(parent)
+    root.place(x=base_x, y=base_y - base_height)
+
 
     window = ttk.Frame(root, borderwidth=20, relief=tk.RAISED)
     window.pack(side=tk.TOP, fill=tk.BOTH)

@@ -2,6 +2,7 @@
 Various tkinter functions
 """
 
+import os
 import tkinter
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -95,6 +96,36 @@ def select_folder(parent, initial_directory: str | None = None):
         parent=parent,
     )
     return foldername
+
+
+def check_new_file(parent, filename: str | None = None) -> str | None:
+    """Check if filename is new and writable"""
+    path, name = os.path.split(filename)
+    if not os.access(path, os.W_OK):
+        show_error(f"new file cannot be written as path is not writable: '{path}'",
+                   parent=parent, raise_exception=False)
+        return None
+
+    if os.path.exists(filename):
+        if os.access(filename, os.W_OK):
+            answer = messagebox.askyesnocancel(
+                title='Create File',
+                message=f"Overwrite {name}? Yes to overwrite or No to create new file.",
+                parent=parent
+            )
+            if answer is None:
+                return None
+            if answer:
+                return filename
+        # amend name
+        name, ext = os.path.splitext(name)
+        n_tries = 1
+        while os.path.exists(filename):
+            if n_tries > 100:
+                return None
+            filename = os.path.join(path, name + str(n_tries) + ext)
+            n_tries += 1
+    return filename
 
 
 def open_close_all_tree(treeview, branch="", openstate=True):

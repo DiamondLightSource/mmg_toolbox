@@ -32,8 +32,8 @@ TEMPLATE = {
 }
 
 
-def create_script(new_script_path: str, template_name: str, **replacements):
-    """create script from template"""
+def generate_script(template_name: str, **replacements) -> str:
+    """generate script str from template"""
     template_file, description = SCRIPTS[template_name]
     template_file = os.path.join(os.path.dirname(__file__), template_file)
     template_changes = TEMPLATE.copy()
@@ -47,9 +47,15 @@ def create_script(new_script_path: str, template_name: str, **replacements):
         param = "{{" + name + "}}"
         print(f"Replacing {template_string.count(param)} instances of {param}")
         template_string = template_string.replace(param, value)
+    return template_string
+
+
+def create_script(new_script_path: str, template_name: str, **replacements):
+    """create script from template"""
+    script = generate_script(template_name, **replacements)
 
     with open(new_script_path, 'w') as new:
-        new.write(template_string)
+        new.write(script)
     print(f"Created {new_script_path}")
 
 
