@@ -15,6 +15,8 @@ from mmg_toolbox.utils.fitting import multipeakfit, FitResults, find_peaks_str
 from ..misc.logging import create_logger
 from ..misc.config import get_config
 from .simple_plot import SimplePlot
+from .treeview import CanvasTreeview
+
 
 logger = create_logger(__file__)
 
@@ -93,7 +95,7 @@ class NexusDefaultPlot(SimplePlot):
             self.update_axis_choice()
 
         section = ttk.Frame(self.root)
-        section.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        section.pack(side=tk.TOP, expand=tk.NO, fill=tk.BOTH)
 
         frm = ttk.Frame(section)
         frm.pack(side=tk.LEFT)
@@ -350,19 +352,25 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
     def __init__(self, root: tk.Misc, *hdf_filenames: str,
                  config: dict | None = None):
         super().__init__(root, *hdf_filenames, config=config)
+        self.fig.subplots_adjust(right=0.97)
         self.listbox = self._axis_listbox()
 
-    def _axis_listbox(self):
-        frame = ttk.Frame(self.root)
+    def _axis_listbox(self) -> ttk.Treeview:
+        frame = ttk.Frame(self.root, width=150)
         frame.pack(side=tk.RIGHT, fill=tk.Y)
+        frame.pack_propagate(False)
 
-        scrollbar = ttk.Scrollbar(frame)
-        listbox = ttk.Treeview(frame, yscrollcommand=scrollbar.set, show="tree")
-        listbox.column("#0", width=100, stretch=tk.YES)
+        y_scrollbar = ttk.Scrollbar(frame)
+        x_scrollbar = ttk.Scrollbar(frame, orient="horizontal")
+        listbox = ttk.Treeview(frame, yscrollcommand=y_scrollbar.set,
+                               xscrollcommand=x_scrollbar.set, show="tree")
+        listbox.column("#0", width=200, stretch=tk.YES)
         listbox.bind("<<TreeviewSelect>>", self.select_listbox_items)
-        scrollbar.configure(command=listbox.yview)
+        y_scrollbar.configure(command=listbox.yview)
+        x_scrollbar.configure(command=listbox.xview)
 
-        scrollbar.pack(side="right", fill="y")
+        y_scrollbar.pack(side="right", fill="y")
+        x_scrollbar.pack(side="bottom", fill="x")
         listbox.pack(side="left", fill="both", expand=True)
         return listbox
 
@@ -374,9 +382,10 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
         self.listbox.delete(*self.listbox.get_children())
         first_dataset = self._scannable_data[0]
         for item in first_dataset:
-            self.listbox.insert("", tk.END, text=item)
+            iid = self.listbox.insert("", tk.END, text=item)
             if item == auto_signal:
-                self.listbox.focus()
+                self.listbox.selection_add(iid)
+                self.listbox.focus(iid)
 
     def select_listbox_items(self, event=None):
         if len(self.listbox.selection()) == 0:
@@ -401,13 +410,14 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
     def update_axis_choice(self, event=None):
         # select item in list if it matches
         yaxis = self.axes_y.get()
-        in_listbox = next((
+        iid = next((
             item for item in self.listbox.get_children()
             if yaxis == self.listbox.item(item)['text']
         ), None)
-        if in_listbox:
-            self.listbox.selection_set(in_listbox)
-            self.listbox.see(in_listbox)
+        if not iid:
+            iid = self.listbox.insert("", tk.END, text=yaxis)
+        self.listbox.selection_set(iid)
+        self.listbox.see(iid)
         super().update_axis_choice(event)
 
     def perform_fit(self, event=None):

@@ -49,7 +49,7 @@ class _ScanSelector(CanvasTreeview):
         # add values from metadata_list
         self.metadata_names = tuple(self.config.get(C.metadata_list, {}).keys())
         columns += [
-            (name, name, 200, True, None) for name in self.metadata_names
+            (name, name, 400, True, None) for name in self.metadata_names
         ]
         super().__init__(root, *columns, pack=False)
 

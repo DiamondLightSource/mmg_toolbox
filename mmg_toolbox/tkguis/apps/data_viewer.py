@@ -1,12 +1,13 @@
 import os
 import tkinter as tk
 
-from mmg_toolbox.utils.env_functions import get_notebook_directory, open_terminal, get_scan_number, check_file_access
-from mmg_toolbox.tkguis.misc.config import get_config, C
-from mmg_toolbox.tkguis.misc.functions import topmenu
-from mmg_toolbox.tkguis.misc.styles import RootWithStyle, create_root
-from mmg_toolbox.tkguis.misc.jupyter import launch_jupyter_notebook, terminate_notebooks
-from mmg_toolbox.scripts.scripts import create_script, create_notebook, SCRIPTS, NOTEBOOKS
+from mmg_toolbox.utils.env_functions import (get_notebook_directory, open_terminal, get_scan_number,
+                                             get_processing_directory)
+from mmg_toolbox.scripts.scripts import generate_script, create_script, create_notebook, SCRIPTS, NOTEBOOKS
+from ..misc.config import get_config, C
+from ..misc.functions import topmenu, check_new_file
+from ..misc.styles import RootWithStyle, create_root
+from ..misc.jupyter import launch_jupyter_notebook, terminate_notebooks
 
 
 def create_data_viewer(initial_folder: str | None = None,
@@ -26,6 +27,8 @@ def create_data_viewer(initial_folder: str | None = None,
 
     widget = NexusDataViewer(root, initial_folder=initial_folder, config=config)
 
+    # TODO: Move all the processing stuff somewhere else, make it available to other widgets, use config.
+    # TODO: get_replacements would have to be widget based.
     def get_filepath():
         filename, folder = widget.selector_widget.get_filepath()
         return folder
@@ -48,14 +51,18 @@ def create_data_viewer(initial_folder: str | None = None,
 
     def create_script_template(template='example'):
         filename, folder = widget.selector_widget.get_filepath()
-        new_file = check_file_access(folder + '/processing/example_script.py')
-        create_script(new_file, template, **get_replacements())
-        create_python_editor(open(new_file).read(), root, config),
+        proc_folder = get_processing_directory(folder)
+        script_name = os.path.join(proc_folder, f"{template}.py")
+        new_file = check_new_file(root, script_name)
+        script = generate_script(template, **get_replacements())
+        create_python_editor(script, root, config, filename=new_file),
 
     def create_notebook_template(template='example'):
         filename, folder = widget.selector_widget.get_filepath()
-        new_file = check_file_access(folder + '/processing/example.ipynb')
-        create_notebook(new_file, template, **get_replacements(filename))
+        proc_folder = get_processing_directory(folder)
+        nb_name = os.path.join(proc_folder, f"{template}.ipynb")
+        new_file = check_new_file(root, nb_name)
+        create_notebook(new_file, template, **get_replacements())
         launch_jupyter_notebook('notebook', file=new_file)
 
     def start_multi_scan_plot():
@@ -81,11 +88,11 @@ def create_data_viewer(initial_folder: str | None = None,
             'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', get_filepath() + '/processing'),
             'Start Jupyter (notebooks)': lambda: launch_jupyter_notebook('notebook', get_filepath() + '/processed/notebooks'),
             'Stop Jupyter servers': terminate_notebooks,
-            'Scripts:': {name: lambda n=name: create_script_template(n) for name in SCRIPTS},
-            'Notebooks:': {name: lambda n=name: create_notebook_template(n) for name in NOTEBOOKS},
+            'Create Script:': {name: lambda n=name: create_script_template(n) for name in SCRIPTS},
+            'Create Notebook:': {name: lambda n=name: create_notebook_template(n) for name in NOTEBOOKS},
         }
     }
-    menu.update(widget.image_widget.options_menu())
+    menu.update(widget.plot_widget.options_menu())
 
     topmenu(root, menu, add_themes=True, add_about=True, config=config)
 

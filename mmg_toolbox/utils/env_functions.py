@@ -81,8 +81,8 @@ def get_notebook_directory(data_directory: str):
     return os.path.join(data_directory, 'processed', 'notebooks')
 
 
-def get_dls_visits(instrument: str | None = None, year: str | int | None = None) -> dict[str, ...]:
-    """Return list of visits"""
+def get_dls_visits(instrument: str | None = None, year: str | int | None = None) -> dict[str, str]:
+    """Return dict of {visit: path} for each visible visit in the beamline directory"""
     if instrument is None:
         instrument = get_beamline()
     if year is None:
@@ -106,20 +106,20 @@ def get_first_file(folder: str, extension='.nxs') -> str:
     return next(iter(list_files(folder, extension=extension)))
 
 
-def get_scan_numbers(folder: str) -> list[int]:
+def get_scan_numbers(folder: str, extension: str = '.nxs') -> list[int]:
     """Return ordered list of scans numbers from nexus files in directory"""
     return sorted(
-        number for filename in list_files(folder, extension='.nxs')
+        number for filename in list_files(folder, extension=extension)
         if (number := get_scan_number(filename)) > 0
     )
 
 
-def scan_number_mapping(*folders: str) -> dict[int, str]:
+def scan_number_mapping(*folders: str, extension: str = '.nxs') -> dict[int, str]:
     """Build mapping of scan number to scan file"""
     mapping = {
         number: filename
         for folder in folders
-        for filename in list_files(folder, extension='.nxs')
+        for filename in list_files(folder, extension=extension)
         if (number := get_scan_number(filename)) > 0
     }
     return dict(sorted(mapping.items()))

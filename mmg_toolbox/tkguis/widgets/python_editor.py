@@ -1,5 +1,6 @@
 import re
 import sys
+import os
 import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -74,11 +75,12 @@ class PythonEditorFrame:
     Editable textbox with numbers at side and key bindings for Python
     """
 
-    def __init__(self, root: tk.Misc | tk.Tk, script_string=None, config: dict | None = None):
+    def __init__(self, root: tk.Misc | tk.Tk, script_string=None, config: dict | None = None,
+                 filename: str | None = None):
         self.root = root
         self.config = config
         # Variables
-        self.filename = ''
+        self.filename = filename or ''
         self.script_string = script_string or default_script()
 
         "----------- Textbox -----------"
@@ -160,6 +162,7 @@ class PythonEditorFrame:
         """Open new script"""
         filename = filedialog.askopenfilename(
             title='Open Python Script',
+            initialdir=os.path.dirname(self.filename),
             defaultextension='*.py',
             filetypes=(("Python files", "*.py"), ("All files", "*.*"))
         )

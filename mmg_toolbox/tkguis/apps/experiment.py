@@ -14,6 +14,7 @@ def create_title_window(beamline: str | None = None):
     from .scans import create_range_selector
     from .data_viewer import create_data_viewer
     from .python_editor import create_python_editor
+    from .visit_viewer import create_visit_viewer
 
 
     root = create_root(window_title='Beamline Data Viewer')
@@ -28,7 +29,8 @@ def create_title_window(beamline: str | None = None):
             'Jupyter Browser': lambda: create_jupyter_browser(root, widget.notebook_dir.get()),
             'Data Viewer': lambda: create_data_viewer(widget.data_dir.get(), root, config),
             'Range selector': lambda: create_range_selector(widget.data_dir.get(), root, config),
-            'Log viewer': lambda: create_gda_terminal_log_viewer(widget.data_dir.get(), root)
+            'Log viewer': lambda: create_gda_terminal_log_viewer(widget.data_dir.get(), root),
+            'Visit Viewer': lambda: create_visit_viewer(config),
         },
         'Processing': {
             'Script Editor': lambda: create_python_editor(None, root, config),
