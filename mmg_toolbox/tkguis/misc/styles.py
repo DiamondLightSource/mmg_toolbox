@@ -40,6 +40,7 @@ def extra_styles(style: ttk.Style):
     """
     # style.configure("Red.TLabel", foreground='red', font='TkDefaultFont 24 bold')
     style.configure("title.TLabel", foreground='red', font='times 24 bold')
+    style.configure("subtitle.TLabel", foreground='black', font='times 18 bold')
     style.configure("error.TLabel", foreground='red')
     style.configure("smallMsg.TLabel", font='TkDefaultFont 10 bold')
 
@@ -72,7 +73,7 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
     if parent:
         root = tk.Toplevel(parent)
         # root.geometry(f"+{parent.winfo_x()+100}+{parent.winfo_y()+100}")
-        root.transient(parent)
+        # root.transient(parent)
         if hasattr(parent, 'style'):
             root.style = parent.style
     else:
@@ -99,7 +100,7 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
     return root
 
 
-def create_hover(parent: tk.Misc | RootWithStyle):
+def create_hover(parent: tk.Misc | RootWithStyle, top_left: tuple[float, float] = (0.1, 0.1)):
     """
     Create tkinter frame hovering above the current widget
 
@@ -108,19 +109,13 @@ def create_hover(parent: tk.Misc | RootWithStyle):
     ttk.Button(window_frame, text='Close', command=close).pack()
 
     :param parent: tk widget or root
+    :param top_left: (relx, rely) widget top-left corner relative to parent top-left corner
     :returns: ttk.Frame object inside tk.TopLevel with no window management
     :returns: function close() -> None (releases widget and destroys hover window)
     """
-    # root = create_root('', parent)
-    # root.wm_overrideredirect(True)
-
-    base_x = parent.master.winfo_x()
-    base_y = parent.master.winfo_y()
-    base_height = parent.master.winfo_height()
 
     root = ttk.Frame(parent)
-    root.place(x=base_x, y=base_y - base_height)
-
+    root.place(relx=top_left[0], rely=top_left[1])
 
     window = ttk.Frame(root, borderwidth=20, relief=tk.RAISED)
     window.pack(side=tk.TOP, fill=tk.BOTH)

@@ -65,7 +65,7 @@ class TitleWindow:
         # ttk.Button(frm, text='NeXus Browser', command=self.open_file_browser, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='Log Viewer', command=self.open_log_viewer, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='Notebook Browser', command=self.open_notebook_browser, width=20).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Script Runner', command=self.open_script_runner, width=20).pack(side=tk.LEFT)
+        ttk.Button(frm, text='Processing', command=self.open_script_runner, width=20).pack(side=tk.LEFT)
 
         self.choose_beamline(self.config.get(C.beamline, 'i16'))
 
@@ -165,14 +165,14 @@ class TitleWindow:
         create_jupyter_browser(self.root, self.notebook_dir.get())
 
     def open_script_runner(self):
-        from ..apps.script_runner import create_script_runner
+        from ..apps.multi_scan_analysis import create_multi_scan_analysis
         folders = {
             C.default_directory: self.data_dir.get(),
             C.processing_directory: self.proc_dir.get(),
             C.notebook_directory: self.notebook_dir.get(),
         }
         self.config.update(folders)
-        create_script_runner(self.root, self.config)
+        create_multi_scan_analysis(self.root, self.config)
 
 
 

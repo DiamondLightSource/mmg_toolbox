@@ -9,6 +9,7 @@ import hdfmap
 from ..utils.misc_functions import numbers2string
 from ..utils.env_functions import scan_number_mapping, last_folder_update
 from ..nexus.nexus_scan import NexusScan, NexusDataHolder
+from ..nexus.nexus_reader import find_scans
 from ..xas import load_xas_scans, SpectraContainer
 
 DEFAULT_SCAN_DESCRIPTION = '{(cmd|scan_command)}'
@@ -96,6 +97,17 @@ class Experiment:
         if filenames and hdf_map is None:
             hdf_map = hdfmap.create_nexus_map(filenames[0])
         return [NexusScan(file, hdf_map) for file in filenames]
+
+    def find_scans(self, *scan_files: int | str,  hdf_map: hdfmap.NexusMap | None = None,
+                   **matches: str | float | tuple[float, float]) -> list[NexusScan]:
+        """Find Scans with similar metadata"""
+        filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
+        if not filenames:
+            return []
+        if hdf_map is None:
+            hdf_map = hdfmap.create_nexus_map(filenames[0])
+        matches = find_scans(*filenames, hdf_map=hdf_map, **matches)
+        return self.scans(*matches, hdf_map=hdf_map)
 
     def join_scan_data(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
                        data_fields: list[str] | None = None, default: np.ndarray = np.array([0.0])) -> dict[str, list]:

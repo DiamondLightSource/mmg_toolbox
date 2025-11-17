@@ -7,7 +7,6 @@ a tkinter frame with 4 sections:
 """
 import tkinter as tk
 from tkinter import ttk
-import numpy as np
 
 from hdfmap import create_nexus_map
 

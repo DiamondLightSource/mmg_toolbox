@@ -9,7 +9,7 @@ import numpy as np
 import hdfmap
 from hdfmap import create_nexus_map
 
-from mmg_toolbox.utils.file_functions import read_tiff
+from mmg_toolbox.utils.file_functions import read_tiff, get_scan_number
 from ..misc.styles import create_hover, create_root
 from ..misc.screen_size import get_figure_size
 from ..misc.matplotlib import ini_image, COLORMAPS, DEFAULT_COLORMAP, add_rectangle
@@ -235,10 +235,18 @@ class NexusDetectorImage:
                 value = self.map.get_data(hdf, axis_name, index=index, default=index)
 
             if issubclass(type(image), str):
-                # TIFF image
+                # TIFF image, NXdetector/image_data -> array('file.tif')
                 file_directory = os.path.dirname(self.filename)
                 image_filename = os.path.join(file_directory, image)
                 # print(f"directory: {file_directory}\nstring: {image}\nfilename: {image_filename}")
+                if not os.path.isfile(image_filename):
+                    raise FileNotFoundError(f"File not found: {image_filename}")
+                image = read_tiff(image_filename)
+            elif image.ndim == 0:
+                # image is file path number, NXdetector/path -> arange(n_points)
+                scan_number = get_scan_number(self.filename)
+                file_directory = os.path.dirname(self.filename)
+                image_filename = os.path.join(file_directory, f"{scan_number}-{detector}-files/{image:05f.0}.tif")
                 if not os.path.isfile(image_filename):
                     raise FileNotFoundError(f"File not found: {image_filename}")
                 image = read_tiff(image_filename)

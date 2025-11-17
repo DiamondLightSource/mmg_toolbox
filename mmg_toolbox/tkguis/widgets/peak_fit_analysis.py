@@ -173,8 +173,9 @@ class PeakFitAnalysis:
         ttk.Combobox(bottom, textvariable=self.plot_option, values=options).pack(side=tk.LEFT, padx=2)
 
         # ---Start---
-        self.add_scans(*scan_numbers)
-        self.scans.tree.selection_set(self.scans.first_item())
+        if scan_numbers:
+            self.add_scans(*scan_numbers)
+            self.scans.tree.selection_set(self.scans.first_item())
 
     def ini_top_section(self, root: tk.Misc):
         # top = ttk.LabelFrame(root, text='Folders')

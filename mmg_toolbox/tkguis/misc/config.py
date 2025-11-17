@@ -7,6 +7,7 @@ import os
 import json
 
 from mmg_toolbox.utils.env_functions import TMPDIR, YEAR, get_beamline, get_user, check_file_access
+from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapMMGMetadata as Md
 from .beamline_metadata import BEAMLINE_META, META_STRING, META_LABEL
 from .matplotlib import FIGURE_SIZE, FIGURE_DPI, IMAGE_SIZE, DEFAULT_COLORMAP
 
@@ -37,6 +38,7 @@ class C:
     current_dir = 'current_dir'
     current_proc = 'current_proc'
     current_nb = 'current_nb'
+    default_metadata = 'default_metadata'
 
 
 # config name (saved in TMPDIR)
@@ -86,6 +88,7 @@ CONFIG = {
     C.metadata_list: META_LIST,
     C.metadata_label: META_LABEL,
     C.default_colormap: DEFAULT_COLORMAP,
+    C.default_metadata: Md.temp,
 }
 
 BEAMLINE_CONFIG = {
@@ -94,30 +97,35 @@ BEAMLINE_CONFIG = {
         C.default_directory: f"/dls/i06/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06'],
         C.normalise_factor: '',
+        # C.default_metadata: '',
     },
     'i06-1': {
         C.beamline: 'i06-1',
         C.default_directory: f"/dls/i06-1/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06-1'],
         C.normalise_factor: '',
+        # C.default_metadata: '',
     },
     'i06-2': {
         C.beamline: 'i06-2',
         C.default_directory: f"/dls/i06-2/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i06-2'],
         C.normalise_factor: '',
+        # C.default_metadata: '',
     },
     'i10': {
         C.beamline: 'i10',
         C.default_directory: f"/dls/i10/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i10'],
         C.normalise_factor: '',
+        # C.default_metadata: '',
     },
     'i10-1': {
         C.beamline: 'i10-1',
         C.default_directory: f"/dls/i10-1/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i10-1'],
         C.normalise_factor: '/(mcs16|macr16|mcse16|macj316|mcsh16|macj216)',
+        # C.default_metadata: '',
     },
     'i16': {
         C.beamline: 'i16',
@@ -126,13 +134,15 @@ BEAMLINE_CONFIG = {
         C.metadata_string: BEAMLINE_META['i16'],
         C.roi: [
             ('pilroi1', 'pil3_centre_j', 'pil3_centre_i', 30, 30, 'pil3_100k'),
-        ]
+        ],
+        C.default_metadata: 'Tsample',
     },
     'i21': {
         C.beamline: 'i21',
         C.default_directory: f"/dls/i21/data/{YEAR}/",
         C.metadata_string: BEAMLINE_META['i21'],
         C.normalise_factor: '',
+        # C.default_metadata: '',
     },
 }
 

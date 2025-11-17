@@ -64,6 +64,7 @@ class ScanPlotManager:
         :param kwargs: given directly to plt.plot(..., *args, **kwars)
         :return: axes object
         """
+        #TODO: handle 2D grid scans
         axes = plt.subplot() if axes is None else axes
 
         if isinstance(yaxis, str):

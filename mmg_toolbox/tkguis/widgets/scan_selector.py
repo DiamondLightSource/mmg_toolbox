@@ -14,6 +14,8 @@ from mmg_toolbox.utils.file_functions import list_files, display_timestamp, get_
 from ..misc.functions import post_right_click_menu, select_folder
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
+from ..misc.styles import create_hover
+from .find_scans import FindScans
 from .treeview import CanvasTreeview
 
 logger = create_logger(__file__)
@@ -204,6 +206,7 @@ class _ScanSelector(CanvasTreeview):
         self.root.destroy()
 
     def _get_select_box(self):
+        # TODO: replace with asteval
         return str(eval(self.select_box.get()))
 
     def select_from_box(self, event=None):
@@ -406,7 +409,23 @@ class FolderScanSelector(_ScanSelector):
     "======================================================"
 
     def search_options(self):
-        pass
+        filename, foldername = self.get_filepath()
+
+        top = self.root.winfo_toplevel()
+        window, fun_close = create_hover(top)
+        widget = FindScans(window, foldername, self.config, filename, close_fun=fun_close)
+
+        scan_files = widget.show()
+        if scan_files:
+            scan_numbers = [get_scan_number(filename) for filename in scan_files[:5]]
+            self.tree.selection_remove(self.tree.selection())
+            for iid in self.tree.get_children():  # folders
+                for scan_iid in self.tree.get_children(iid):
+                    scan_number = self.tree.item(scan_iid)['text']
+                    if int(scan_number) in scan_numbers:
+                        self.tree.selection_add(scan_iid)
+                        self.tree.see(scan_iid)
+                        break
 
 
 class ScanViewer(_ScanSelector):
