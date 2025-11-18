@@ -137,7 +137,6 @@ class ScanRangeSelector:
         top = self.root.winfo_toplevel()
         frame, fun_close = create_hover(top)
         widget = FindScans(frame, self.exp_folder.get(), self.config, first_file, metadata_list, close_fun=fun_close)
-        scan_files = widget.show()
-        if scan_files:
-            scan_numbers = [get_scan_number(filename) for filename in scan_files]
+        scan_numbers = widget.wait_for_numbers()
+        if scan_numbers:
             self.text.replace("1.0", tk.END, str(scan_numbers))

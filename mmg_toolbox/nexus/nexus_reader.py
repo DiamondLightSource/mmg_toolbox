@@ -88,7 +88,7 @@ def find_similar_scans(filename: str, *files: str, metadata: list[str | tuple[st
     return similar_files
 
 
-def find_scans(filename: str, *files: str, hdf_map: hdfmap.NexusMap | None = None,
+def find_scans(filename: str, *files: str, hdf_map: hdfmap.NexusMap | None = None, first_only: bool = False,
                **matches: str | float | tuple[float, float]) -> list[str]:
     """
     Find scans files with matching parameters
@@ -103,6 +103,7 @@ def find_scans(filename: str, *files: str, hdf_map: hdfmap.NexusMap | None = Non
     :param filename: nexus filename (used to create hdfmap)
     :param files: list of additional nexus files
     :param hdf_map: if given, uses this hdfmap rather than generating one.
+    :param first_only: if true, returns on the first result
     :param matches: keyword arguments for matching parameters
     :returns: list of scan files that match all requirements
     """
@@ -124,5 +125,7 @@ def find_scans(filename: str, *files: str, hdf_map: hdfmap.NexusMap | None = Non
                     break
         if all_ok:
             matching_files.append(file)
+            if first_only:
+                break
     return matching_files
 

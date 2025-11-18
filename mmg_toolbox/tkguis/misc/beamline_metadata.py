@@ -2,13 +2,13 @@
 Specific beamline metadata
 """
 
-META_LABEL = "{(cmd|scan_command)}"
+META_LABEL = "{(cmd|user_command|scan_command)}"
 
 META_STRING = """
 {filename}
 {filepath}
 {start_time}
-cmd = {(cmd|scan_command)}
+cmd = {(cmd|user_command|scan_command)}
 axes = {_axes}
 signal = {_signal}
 detector = {_IMAGE.split('/')[-2] if '/' in _IMAGE else 'none'}
@@ -40,7 +40,7 @@ pitch = {(em_pitch|hfm_pitch?(0)):.2f}
 I16_META_STRING = META_STRING + """
 sample = {sample_name}
 energy = {mean(incident_energy):.0f} eV
-pol = {stokes:.2f} analyser: {analyser_name}({analyser_order}) {pa_detector_name}
+pol = {mean(stokes):.2f} analyser: {analyser_name}({analyser_order}) {pa_detector_name}
 temp = {Tsample?(300):.2f} K
 
 hkl = ({mean(diffractometer_sample_h):.2g},{mean(diffractometer_sample_k):.2g},{mean(diffractometer_sample_l):.2g})

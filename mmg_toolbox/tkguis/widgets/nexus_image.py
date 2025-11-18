@@ -69,7 +69,7 @@ class NexusDetectorImage:
         # Error message
         frm = ttk.Frame(section)
         frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
-        self.error_label = ttk.Label(frm, textvariable=self.image_error)  # only pack this on error
+        self.error_label = ttk.Label(frm, textvariable=self.image_error, style='error.TLabel')  # only pack this on error
 
         self.slider = self.ini_slider(root)
 
@@ -185,10 +185,10 @@ class NexusDetectorImage:
         widget = NexusDetectorImage(window, self.filename, self.config, self.map)
         return widget
 
-    def _clear_error(self):
+    def _clear_image_error(self):
         self.error_label.pack_forget()
 
-    def _show_error(self, message):
+    def _show_image_error(self, message):
         self.image_error.set(message)
         self.error_label.pack()
 
@@ -206,7 +206,8 @@ class NexusDetectorImage:
         self._im_lines.clear()
 
     def update_image_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
-        self._clear_error()
+        logger.debug(f'update image from filename: {filename}')
+        self._clear_image_error()
         self.filename = filename
         self.map = create_nexus_map(self.filename) if hdf_map is None else hdf_map
         self.slider.config(to=self.map.scannables_length() - 1)  # set slider max
@@ -228,6 +229,7 @@ class NexusDetectorImage:
             axis_name = self.axis_name.get()
             index = int(self.view_index.get())
             self.view_index.set(index)
+            logger.debug(f"load image: {detector} [{index}] with axis '{axis_name}'")
 
             self.map.set_image_path(self.map.image_data[detector])
             with hdfmap.load_hdf(self.filename) as hdf:
@@ -239,6 +241,7 @@ class NexusDetectorImage:
                 file_directory = os.path.dirname(self.filename)
                 image_filename = os.path.join(file_directory, image)
                 # print(f"directory: {file_directory}\nstring: {image}\nfilename: {image_filename}")
+                logger.info(f"load tiff image from '{image}': {image_filename}")
                 if not os.path.isfile(image_filename):
                     raise FileNotFoundError(f"File not found: {image_filename}")
                 image = read_tiff(image_filename)
@@ -246,21 +249,22 @@ class NexusDetectorImage:
                 # image is file path number, NXdetector/path -> arange(n_points)
                 scan_number = get_scan_number(self.filename)
                 file_directory = os.path.dirname(self.filename)
-                image_filename = os.path.join(file_directory, f"{scan_number}-{detector}-files/{image:05f.0}.tif")
+                image_filename = os.path.join(file_directory, f"{scan_number}-{detector}-files/{image:05.0f}.tif")
+                logger.info(f"load tiff image from {image}: {image_filename}")
                 if not os.path.isfile(image_filename):
                     raise FileNotFoundError(f"File not found: {image_filename}")
                 image = read_tiff(image_filename)
             elif image.ndim != 2:
                 raise Exception(f"detector image[{index}] is the wrong shape: {image.shape}")
         except Exception as e:
-            self._show_error(f'Error loading image: {e}')
+            self._show_image_error(f'Error loading image: {e}')
             image = np.zeros([10, 10])
             value = np.nan
         return image, value
 
     def update_image_plot(self, event=None):
         """replace plot instance (e.g. on loading new file)"""
-        self._clear_error()
+        self._clear_image_error()
         if self.filename is None:
             return
         image, value = self._get_image()
@@ -298,7 +302,7 @@ class NexusDetectorImage:
 
     def update_image(self, event=None):
         """replace array in plot (e.g. on changing slider)"""
-        self._clear_error()
+        self._clear_image_error()
         if self.filename is None:
             return
         image, value = self._get_image()
@@ -380,7 +384,7 @@ class NexusDetectorImage:
                             self.im_line(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
                             self.text(cen_j + wid_j // 2, cen_i + wid_i // 2, str(n))
             except Exception as e:
-                self._show_error(f'Error plotting ROIs: {e}')
+                self._show_image_error(f'Error plotting ROIs: {e}')
         self.im_fig.canvas.draw()
 
     def mouse_select_roi(self):

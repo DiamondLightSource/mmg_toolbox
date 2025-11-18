@@ -55,7 +55,7 @@ MAX_PLOT_SCREEN_PERCENTAGE = (75, 25)  # (wid, height) max plot size as % of scr
 META_LIST = {
     # scan number and start_time included by default
     # name: format
-    'cmd': '{(cmd|scan_command)}'
+    'cmd': '{(cmd|user_command|scan_command)}'
 }
 
 REPLACE_NAMES = {

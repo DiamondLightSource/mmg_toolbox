@@ -15,7 +15,6 @@ from mmg_toolbox.utils.fitting import multipeakfit, FitResults, find_peaks_str
 from ..misc.logging import create_logger
 from ..misc.config import get_config
 from .simple_plot import SimplePlot
-from .treeview import CanvasTreeview
 
 
 logger = create_logger(__file__)
@@ -218,6 +217,7 @@ class NexusDefaultPlot(SimplePlot):
         for filename, scannables in zip(self.filenames, self._scannable_data):
             this_x_data = scannables.get(x_label, None)
             this_y_data = [scannables.get(label, None) for label in y_labels]
+            # TODO: handle 2D scans as additional set of labels
             file_label = f"#{get_scan_number(filename)}" if len(self.filenames) > 1 else ""
             this_labels = [f"{file_label} {lab}" for lab in y_labels] if len(y_labels) > 1 else [file_label]
 
