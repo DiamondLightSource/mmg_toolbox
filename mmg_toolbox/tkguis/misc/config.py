@@ -155,6 +155,7 @@ def check_config_filename(config_filename: str | None) -> str:
 
 
 def load_config(config_filename: str = CONFIG_FILE) -> dict:
+    """Loads a config dict from file, by default from the default location"""
     if os.path.isfile(config_filename):
         with open(config_filename, 'r') as f:
             return json.load(f)
@@ -162,6 +163,7 @@ def load_config(config_filename: str = CONFIG_FILE) -> dict:
 
 
 def default_config(beamline: str | None = None) -> dict:
+    """Returns the default beamline config dict"""
     config = CONFIG.copy()
     if beamline is None:
         beamline = get_beamline()
@@ -171,9 +173,14 @@ def default_config(beamline: str | None = None) -> dict:
 
 
 def get_config(config_filename: str | None = None, beamline: str | None = None) -> dict:
+    """merge loaded config into default beamline config and return the config dict"""
     config_filename = check_config_filename(config_filename)
     user_config = load_config(config_filename)
     config = default_config(beamline)
+    if beamline and user_config.get(C.beamline) and beamline != user_config.get(C.beamline):
+        # default config overrides user config when changing beamline
+        user_config.update(config)
+        return user_config
     config.update(user_config)
     return config
 
@@ -186,6 +193,7 @@ def reset_config(config: dict) -> None:
 
 
 def save_config(config: dict):
+    """Save the config dict into the file location referenced in config['config_file']"""
     config_filename = config.get(C.conf_file, CONFIG_FILE)
     with open(config_filename, 'w') as f:
         json.dump(config, f)
@@ -193,6 +201,7 @@ def save_config(config: dict):
 
 
 def save_config_as(config_filename: str | None = None, **kwargs):
+    """Save the config dict into a new file location"""
     config = get_config(config_filename)
     config.update(kwargs)
     config[C.conf_file] = config_filename

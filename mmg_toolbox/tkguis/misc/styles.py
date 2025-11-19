@@ -70,6 +70,7 @@ class RootWithStyle(tk.Tk):
 
 def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None) -> RootWithStyle:
     """Create tkinter root object with style attribute"""
+    # TODO: this is the slow part of the startup, investigate further.
     if parent:
         root = tk.Toplevel(parent)
         # root.geometry(f"+{parent.winfo_x()+100}+{parent.winfo_y()+100}")
