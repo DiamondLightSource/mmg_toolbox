@@ -21,6 +21,7 @@ def test_config():
     assert config.get(C.beamline) == 'i10-1'
 
 
+@only_dls_file_system
 def test_widgets():
     config = default_config()
 
