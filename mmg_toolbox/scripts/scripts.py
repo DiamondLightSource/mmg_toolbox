@@ -3,8 +3,24 @@ Script & Notebook templates
 """
 
 import os
+import re
 import datetime
 
+re_replacement = re.compile(r"{{(.+?)}}")
+
+
+class R:
+    """Names used in replacements"""
+    beamline = 'beamline'
+    description = 'description'
+    filepaths = 'filepaths'
+    exp = 'experiment_dir'
+    proc = 'processing_dir'
+    scannos = 'scan_numbers'
+    title = 'title'
+    xaxis = 'x-axis'
+    yaxis = 'y-axis'
+    value = 'value'
 
 SCRIPTS = {
     # name: (filename, description)
@@ -21,15 +37,20 @@ NOTEBOOKS = {
 
 TEMPLATE = {
     # {{template}}: replacement
-    'description': 'a short description',
-    'filepaths': "'file1.nxs', 'file2.nxs', 'file3.nxs'",
-    'experiment_dir': 'path/to/dir',
-    'scan_numbers': 'range(-10, 0)',
-    'title': 'a nice plot',
-    'x-axis': 'axes',
-    'y-axis': 'signal',
-    'value': 'Ta'
+    R.description: 'a short description',
+    R.filepaths: "'file1.nxs', 'file2.nxs', 'file3.nxs'",
+    R.exp: 'path/to/dir',
+    R.scannos: 'range(-10, 0)',
+    R.title: 'a nice plot',
+    R.xaxis: 'axes',
+    R.yaxis: 'signal',
+    R.value: 'Ta'
 }
+
+
+def find_replacements(string: str) -> list[str]:
+    """find all replacements in string"""
+    return re_replacement.findall(string)
 
 
 def generate_script(template_name: str, **replacements) -> str:
@@ -39,8 +60,6 @@ def generate_script(template_name: str, **replacements) -> str:
     template_changes = TEMPLATE.copy()
     template_changes.update(replacements)
     template_changes['date'] = str(datetime.date.today())
-    print(template_file)
-    print(template_changes)
 
     template_string = open(template_file, 'r').read()
     for name, value in template_changes.items():

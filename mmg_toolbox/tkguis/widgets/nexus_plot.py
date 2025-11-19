@@ -15,7 +15,6 @@ from mmg_toolbox.utils.fitting import multipeakfit, FitResults, find_peaks_str
 from ..misc.logging import create_logger
 from ..misc.config import get_config
 from .simple_plot import SimplePlot
-from .treeview import CanvasTreeview
 
 
 logger = create_logger(__file__)
@@ -210,13 +209,17 @@ class NexusDefaultPlot(SimplePlot):
         if errors:
             self._set_error('\n'.join(errors))
 
-    def get_xy_data(self, x_label: str, *y_labels: str) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    def get_xy_data(self, x_label: str, *y_labels: str) -> tuple[list[np.ndarray], list[np.ndarray], list[str]]:
         x_data: list[np.ndarray] = []
         y_data: list[np.ndarray] = []
+        labels: list[str] = []
         errors = []
         for filename, scannables in zip(self.filenames, self._scannable_data):
             this_x_data = scannables.get(x_label, None)
             this_y_data = [scannables.get(label, None) for label in y_labels]
+            # TODO: handle 2D scans as additional set of labels
+            file_label = f"#{get_scan_number(filename)}" if len(self.filenames) > 1 else ""
+            this_labels = [f"{file_label} {lab}" for lab in y_labels] if len(y_labels) > 1 else [file_label]
 
             if this_x_data is None or any(data is None for data in this_y_data):
                 # Load additional data
@@ -236,11 +239,12 @@ class NexusDefaultPlot(SimplePlot):
                                 this_y_data[n] = np.arange(len(this_x_data))
             x_data.extend([this_x_data] * len(this_y_data))
             y_data.extend(this_y_data)
+            labels.extend(this_labels)
 
         if errors:
             self._set_error('\n'.join(errors))
 
-        return x_data, y_data
+        return x_data, y_data, labels
 
     def normalise_signal(self, event=None):
         signal = self.axes_y.get()
@@ -258,14 +262,14 @@ class NexusDefaultPlot(SimplePlot):
         y_label = self.axes_y.get()
         if not x_label or not y_label:
             return
-        xdata, ydata = self.get_xy_data(x_label, *y_label.split(','))
+        xdata, ydata, labels = self.get_xy_data(x_label, *y_label.split(','))
         self.update_from_data(
             x_data=xdata,
             y_data=ydata,
             x_label=self._label(x_label),
             y_label=self._label(y_label),
             title=os.path.basename(self.filenames[0]),
-            legend=[os.path.basename(filename) for filename in self.filenames],
+            legend=labels,
         )
         self.line = self.plot_list[0]
 
@@ -277,7 +281,7 @@ class NexusDefaultPlot(SimplePlot):
         peaks = self.max_peaks.get()
         if not x_label or not y_label:
             return None, ''
-        xdata, ydata = self.get_xy_data(x_label, y_label)
+        xdata, ydata, labels = self.get_xy_data(x_label, y_label)
         result = multipeakfit(
             xvals=xdata[0],
             yvals=ydata[0],
@@ -310,7 +314,7 @@ class NexusDefaultPlot(SimplePlot):
         y_axis = self.axes_y.get()
         if not x_axis or not y_axis:
             return
-        xdata, ydata = self.get_xy_data(x_axis, y_axis)
+        xdata, ydata, labels = self.get_xy_data(x_axis, y_axis)
         peak_str = find_peaks_str(xdata[0], ydata[0])
 
         title = os.path.basename(self.filenames[0])
@@ -353,6 +357,7 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
                  config: dict | None = None):
         super().__init__(root, *hdf_filenames, config=config)
         self.fig.subplots_adjust(right=0.97)
+        self._pause_selection = False
         self.listbox = self._axis_listbox()
 
     def _axis_listbox(self) -> ttk.Treeview:
@@ -381,25 +386,28 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
         # populate listbox
         self.listbox.delete(*self.listbox.get_children())
         first_dataset = self._scannable_data[0]
+        # Temporarily unbind TreeviewSelect
+        self._pause_selection = True
         for item in first_dataset:
             iid = self.listbox.insert("", tk.END, text=item)
             if item == auto_signal:
                 self.listbox.selection_add(iid)
                 self.listbox.focus(iid)
+        self._pause_selection = False
 
     def select_listbox_items(self, event=None):
-        if len(self.listbox.selection()) == 0:
+        if self._pause_selection or len(self.listbox.selection()) == 0:
             return
         self.remove_lines()
         x_label = self.axes_x.get()
-        labels = [self.listbox.item(item)['text'] for item in self.listbox.selection()]
-        self.axes_y.set(labels[0])
-        xdata, ydata = self.get_xy_data(x_label, *labels)
+        y_labels = [self.listbox.item(item)['text'] for item in self.listbox.selection()]
+        self.axes_y.set(y_labels[0])
+        xdata, ydata, labels = self.get_xy_data(x_label, *y_labels)
         self.update_from_data(
             x_data=xdata,
             y_data=ydata,
             x_label=self._label(x_label),
-            y_label=self._label(labels[0]),
+            y_label=self._label(y_labels[0]),
             title=os.path.basename(self.filenames[0]),
             legend=labels,
         )
@@ -416,8 +424,10 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
         ), None)
         if not iid:
             iid = self.listbox.insert("", tk.END, text=yaxis)
+        self._pause_selection = True  # don't trigger TreeViewSelect
         self.listbox.selection_set(iid)
         self.listbox.see(iid)
+        self._pause_selection = False
         super().update_axis_choice(event)
 
     def perform_fit(self, event=None):

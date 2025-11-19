@@ -325,6 +325,7 @@ class ExperimentPlotManager:
         x_data = [scan.scan_number() for scan in scans]
         if axes is None:
             fig, axes = plt.subplots()
+        # TODO: handle 2D grid scans
         for name in data:
             axes.plot(x_data, data[name], '-o', label=name)
         axes.set_xlabel('Scan number')

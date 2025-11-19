@@ -2,9 +2,10 @@
 Environment functions
 """
 
-import os
-import subprocess
 import sys
+import os
+import re
+import subprocess
 import tempfile
 from datetime import datetime
 
@@ -55,6 +56,14 @@ def check_file_access(filepath: str, append: str = '_new') -> str:
 def get_beamline(default=''):
     """Return current beamline from environment variable"""
     return os.environ.get(BEAMLINE, default)
+
+
+def get_beamline_from_directory(directory: str, default: str = ''):
+    """Return current beamline from given directory"""
+    beamlines = re.findall('/([a-zA-Z][0-9]{2}-?[1-9]?)', directory)
+    if beamlines:
+        return beamlines[0]
+    return default
 
 
 def get_user(default=''):

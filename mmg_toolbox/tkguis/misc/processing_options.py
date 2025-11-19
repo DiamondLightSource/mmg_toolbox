@@ -2,80 +2,101 @@
 Menu options for processing tasks
 """
 import os
+import tkinter as tk
 
 from mmg_toolbox.utils.env_functions import (get_notebook_directory, open_terminal, get_scan_number,
                                              get_processing_directory)
-from mmg_toolbox.scripts.scripts import create_script, create_notebook, SCRIPTS, NOTEBOOKS
+from mmg_toolbox.scripts.scripts import (generate_script, create_notebook,
+                                         SCRIPTS, NOTEBOOKS, R)
 from .config import get_config, C
 from .functions import check_new_file
 from .jupyter import launch_jupyter_notebook, terminate_notebooks
-
-from ..apps.log_viewer import create_gda_terminal_log_viewer
-from ..apps.file_browser import create_nexus_file_browser, create_file_browser, create_jupyter_browser
 from ..apps.multi_scan_analysis import create_multi_scan_analysis
-from ..apps.scans import create_range_selector
 from ..apps.python_editor import create_python_editor
 
-def generate_processing_options(parent, config: dict) -> dict:
+
+def create_script_from_template(root: tk.Misc, template: str = 'example', directory: str | None = None,
+                                config: dict | None = None, **replacements):
+    proc_dir = directory or config[C.current_proc]
+    script_name = os.path.join(proc_dir, f"{template}.py")
+    new_file = check_new_file(root, script_name)
+    script = generate_script(template, **replacements)
+    create_python_editor(script, root, config, filename=new_file)
+
+
+def create_notebook_from_template(root: tk.Misc, template: str = 'example', directory: str | None = None,
+                                  config: dict | None = None, **replacements):
+    proc_dir = directory or config[C.current_proc]
+    script_name = os.path.join(proc_dir, f"{template}.ipynb")
+    new_file = check_new_file(root, script_name)
+    create_notebook(new_file, template, **replacements)
+    launch_jupyter_notebook('notebook', file=new_file)
+
+
+def generate_replacement_getter(scanno_getter, title_getter, x_getter = None,
+                                y_getter = None, metadata_getter = None):
+    def getter() -> dict:
+        replacements = {
+            R.scannos: str(scanno_getter()),
+            R.description: 'Created by  MultiScanAnalysis',
+        }
+        if title_getter:
+            replacements[R.title] = str(title_getter())
+        if x_getter:
+            replacements[R.xaxis] = str(x_getter())
+        if y_getter:
+            replacements[R.yaxis] = str(y_getter())
+        if metadata_getter:
+            replacements[R.value] = str(metadata_getter())
+        return replacements
+    return getter
+
+
+def generate_processing_menu(parent, config: dict, directory: str | None = None, scan_files_getter=None,
+                             replacement_getter=None) -> dict:
     """Generate processing menu options"""
 
-    def get_replacements():
-        filename, folder = widget.selector_widget.get_filepath()
-        filenames = widget.selector_widget.get_multi_filepath()
-        scan_numbers = [get_scan_number(f) for f in filenames]
-        return {
-            # {{template}}: replacement
-            'description': 'an example script',
-            'filepaths': ', '.join(f"'{f}'" for f in filenames),
-            'experiment_dir': folder,
-            'scan_numbers': str(scan_numbers),
-            'title': f"Example Script: {os.path.basename(filename)}",
-            'x-axis': widget.plot_widget.axes_x.get(),
-            'y-axis': widget.plot_widget.axes_y.get(),
-            'beamline': config.get(C.beamline),
-        }
+    directory = directory or config[C.current_dir]
+    proc_dir = config.get(C.current_proc) or get_processing_directory(directory)
+    nb_dir = config.get(C.current_nb) or get_notebook_directory(directory)
 
-    def create_script_template(template='example'):
-        filename, folder = widget.selector_widget.get_filepath()
-        proc_folder = get_processing_directory(folder)
-        script_name = os.path.join(proc_folder, f"{template}.py")
-        new_file = check_new_file(parent, script_name)
-        create_script(new_file, template, **get_replacements())
-        create_python_editor(open(new_file).read(), parent, config),
-
-    def create_notebook_template(template='example'):
-        filename, folder = widget.selector_widget.get_filepath()
-        proc_folder = get_processing_directory(folder)
-        nb_name = os.path.join(proc_folder, f"{template}.ipynb")
-        new_file = check_new_file(parent, nb_name)
-        create_notebook(new_file, template, **get_replacements())
-        launch_jupyter_notebook('notebook', file=new_file)
+    if scan_files_getter is None:
+        scan_files_getter = lambda: []
+    if replacement_getter is None:
+        replacement_getter = lambda: {}
 
     def start_multi_scan_plot():
-        filename, folder = widget.selector_widget.get_filepath()
-        filenames = widget.selector_widget.get_multi_filepath()
+        filenames = scan_files_getter()
         scan_numbers = [get_scan_number(f) for f in filenames]
-        create_multi_scan_analysis(parent, config, exp_directory=folder, scan_numbers=scan_numbers)
+        create_multi_scan_analysis(parent, config, exp_directory=directory, scan_numbers=scan_numbers)
 
-    menu = {
-        'File': {
-            'New Data Viewer': lambda: create_data_viewer(parent=parent, config=config),
-            'Add Folder': widget.selector_widget.browse_folder,
-            'File Browser': lambda: create_file_browser(parent, config.get(C.default_directory, None)),
-            'NeXus File Browser': lambda: create_nexus_file_browser(parent, config.get(C.default_directory, None)),
-            'Jupyter Browser': lambda: create_jupyter_browser(parent, get_notebook_directory(get_filepath())),
-            'Range selector': lambda: create_range_selector(initial_folder, parent, config),
-            'Log viewer': lambda: create_gda_terminal_log_viewer(get_filepath(), parent)
-        },
-        'Processing': {
-            'Multi-Scan': start_multi_scan_plot,
-            'Script Editor': lambda: create_python_editor(None, parent, config),
-            'Open a terminal': lambda: open_terminal(f"cd {get_filepath()}"),
-            'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', get_filepath() + '/processing'),
-            'Start Jupyter (notebooks)': lambda: launch_jupyter_notebook('notebook', get_filepath() + '/processed/notebooks'),
-            'Stop Jupyter servers': terminate_notebooks,
-            'Create Script:': {name: lambda n=name: create_script_template(n) for name in SCRIPTS},
-            'Create Notebook:': {name: lambda n=name: create_notebook_template(n) for name in NOTEBOOKS},
+    def replacements():
+        values = {
+            R.exp: directory,
+            R.proc: proc_dir,
+            R.filepaths: ', '.join(f"'{f}'" for f in scan_files_getter()),
+            R.beamline: config.get(C.beamline, ''),
+            R.value: config.get(C.default_metadata, ''),
         }
+        values.update(replacement_getter())
+        return values
+
+    scripts = {
+        name: lambda n=name: create_script_from_template(parent, n, directory, config, **replacements())
+        for name in SCRIPTS
+    }
+    notebooks = {
+        name: lambda n=name: create_notebook_from_template(parent, n, directory, config, **replacements())
+        for name in NOTEBOOKS
+    }
+    menu = {
+        'Multi-Scan': start_multi_scan_plot,
+        'Script Editor': lambda: create_python_editor(None, parent, config),
+        'Open a terminal': lambda: open_terminal(f"cd {directory}"),
+        'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', proc_dir),
+        'Start Jupyter (notebooks)': lambda: launch_jupyter_notebook('notebook', nb_dir),
+        'Stop Jupyter servers': terminate_notebooks,
+        'Create Script:': scripts,
+        'Create Notebook:': notebooks,
     }
     return menu

@@ -14,6 +14,8 @@ from mmg_toolbox.utils.file_functions import list_files, display_timestamp, get_
 from ..misc.functions import post_right_click_menu, select_folder
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
+from ..misc.styles import create_hover
+from .find_scans import FindScans
 from .treeview import CanvasTreeview
 
 logger = create_logger(__file__)
@@ -47,7 +49,7 @@ class _ScanSelector(CanvasTreeview):
             ("filepath", 'File Path', 0, False, None),
         ]
         # add values from metadata_list
-        self.metadata_names = tuple(self.config.get(C.metadata_list, {}).keys())
+        self.metadata_names = self.config.get(C.metadata_list, {})
         columns += [
             (name, name, 400, True, None) for name in self.metadata_names
         ]
@@ -79,13 +81,13 @@ class _ScanSelector(CanvasTreeview):
             if self.map is None:
                 self.map = hdfmap.create_nexus_map(filepath)
             with hdfmap.load_hdf(filepath) as nxs:
-                for name, fmt in self.config.get(C.metadata_list, {}).items():
+                for name, fmt in self.metadata_names.items():
                     if not self.tree.winfo_exists():
                         return
                     data = self.map.format_hdf(nxs, fmt)
                     self.tree.set(item, name, data)
         except Exception as exception:
-            name = next(iter(self.config.get(C.metadata_list, {})), 'data')
+            name = next(iter(self.metadata_names), 'data')
             self.tree.set(item, name, str(exception))
 
     def populate_files(self, item, *file_list: str):
@@ -109,6 +111,7 @@ class _ScanSelector(CanvasTreeview):
                     if not self.tree.winfo_exists():
                         return
                     self._add_data(leaf)
+
         th = Thread(target=fn)
         th.daemon = True  # runs thread in the background, outside mainloop, allowing python to close
         th.start()
@@ -204,6 +207,7 @@ class _ScanSelector(CanvasTreeview):
         self.root.destroy()
 
     def _get_select_box(self):
+        # TODO: replace with asteval
         return str(eval(self.select_box.get()))
 
     def select_from_box(self, event=None):
@@ -406,7 +410,22 @@ class FolderScanSelector(_ScanSelector):
     "======================================================"
 
     def search_options(self):
-        pass
+        filename, foldername = self.get_filepath()
+
+        top = self.root.winfo_toplevel()
+        window, fun_close = create_hover(top)
+        widget = FindScans(window, foldername, self.config, filename, close_fun=fun_close)
+
+        scan_numbers = widget.wait_for_number()
+        if scan_numbers:
+            self.tree.selection_remove(self.tree.selection())
+            for iid in self.tree.get_children():  # folders
+                for scan_iid in self.tree.get_children(iid):
+                    scan_number = self.tree.item(scan_iid)['text']
+                    if int(scan_number) in scan_numbers:
+                        self.tree.selection_add(scan_iid)
+                        self.tree.see(scan_iid)
+                        break
 
 
 class ScanViewer(_ScanSelector):

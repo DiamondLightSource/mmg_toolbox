@@ -9,7 +9,9 @@ import asteval
 from mmg_toolbox.utils.env_functions import (get_scan_numbers, scan_number_mapping)
 from mmg_toolbox.utils.file_functions import get_scan_number
 from ..misc.logging import create_logger
-from ..misc.config import get_config
+from ..misc.styles import create_hover
+from ..misc.config import get_config, C
+from .find_scans import FindScans
 
 logger = create_logger(__file__)
 
@@ -17,10 +19,12 @@ logger = create_logger(__file__)
 class ScanRangeSelector:
     """Frame with """
 
-    def __init__(self, root: tk.Misc, initial_directory: str | None = None, config: dict | None = None):
+    def __init__(self, root: tk.Misc, initial_directory: str | None = None, config: dict | None = None,
+                 metadata_getter: tk.StringVar | None = None):
         logger.info('Creating ScanRangeSelector')
         self.root = root
         self.config = config or get_config()
+        self.metadata = metadata_getter
 
         # variables
         self.exp_folder = tk.StringVar(self.root, initial_directory)
@@ -48,6 +52,7 @@ class ScanRangeSelector:
         ttk.Button(frm, text='Get numbers', command=self.numbers_from_exp).pack(side=tk.LEFT)
         ttk.Button(frm, text='Generate', command=self.update_numbers).pack(side=tk.LEFT, padx=4)
         ttk.Button(frm, text='Select Files', command=self.select_files).pack(side=tk.LEFT, padx=4)
+        ttk.Button(frm, text='Find', command=self.find_scans).pack(side=tk.LEFT, padx=4)
 
         # Text box
         frm = ttk.Frame(self.root)
@@ -102,6 +107,8 @@ class ScanRangeSelector:
     def generate_scan_files(self) -> dict[int, str]:
         scan_numbers = self.generate_scan_numbers()
         scan_files = scan_number_mapping(self.exp_folder.get())
+        all_scan_numbers = list(scan_files)
+        scan_numbers = [all_scan_numbers[n] if n < 1 else n for n in scan_numbers]
         return {number: scan_files[number] for number in scan_numbers if number in scan_files}
 
     def select_files(self):
@@ -117,4 +124,19 @@ class ScanRangeSelector:
         file_list = self.generate_scan_files().values()
         if len(file_list) == 0:
             return
-        list_scans(*file_list, parent=self.root, config=self.config)
+        metadata_list = self.metadata.get().split(',') if self.metadata.get() else None
+        list_scans(*file_list, parent=self.root, config=self.config, metadata_list=metadata_list)
+
+    def find_scans(self):
+        """Open scan finder widget"""
+
+        scan_files = self.generate_scan_files()
+        first_file = tuple(scan_files.values())[0] if scan_files else None
+        metadata_list = self.metadata.get().split(',')
+
+        top = self.root.winfo_toplevel()
+        frame, fun_close = create_hover(top)
+        widget = FindScans(frame, self.exp_folder.get(), self.config, first_file, metadata_list, close_fun=fun_close)
+        scan_numbers = widget.wait_for_numbers()
+        if scan_numbers:
+            self.text.replace("1.0", tk.END, str(scan_numbers))

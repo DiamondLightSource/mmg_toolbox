@@ -9,6 +9,7 @@ import hdfmap
 from ..utils.misc_functions import numbers2string
 from ..utils.env_functions import scan_number_mapping, last_folder_update
 from ..nexus.nexus_scan import NexusScan, NexusDataHolder
+from ..nexus.nexus_reader import find_scans
 from ..xas import load_xas_scans, SpectraContainer
 
 DEFAULT_SCAN_DESCRIPTION = '{(cmd|scan_command)}'
@@ -93,9 +94,37 @@ class Experiment:
     def scans(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None) -> list[NexusScan]:
         """Read Nexus files as NexusScan"""
         filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
+        if not filenames:
+            filenames = list(self.all_scans().values())
         if filenames and hdf_map is None:
             hdf_map = hdfmap.create_nexus_map(filenames[0])
         return [NexusScan(file, hdf_map) for file in filenames]
+
+    def find_scans(self, *scan_files: int | str,  hdf_map: hdfmap.NexusMap | None = None, first_only: bool = False,
+                   **matches: str | float | tuple[float, float]) -> list[NexusScan]:
+        """
+        Find scans files with matching metadata
+
+            matches = {
+                'name1': 'scan', # matches if 'scan' in file['name1']
+                'name2': value, # matches if file['name2'] ~= value
+                'name3': (value, tol), # matches if abs(file['name3'] - value) < tol
+            }
+            match_files = find_scans(*filenames, **matches)
+
+        :param scan_files: set of scan numbers or filenames, if not given will search all scans in folder.
+        :param hdf_map: if given, uses this hdfmap rather than generating one.
+        :param first_only: if true, returns on the first result
+        :param matches: keyword arguments for matching parameters
+        :returns: list of scan files that match all requirements
+        """
+        filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
+        if not filenames:
+            filenames = list(self.all_scans().values())
+        if hdf_map is None:
+            hdf_map = hdfmap.create_nexus_map(filenames[0])
+        matches = find_scans(*filenames, hdf_map=hdf_map, first_only=first_only, **matches)
+        return self.scans(*matches, hdf_map=hdf_map)
 
     def join_scan_data(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
                        data_fields: list[str] | None = None, default: np.ndarray = np.array([0.0])) -> dict[str, list]:
@@ -110,6 +139,12 @@ class Experiment:
                 for name in data_fields:
                     data[name].append(scan.map.eval(hdf, name, default=default))
         return data
+
+    def get_all_data(self, *fields: str, default: np.ndarray = np.array([0.0])) -> dict[str, list]:
+        """
+        Return dict of data for all files
+        """
+        return self.join_scan_data(data_fields=list(fields), default=default)
 
     def generate_mesh(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
                       axes: str | tuple[str, str] = 'axes', signal: str = 'axes',

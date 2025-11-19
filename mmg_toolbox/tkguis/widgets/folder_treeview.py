@@ -481,7 +481,7 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
                         return
                     file = self.tree.item(leaf)['text']
                     if file:
-                        filename = os.path.join(folder, file)
+                        filename = str(os.path.join(folder, file))
                         value = get_hdf_string(filename, hdf_path, '...')
                         self.tree.set(leaf, 'data', value)
 

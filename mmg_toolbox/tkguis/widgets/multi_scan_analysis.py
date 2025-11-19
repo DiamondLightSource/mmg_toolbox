@@ -9,17 +9,19 @@ import matplotlib.pyplot as plt
 import hdfmap
 
 from mmg_toolbox import Experiment
+from mmg_toolbox.scripts import NOTEBOOKS, SCRIPTS, R
 from mmg_toolbox.utils.env_functions import get_first_file, get_processing_directory
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
 from ..misc.functions import select_folder
+from ..misc.processing_options import create_script_from_template, create_notebook_from_template
 from ..widgets.scan_range_selector import ScanRangeSelector
 
 logger = create_logger(__file__)
 
 
 class MultiScanAnalysis:
-    """Frame with """
+    """Frame with scan number generation and buttons for plotting and processing options"""
 
     def __init__(self, root: tk.Misc, config: dict | None = None, exp_directory: str | None = None,
                  proc_directory: str | None = None, scan_numbers: list[int] | None = None,
@@ -38,24 +40,26 @@ class MultiScanAnalysis:
         self.output_file = tk.StringVar(root, proc_directory + '/file.py')
         self.x_axis = tk.StringVar(self.root, 'axes' if x_axis is None else x_axis)
         self.y_axis = tk.StringVar(self.root, 'signal' if y_axis is None else y_axis)
-        self.metadata_name = tk.StringVar(self.root, '' if metadata is None else metadata)
+        self.metadata_name = tk.StringVar(self.root, metadata or config.get(C.default_metadata, ''))
+        self.script_name = tk.StringVar(root, 'example')
+        self.script_desc = tk.StringVar(root, '')
         self.options = {}
         self.file_list = []
 
-        sec = ttk.LabelFrame(self.root, text='Folders')
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
-
-        frm = ttk.Frame(sec)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        ttk.Label(frm, text='Data Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        ttk.Entry(frm, textvariable=self.exp_folder, width=60).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side=tk.LEFT)
-
-        frm = ttk.Frame(sec)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        ttk.Label(frm, text='Analysis Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        ttk.Entry(frm, textvariable=self.proc_folder, width=60).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Browse', command=self.browse_analysis).pack(side=tk.LEFT)
+        # sec = ttk.LabelFrame(self.root, text='Folders')
+        # sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        #
+        # frm = ttk.Frame(sec)
+        # frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
+        # ttk.Label(frm, text='Data Dir:', width=15).pack(side=tk.LEFT, padx=4)
+        # ttk.Entry(frm, textvariable=self.exp_folder, width=60).pack(side=tk.LEFT)
+        # ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side=tk.LEFT)
+        #
+        # frm = ttk.Frame(sec)
+        # frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
+        # ttk.Label(frm, text='Analysis Dir:', width=15).pack(side=tk.LEFT, padx=4)
+        # ttk.Entry(frm, textvariable=self.proc_folder, width=60).pack(side=tk.LEFT)
+        # ttk.Button(frm, text='Browse', command=self.browse_analysis).pack(side=tk.LEFT)
 
         # Axis + Metadata selection
         sec = ttk.LabelFrame(self.root, text='Axes')
@@ -79,7 +83,7 @@ class MultiScanAnalysis:
         sec = ttk.LabelFrame(self.root, text='Scan Numbers')
         sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
 
-        self.range = ScanRangeSelector(sec, exp_directory, self.config)
+        self.range = ScanRangeSelector(sec, exp_directory, self.config, metadata_getter=self.metadata_name)
         self.range.exp_folder.set(exp_directory)
         if scan_numbers is not None:
             self.range.text.insert("1.0", str(scan_numbers))
@@ -97,7 +101,16 @@ class MultiScanAnalysis:
         line = ttk.Frame(self.root)
         line.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
         ttk.Button(line, text='Fits', command=self.fitting, width=10).pack(side=tk.LEFT)
-        ttk.Button(line, text='Convert', command=self.convert2dat, width=10).pack(side=tk.LEFT)
+        ttk.Button(line, text='Convert to dat', command=self.convert2dat).pack(side=tk.LEFT)
+
+        # Scripts
+        script_names = ('Scripts:',) + tuple(SCRIPTS) + ('Notebooks:',) + tuple(NOTEBOOKS)
+        self.scripts = {f"{n:2} {name}": name for n, name in enumerate(script_names)}
+        ttk.Button(line, text='Create', command=self.script_create).pack(side=tk.LEFT, padx=(20, 0))
+        var = ttk.OptionMenu(line, self.script_name, 'Script', *self.scripts,
+                             command=self.script_select)
+        var.pack(side=tk.LEFT, padx=4)
+        ttk.Label(line, textvariable=self.script_desc).pack(side=tk.LEFT)
 
     def browse_datadir(self):
         folder = select_folder(self.root)
@@ -231,6 +244,51 @@ class MultiScanAnalysis:
         exp.plot.metadata(*scan_numbers, values=values)
         plt.show()
 
+    def script_select(self, _event=None):
+        script_label = self.script_name.get()
+        script_index = int(script_label.split()[0])
+        notebook_index = next(n for n, lab in enumerate(self.scripts.values()) if 'Notebooks:' in lab)
+        script = self.scripts[script_label]
+        if script_index < notebook_index and script in SCRIPTS:
+            _, desc = SCRIPTS[script]
+            desc = 'Script: ' + desc
+            self.script_desc.set(desc)
+        elif script in NOTEBOOKS:
+            _, desc = NOTEBOOKS[script]
+            desc = 'Notebook: ' + desc
+            self.script_desc.set(desc)
+        else:
+            self.script_desc.set('')
 
+    def script_create(self, _event=None):
+        proc = self.proc_folder.get()
+        script_name = self.script_name.get()
+        if script_name not in self.scripts:
+            return
+        script = self.scripts[self.script_name.get()]
+        exp = self.get_experiment()
+        scan_numbers = self.range.generate_scan_numbers()
+        if not scan_numbers:
+            return
+        scan_files = self.range.generate_scan_files()
+        values = self.metadata_name.get().split(',')
+        value = values[0] if values else None
+        first_scan, = exp.scans(scan_numbers[0])
 
+        replacements = {
+            R.exp: self.exp_folder.get(),
+            R.filepaths: '\n'.join(f"    '{f}'," for f in scan_files.values()),
+            R.beamline: self.config.get(C.beamline, ''),
+            R.scannos: str(scan_numbers),
+            R.title: exp.generate_scans_title(*scan_numbers, metadata_str=value, hdf_map=first_scan.map),
+            R.description: 'Created by  MultiScanAnalysis',
+            R.xaxis: self.x_axis.get(),
+            R.yaxis: self.y_axis.get(),
+            R.value: self.metadata_name.get(),
+        }
+
+        if script in SCRIPTS:
+            create_script_from_template(self.root, script, proc, self.config, **replacements)
+        elif script in NOTEBOOKS:
+            create_notebook_from_template(self.root, script, proc, self.config, **replacements)
 

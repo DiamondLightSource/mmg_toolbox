@@ -4,6 +4,8 @@ a tkinter frame
 import os
 import tkinter as tk
 from tkinter import ttk
+from time import time
+from threading import Thread
 
 from mmg_toolbox.utils.env_functions import get_dls_visits, MMG_BEAMLINES
 from mmg_toolbox.utils.file_functions import folder_summary_line
@@ -16,6 +18,7 @@ logger = create_logger(__file__)
 
 class TitleWindow:
     def __init__(self, root: tk.Misc, config: dict | None = None):
+        t0 = time()
         self.root = root
         self.config = config or get_config()
 
@@ -65,12 +68,16 @@ class TitleWindow:
         # ttk.Button(frm, text='NeXus Browser', command=self.open_file_browser, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='Log Viewer', command=self.open_log_viewer, width=20).pack(side=tk.LEFT)
         ttk.Button(frm, text='Notebook Browser', command=self.open_notebook_browser, width=20).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Script Runner', command=self.open_script_runner, width=20).pack(side=tk.LEFT)
-
-        self.choose_beamline(self.config.get(C.beamline, 'i16'))
+        ttk.Button(frm, text='Processing', command=self.open_script_runner, width=20).pack(side=tk.LEFT)
+        t1 = time()
+        logger.info(f"init time: {t1-t0}s")
+        # run file-system functions in a thread to speed up the start time
+        th = Thread(target=lambda: self.choose_beamline(self.config.get(C.beamline, 'i16')))
+        th.start()
 
     def choose_beamline(self, beamline: str):
         from ..misc.config import BEAMLINE_CONFIG
+        t0 = time()
         bl_config = BEAMLINE_CONFIG[beamline].copy()
         self.config.update(bl_config)
         self.beamline.set('MMG Toolbox: ' + beamline)
@@ -79,6 +86,8 @@ class TitleWindow:
         current_visit = next(iter(self.visits.keys()))
         self.visit_menu.set_menu(current_visit, *self.visits)
         self.visit.set(current_visit)
+        t1 = time()
+        logger.info(f"choose_beamline time: {t1-t0}s")
         self.dls_directories(self.visits[current_visit])
 
     def menu_items(self):
@@ -95,6 +104,7 @@ class TitleWindow:
         return menu
 
     def dls_directories(self, data_dir: str):
+        t0 = time()
         if not os.access(data_dir, os.R_OK):
             show_error(f"Warning path is not readable: '{data_dir}'", self.root, raise_exception=False)
         self.summary.set(folder_summary_line(data_dir))
@@ -105,6 +115,8 @@ class TitleWindow:
             self.proc_dir.set(proc_dir)
         if os.path.isdir(notebook_dir) and os.access(notebook_dir, os.R_OK):
             self.notebook_dir.set(notebook_dir)
+        t1 = time()
+        logger.info(f"dls_directories time: {t1-t0}s")
 
     def update_config(self):
         save_config(self.config)
@@ -165,14 +177,14 @@ class TitleWindow:
         create_jupyter_browser(self.root, self.notebook_dir.get())
 
     def open_script_runner(self):
-        from ..apps.script_runner import create_script_runner
+        from ..apps.multi_scan_analysis import create_multi_scan_analysis
         folders = {
             C.default_directory: self.data_dir.get(),
             C.processing_directory: self.proc_dir.get(),
             C.notebook_directory: self.notebook_dir.get(),
         }
         self.config.update(folders)
-        create_script_runner(self.root, self.config)
+        create_multi_scan_analysis(self.root, self.config)
 
 
 
