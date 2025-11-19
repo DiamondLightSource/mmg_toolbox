@@ -6,16 +6,16 @@ Test tkinter dataviewer
 import tkinter as tk
 
 from mmg_toolbox.tkguis.misc.styles import create_root
-from mmg_toolbox.tkguis.misc.config import default_config, C, get_config
+from mmg_toolbox.tkguis.misc.config import default_config, C
 from mmg_toolbox.tkguis.widgets.nexus_data_viewer import NexusDataViewer
 from . import only_dls_file_system
 
 
 def test_config():
-    config = default_config()
+    config = default_config(beamline='')
     assert C.conf_file in config
-    assert C.beamline in config
     assert C.metadata_string in config
+    assert C.default_metadata in config
 
     config = default_config(beamline='i10-1')
     assert config.get(C.beamline) == 'i10-1'
