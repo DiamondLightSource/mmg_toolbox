@@ -12,7 +12,8 @@ from mmg_toolbox.nexus.nexus_functions import nx_find, get_dataset_value
 from mmg_toolbox.nexus.nexus_transformations import nx_direction, nx_transformations_max_size, \
     nx_transformations_matrix, nx_transform_vector
 from mmg_toolbox.utils.rotations import norm_vector, transform_by_t_matrix
-from mmg_toolbox.utils.xray_utils import wavevector, photon_energy, photon_wavelength, bmatrix
+from mmg_toolbox.utils.xray_utils import photon_energy, photon_wavelength
+from mmg_toolbox.diffraction.lattice import wavevector, bmatrix
 from mmg_toolbox.plotting.matplotlib import Axes3D
 
 # types

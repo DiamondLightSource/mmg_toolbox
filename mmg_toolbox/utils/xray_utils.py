@@ -4,6 +4,7 @@ X-ray scattering utility funcitons
 
 import numpy as np
 
+
 # Constants
 class Const:
     pi = np.pi  # mmmm tasty Pi
@@ -52,55 +53,105 @@ def photon_energy(wavelength_a):
     return energy / 1000.0
 
 
+" --------------------------------------------------------------------- "
+" --------------------------- Wavevectors ----------------------------- "
+" --------------------------------------------------------------------- "
+
+
 def wavevector(wavelength_a):
     """Return wavevector = 2pi/lambda"""
-    return 2 * np.pi / wavelength_a
+    return 2 * Const.pi / wavelength_a
 
 
-def bmatrix(a, b=None, c=None, alpha=90., beta=90., gamma=90.):
+def resolution2energy(res, twotheta=180.):
     """
-    Calculate the B matrix as defined in Busing&Levy Acta Cyst. 22, 457 (1967)
-    Creates a matrix to transform (hkl) into a cartesian basis:
-        (qx,qy,qz)' = B.(h,k,l)'       (where ' indicates a column vector)
-
-    The B matrix is related to the reciprocal basis vectors:
-        (astar, bstar, cstar) = 2 * np.pi * B.T
-    Where cstar is defined along the z axis
-
-    The B matrix is related to the real-space unit vectors:
-        (A, B, C) = B^-1 = inv(B)
-
-    :param a: lattice parameter a in Anstroms
-    :param b: lattice parameter b in Anstroms
-    :param c: lattice parameter c in Anstroms
-    :param alpha: lattice angle alpha in degrees
-    :param beta: lattice angle beta in degrees
-    :param gamma: lattice angle gamma in degrees
-    :returns: [3x3] array B matrix in inverse-Angstroms (no 2pi)
+    Calcualte the energy required to achieve a specific resolution at a given two-theta
+    :param res: measurement resolution in A (==d-spacing)
+    :param twotheta: Bragg angle in Degrees
+    :return: float
     """
-    if b is None:
-        b = a
-    if c is None:
-        c = a
-    alpha1 = np.deg2rad(alpha)
-    alpha2 = np.deg2rad(beta)
-    alpha3 = np.deg2rad(gamma)
+    theta = twotheta * Const.pi / 360  # theta in radians
+    return (Const.h * Const.c * 1e10) / (res * np.sin(theta) * Const.e * 2 * 1000.)
 
-    beta1 = np.arccos((np.cos(alpha2) * np.cos(alpha3) - np.cos(alpha1)) / (np.sin(alpha2) * np.sin(alpha3)))
-    beta2 = np.arccos((np.cos(alpha1) * np.cos(alpha3) - np.cos(alpha2)) / (np.sin(alpha1) * np.sin(alpha3)))
-    beta3 = np.arccos((np.cos(alpha1) * np.cos(alpha2) - np.cos(alpha3)) / (np.sin(alpha1) * np.sin(alpha2)))
 
-    b1 = 1 / (a * np.sin(alpha2) * np.sin(beta3))
-    b2 = 1 / (b * np.sin(alpha3) * np.sin(beta1))
-    b3 = 1 / (c * np.sin(alpha1) * np.sin(beta2))
+def diffractometer_twotheta(delta=0, gamma=0):
+    """Return the Bragg 2-theta angle for diffractometer detector rotations delta (vertical) and gamma (horizontal)"""
+    delta = np.deg2rad(delta)
+    gamma = np.deg2rad(gamma)
+    twotheta = np.arccos(np.cos(delta) * np.cos(gamma))
+    return np.rad2deg(twotheta)
 
-    c1 = b1 * b2 * np.cos(beta3)
-    c2 = b1 * b3 * np.cos(beta2)
-    c3 = b2 * b3 * np.cos(beta1)
 
-    bm = np.array([
-        [b1, b2 * np.cos(beta3), b3 * np.cos(beta2)],
-        [0, b2 * np.sin(beta3), -b3 * np.sin(beta2) * np.cos(alpha1)],
-        [0, 0, 1 / c]
-    ])
-    return bm
+def you_normal_vector(eta=0, chi=90, mu=0):
+    """
+    Determine the normal vector using the You diffractometer angles
+      you_normal_vector(0, 0, 0) = [1, 0, 0]
+      you_normal_vector(0, 90, 0) = [0, 1, 0]
+      you_normal_vector(90, 90, 0) = [0, 0, -1]
+      you_normal_vector(0, 0, 90) = [0, 0, -1]
+    :param eta: angle (deg) along the x-axis
+    :param mu: angle (deg) about the z-axis
+    :param chi: angle deg) a
+    :return: array
+    """
+    eta = np.deg2rad(eta)
+    chi = np.deg2rad(chi)
+    mu = np.deg2rad(mu)
+    normal = np.array([np.sin(mu) * np.sin(eta) * np.sin(chi) + np.cos(mu) * np.cos(chi),
+                       np.cos(eta) * np.sin(chi),
+                       -np.cos(mu) * np.sin(eta) * np.sin(chi) - np.sin(mu) * np.cos(chi)])
+    return normal
+
+
+def wavevector_i(wavelength_a):
+    """
+    Returns a 3D wavevector for the initial wavevector
+    """
+    k = wavevector(wavelength_a)
+    return np.array([0, 0, k])
+
+
+def wavevector_f(wavelength_a, delta=0, gamma=0):
+    """
+    Returns a 3D wavevector for the final wavevector
+    """
+    k = wavevector(wavelength_a)
+    sd = np.sin(np.deg2rad(delta))
+    sg = np.sin(np.deg2rad(gamma))
+    cd = np.cos(np.deg2rad(delta))
+    cg = np.cos(np.deg2rad(gamma))
+    return k * np.array([sg * cd, sd, cg * cd])
+
+
+def wavevector_t(wavelength_a, delta=0, gamma=0):
+    """
+    Returns the wavevector transfer in inverse-Angstroms
+      Q = kf - ki
+    """
+    ki = wavevector_i(wavelength_a)
+    kf = wavevector_f(wavelength_a, delta, gamma)
+    return kf - ki
+
+
+def polarisation_sigma(delta=0, gamma=0):
+    """
+    Returns the scattered polerisation vector in the sigma' channel
+    """
+    sd = np.sin(np.deg2rad(delta))
+    sg = np.sin(np.deg2rad(gamma))
+    cd = np.cos(np.deg2rad(delta))
+    cg = np.cos(np.deg2rad(gamma))
+    return np.array([cg, 0, -sg])
+
+
+def polarisation_pi(delta=0, gamma=0):
+    """
+    Returns the scattered polerisation vector in the Pi' channel
+    """
+    sd = np.sin(np.deg2rad(delta))
+    sg = np.sin(np.deg2rad(gamma))
+    cd = np.cos(np.deg2rad(delta))
+    cg = np.cos(np.deg2rad(gamma))
+    return np.array([-sg * sd, cd, -cg * sd])
+
+
