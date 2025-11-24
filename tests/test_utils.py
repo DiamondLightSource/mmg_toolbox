@@ -4,14 +4,14 @@ Test utilities
 """
 import numpy as np
 
-import diffraction.lattice
+from mmg_toolbox.diffraction import lattice
 from mmg_toolbox.utils import xray_utils, rotations, misc_functions, units
 
 
 def test_wavelength():
     assert abs(xray_utils.photon_energy(1.0) - 12.398) < 0.01
     assert abs(xray_utils.photon_wavelength(8) - 1.55) < 0.01
-    assert abs(diffraction.lattice.wavevector(1.0) - 6.283) < 0.01
+    assert abs(lattice.wavevector(1.0) - 6.283) < 0.01
 
 
 def test_rotation():
@@ -40,7 +40,7 @@ def test_lattice_orientation():
     np.set_printoptions(precision=3, suppress=True)
     phi, eta, chi, mu = 0, 25.5 / 2, 90, 0
     a, b, c, alpha, beta, gamma = 2.85, 2.85, 10.8, 90, 90, 120.
-    b_matrix = diffraction.lattice.bmatrix(a, b, c, alpha, beta, gamma)
+    b_matrix = lattice.bmatrix(a, b, c, alpha, beta, gamma)
     u_matrix = np.eye(3)
     r_matrix = rotations.rotmatrix_diffractometer(phi, chi, eta, mu)
     lab_transform = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]])  # Diffcalc -> DLS
@@ -74,12 +74,12 @@ def test_scattering_plane():
     hkl = [1, 0, 6]
     a, b, c, alpha, beta, gamma = 2.85, 2.85, 10.8, 90, 90, 120.
 
-    b_matrix = diffraction.lattice.bmatrix(a, b, c, alpha, beta, gamma)
+    b_matrix = lattice.bmatrix(a, b, c, alpha, beta, gamma)
     wl = xray_utils.photon_wavelength(energy_kev)
     dspace = 1 / np.linalg.norm(np.dot(hkl, b_matrix))
-    tth = diffraction.lattice.bragg_wl(wl, dspace)
+    tth = lattice.bragg_wl(wl, dspace)
     assert abs(tth - 33.743) < 0.001
-    tth2 = diffraction.lattice.bragg(dspace, energy_kev=energy_kev)
+    tth2 = lattice.bragg(dspace, energy=energy_kev, en_units='keV')
     assert abs(tth2 - tth) < 0.001
 
     det_delta, det_gamma = tth, 0
