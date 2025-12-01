@@ -92,7 +92,8 @@ def create_root(window_title: str, parent: tk.Misc | RootWithStyle | None = None
         root.style = style
 
     # Fix background (on windows)
-    root.configure(bg=root.style.lookup('.', 'background'))
+    bg = get_style_background(root, root.style)
+    root.configure(bg=bg)
 
     root.wm_title(window_title)
     # self.root.minsize(width=640, height=480)
@@ -138,6 +139,24 @@ def update_text_style(widget: tk.Text, style: ttk.Style):
         fg=style.lookup('.', 'foreground'),
         font=style.lookup('.', 'font') or 'TkDefaultFont',
     )
+
+
+def get_style_background(widget: tk.Misc, style: ttk.Style | None = None) -> str:
+    """
+    Return the background colour of the current style
+    """
+    style = style or ttk.Style()
+
+    # Get the system color name
+    color_name = style.lookup('.', 'background')  # e.g., 'SystemButtonFace'
+
+    # Convert to RGB (16-bit per channel)
+    r16, g16, b16 = widget.winfo_rgb(color_name)
+
+    # Normalize to 8-bit and format as hex
+    r, g, b = (r16 // 256, g16 // 256, b16 // 256)
+    hex_color = f"#{r:02x}{g:02x}{b:02x}"
+    return hex_color
 
 
 # from: https://stackoverflow.com/questions/45389166/how-to-know-all-style-options-of-a-ttk-widget

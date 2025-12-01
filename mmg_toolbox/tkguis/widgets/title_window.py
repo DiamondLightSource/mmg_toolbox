@@ -82,7 +82,9 @@ class TitleWindow:
         self.config.update(bl_config)
         self.beamline.set('MMG Toolbox: ' + beamline)
         self.visits = get_dls_visits(beamline)
-        self.visits.update({'default': self.config.get(C.default_directory, '.')})
+        default_dir = self.config.get(C.default_directory, '.')
+        default_dir = default_dir if os.path.isdir(default_dir) else self.config.get(C.recent_data_directories, ['.'])[0]
+        self.visits.update({'default': default_dir})
         current_visit = next(iter(self.visits.keys()))
         self.visit_menu.set_menu(current_visit, *self.visits)
         self.visit.set(current_visit)

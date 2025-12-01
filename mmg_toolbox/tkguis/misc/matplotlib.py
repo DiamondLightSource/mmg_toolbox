@@ -12,7 +12,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
-from .styles import create_root
+from .styles import create_root, get_style_background
 
 # parameters
 FIGURE_SIZE = (8, 3)
@@ -60,7 +60,10 @@ class CustomToolbar(NavigationToolbar2Tk):
             # ('copy', 'Copy Figure', 'filesave', 'copy_button'),
             ('popout', 'Popout Figure', 'qt4_editor_options', 'popout_figure'),
         )
+
         NavigationToolbar2Tk.__init__(self, canvas_, parent_)
+        bg = get_style_background(parent_)
+        self.config(background=bg)
 
 
 def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
@@ -72,8 +75,7 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
         figure_dpi = FIGURE_DPI
 
     # get the current background
-    style = ttk.Style()
-    bg = style.lookup('.', 'background')
+    bg = get_style_background(frame)
 
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
     try:
@@ -118,8 +120,7 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
         figure_dpi = FIGURE_DPI
 
     # get the current background
-    style = ttk.Style()
-    bg = style.lookup('.', 'background')
+    bg = get_style_background(frame)
 
     fig = Figure(figsize=figure_size, dpi=figure_dpi)
     try:
