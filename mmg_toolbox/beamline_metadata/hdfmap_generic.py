@@ -13,8 +13,8 @@ class HdfMapMMGMetadata(HdfMapNexus):
     """HdfMap Eval commaands for all MMG beamlines"""
     cmd = '(cmd|user_command|scan_command)'
     temp = '(T_sample|Tsample|itc3_device_sensor_temp|lakeshore336_cryostat|lakeshore336_sample?(300))'
-    beamline = 'beamline|instrument_name'
-    endstation = 'end_station|instrument_name'
+    beamline = '(beamline|instrument_name)'
+    endstation = '(end_station|instrument_name)'
     field = 'sqrt(field_x?(0)**2 + field_y?(0)**2 + field_z?(0)**2)'
     field_x = 'field_x?(0)'
     field_y = 'field_y?(0)'
@@ -25,8 +25,8 @@ class HdfMapMMGMetadata(HdfMapNexus):
 
 class HdfMapXASMetadata(HdfMapMMGMetadata):
     """HdfMap Eval commands for I06 & I10 metadata"""
-    iddgap = 'iddgap'
-    rowphase = 'idutrp if iddgap == 100 else iddtrp'
+    # iddgap = 'idd_gap'
+    # rowphase = 'idu_trp if idd_gap == 100 else idd_trp'
     mode = '"tey"'  # currently grabs the last NXdata.mode, not the first
     rot = '(scmth|xabs_theta|ddiff_theta|em_pitch|hfm_pitch?(0))'
     monitor = '(C2|ca62sr|mcs16|macr16|mcse16|macj316|mcsh16|macj216)'

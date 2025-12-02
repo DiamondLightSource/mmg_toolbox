@@ -7,7 +7,8 @@ from tkinter import ttk
 from time import time
 from threading import Thread
 
-from mmg_toolbox.utils.env_functions import get_dls_visits, MMG_BEAMLINES
+from mmg_toolbox.utils.env_functions import get_dls_visits
+from mmg_toolbox.beamline_metadata.config import BEAMLINE_CONFIG
 from mmg_toolbox.utils.file_functions import folder_summary_line
 from ..misc.logging import create_logger
 from ..misc.config import get_config, save_config, C
@@ -76,7 +77,6 @@ class TitleWindow:
         th.start()
 
     def choose_beamline(self, beamline: str):
-        from ..misc.config import BEAMLINE_CONFIG
         t0 = time()
         bl_config = BEAMLINE_CONFIG[beamline].copy()
         self.config.update(bl_config)
@@ -98,7 +98,7 @@ class TitleWindow:
             },
             'Beamline': {
                 bl: lambda x=bl: self.choose_beamline(x)
-                for bl in MMG_BEAMLINES
+                for bl in BEAMLINE_CONFIG
             },
         }
         return menu

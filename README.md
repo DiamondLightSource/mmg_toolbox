@@ -26,6 +26,17 @@ $ module load mmg
 (python)$ dataviewer
 ```
 
+### Usage - Read a NeXus scan file
+Read data from a NeXus scan file in a python prompt or script
+```python
+from mmg_toolbox import data_file_reader
+scan = data_file_reader('12345.nxs', beamline='i16')
+print(scan)  # print a metadata string
+
+scan.plot.plot()  # plot defaults
+scan.plot.show()
+```
+
 ### Usage - DataViewer
 Start the dataviewer from a terminal
 ```bash
