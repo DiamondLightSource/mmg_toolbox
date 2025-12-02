@@ -27,10 +27,10 @@ class ScanPlotManager:
     :param scan: NexusScan object
     """
     set_plot_defaults = set_plot_defaults
-    show = plt.show
 
     def __init__(self, scan: NexusScan):
         self.scan = scan
+        self.show = plt.show
 
     def __call__(self, *args, **kwargs):
         return self.plot(*args, **kwargs)

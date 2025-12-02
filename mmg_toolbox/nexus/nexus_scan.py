@@ -13,6 +13,7 @@ from hdfmap import NexusLoader, NexusMap, load_hdf
 from hdfmap.eval_functions import dataset2data, dataset2str
 
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapMMGMetadata as Md
+from mmg_toolbox.beamline_metadata.config import beamline_config, C
 from mmg_toolbox.nexus.instrument_model import NXInstrumentModel
 from mmg_toolbox.nexus.nexus_functions import get_dataset_value
 from mmg_toolbox.utils.file_functions import get_scan_number
@@ -30,11 +31,13 @@ class NexusScan(NexusLoader):
 
     :param nxs_filename: path to nexus file
     :param hdf_map: NexusMap object or None
+    :param config: configuration dict
     """
     MAX_STR_LEN: int = 100
 
-    def __init__(self, nxs_filename: str, hdf_map: NexusMap | None = None):
+    def __init__(self, nxs_filename: str, hdf_map: NexusMap | None = None, config: dict | None = None):
         super().__init__(nxs_filename, hdf_map)
+        self.config = config or beamline_config()
 
         from mmg_toolbox.utils.fitting import ScanFitManager, poisson_errors
         self.fit = ScanFitManager(self)
@@ -44,6 +47,18 @@ class NexusScan(NexusLoader):
 
     def __repr__(self):
         return f"NexusScan('{self.filename}')"
+
+    def __str__(self):
+        try:
+            return self.metadata_str()
+        except Exception as ex:
+            return f"{repr(self)}\n  Metadata failed with: \n{ex}\n"
+
+    def metadata_str(self, expression: str | None = None):
+        """Generate metadata string from beamline config"""
+        if expression is None:
+            expression = self.config.get(C.metadata_string, '')
+        return self.format(expression)
 
     def scan_number(self) -> int:
         return get_scan_number(self.filename)
@@ -150,8 +165,9 @@ class NexusDataHolder(DataHolder, NexusScan):
     map: NexusMap
     metadata: DataHolder
 
-    def __init__(self, filename: str | None, hdf_map: NexusMap | None = None, flatten_scannables: bool = True):
-        NexusScan.__init__(self, filename, hdf_map)
+    def __init__(self, filename: str | None, hdf_map: NexusMap | None = None, flatten_scannables: bool = True,
+                 config: dict | None = None):
+        NexusScan.__init__(self, filename, hdf_map, config)
 
         with load_hdf(filename) as hdf:
             metadata = self.map.get_metadata(hdf)

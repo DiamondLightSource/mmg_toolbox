@@ -6,8 +6,8 @@ import sys
 from mmg_toolbox.utils.file_reader import data_file_reader
 from mmg_toolbox.utils.experiment import Experiment
 
-__version__ = '0.4.3'
-__date__ = '19/11/2025'
+__version__ = '0.4.4'
+__date__ = '02/12/2025'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info', 'data_file_reader', 'Experiment']

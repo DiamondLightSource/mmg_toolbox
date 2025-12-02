@@ -1,5 +1,6 @@
 import os
 
+from mmg_toolbox.beamline_metadata.config import beamline_config
 import hdfmap
 from hdfmap import load_hdf, create_nexus_map
 
@@ -7,19 +8,21 @@ from mmg_toolbox.nexus.nexus_scan import NexusDataHolder, NexusScan
 from mmg_toolbox.utils.file_functions import get_scan_number, replace_scan_number
 
 
-def read_nexus_file(filename: str, flatten_scannables: bool = True) -> NexusDataHolder:
+def read_nexus_file(filename: str, flatten_scannables: bool = True, beamline: str | None = None) -> NexusDataHolder:
     """
     Read Nexus file as DataHolder
     """
-    return NexusDataHolder(filename, flatten_scannables=flatten_scannables)
+    config = beamline_config(beamline)
+    return NexusDataHolder(filename, flatten_scannables=flatten_scannables, config=config)
 
 
-def read_nexus_files(*filenames: str) -> list[NexusScan]:
+def read_nexus_files(*filenames: str, beamline: str | None = None) -> list[NexusScan]:
     """
     Read Nexus files as NexusScan
     """
     hdf_map = create_nexus_map(filenames[0])
-    return [NexusScan(f, hdf_map) for f in filenames]
+    config = beamline_config(beamline)
+    return [NexusScan(f, hdf_map, config=config) for f in filenames]
 
 
 def find_matching_scans(filename: str, match_field: str = 'scan_command',

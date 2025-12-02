@@ -15,7 +15,6 @@ from mmg_toolbox.utils.file_functions import get_scan_number, list_files
 BEAMLINE = 'BEAMLINE'
 USER = ['USER', 'USERNAME']
 DLS = '/dls'
-MMG_BEAMLINES = ['i06', 'i06-1', 'i06-2', 'i10', 'i10-1', 'i16', 'i21']
 
 # Find writable directory
 TMPDIR = tempfile.gettempdir()
