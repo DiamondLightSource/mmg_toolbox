@@ -16,7 +16,7 @@ except ImportError:
     from numpy import trapz
 
 
-EDGE_FILE = os.path.join(os.path.dirname(__file__), 'data', 'xray_edges.json')
+EDGE_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'xray_edges.json')
 SEARCH_EDGES = ('L3', 'L2')
 
 

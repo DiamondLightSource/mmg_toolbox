@@ -21,6 +21,7 @@ FILES = [
     (DIR + 'i10/i10-1-37436_xas_notebook.nxs', 'i10-1 XASproc example'),
     (DIR + 'i06/i06-1-302762.nxs', 'i06 scan'),
     (DIR + 'i06/i06-1-366107.nxs', 'i06 hkl scan'),
+    (DIR + 'i06/i06-1-372210.nxs', 'i06-1 zacscan'),
     (DIR + 'i21/i21-157111.nxs', 'i21 xcam single point scan'),
     (DIR + 'i21/i21-157116.nxs', 'i21 xcam multi point scan'),
     (DIR + 'i13/i13-1-368910.nxs', 'i13 Excalibur axis scan'),
@@ -29,4 +30,7 @@ FILES = [
     (DIR + 'i09/i09-279773.nxs', 'i09 example'),
     (DIR + 'nxxas/KEK_PFdata.h5', 'NXxas example from KEK'),
 ]
+FILES_DICT = {
+    desc: path for path, desc in FILES
+}
 
