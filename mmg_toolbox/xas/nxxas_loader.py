@@ -48,27 +48,26 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
         name: Spectra(energy, signal / monitor, mode=name, process_label='raw', process=f"{name} / monitor")
         for name, signal in raw_signals.items()
     }
-    metadata = {
-        'filename': filename,
-        'beamline': beamline,
-        'scan_no': scan_no,
-        'start_date_iso': start_date_iso,
-        'end_date_iso': end_date_iso,
-        'cmd': cmd,
-        'default_mode': default_mode,
-        'pol': pol,
-        'sample_name': sample_name,
-        'temp': temp,
-        'mag_field': mag_field,
-        'pitch': pitch,
-        'element': element,
-        'edge': edge,
-        'energy': energy,
-        'raw_signals': raw_signals,
-        'monitor': monitor,
-    }
-    m = XasMetadata(**metadata)
-    return SpectraContainer(name, spectra, metadata=m)
+    metadata = XasMetadata(
+        filename=filename,
+        beamline=beamline,
+        scan_no=scan_no,
+        start_date_iso=start_date_iso,
+        end_date_iso=end_date_iso,
+        cmd=cmd,
+        default_mode=default_mode,
+        pol=pol,
+        sample_name=sample_name,
+        temp=temp,
+        mag_field=mag_field,
+        pitch=pitch,
+        element=element,
+        edge=edge,
+        energy=energy,
+        raw_signals=raw_signals,
+        monitor=monitor
+    )
+    return SpectraContainer(name, spectra, metadata=metadata)
 
 
 def load_from_dat(filename: str, sample_name='', element_edge=None) -> SpectraContainer:

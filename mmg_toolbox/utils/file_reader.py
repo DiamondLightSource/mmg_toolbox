@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from mmg_toolbox.utils.misc_functions import DataHolder
 from mmg_toolbox.utils.dat_file_reader import read_dat_file
+from mmg_toolbox.utils.env_functions import get_beamline
 from mmg_toolbox.nexus.nexus_reader import read_nexus_file, NexusDataHolder
 
 
@@ -14,6 +15,7 @@ def data_file_reader(filename: str, beamline: str | None = None) -> NexusDataHol
     """
     Read Nexus or dat file as DataHolder
     """
+    beamline = beamline or get_beamline(None, filename=filename)
     if filename.endswith('.dat'):
         return read_dat_file(filename)
     return read_nexus_file(filename, beamline=beamline)

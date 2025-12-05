@@ -29,7 +29,7 @@ class HdfMapXASMetadata(HdfMapMMGMetadata):
     # rowphase = 'idu_trp if idd_gap == 100 else idd_trp'
     mode = '"tey"'  # currently grabs the last NXdata.mode, not the first
     rot = '(scmth|xabs_theta|ddiff_theta|em_pitch|hfm_pitch?(0))'
-    monitor = '(C2|ca62sr|mcs16|macr16|mcse16|macj316|mcsh16|macj216)'
-    tey = '(C1|ca61sr|mcs17|macr17|mcse17|macj317|mcsh17|macj217)'
-    tfy = '(C3|ca63sr|mcs18|macr18|mcse18|macj318|mcsh18|macaj218)'
+    monitor = '(i0|C2|ca62sr|mcs16|macr16|mcse16|macj316|mcsh16|macj216)'
+    tey = '(tey|C1|ca61sr|mcs17|macr17|mcse17|macj317|mcsh17|macj217)'
+    tfy = '(fdu|C3|ca63sr|mcs18|macr18|mcse18|macj318|mcsh18|macaj218)'
 
