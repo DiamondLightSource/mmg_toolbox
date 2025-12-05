@@ -39,6 +39,9 @@ class NexusScan(NexusLoader):
         super().__init__(nxs_filename, hdf_map)
         self.config = config or beamline_config()
 
+        # add scan number to eval namespace
+        self.map.add_local(scan_number=self.scan_number())
+
         from mmg_toolbox.utils.fitting import ScanFitManager, poisson_errors
         self.fit = ScanFitManager(self)
         self._error_function = poisson_errors

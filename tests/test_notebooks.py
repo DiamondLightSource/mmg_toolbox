@@ -34,8 +34,11 @@ def test_autoprocess_xas_notebook():
     os.remove('output.ipynb')
     os.remove('output.nxs')
 
+
+@only_dls_file_system
 def test_msmapper_processor():
     import papermill as pm
+    import nbformat
     pm.execute_notebook(
         NB_PATHS['msmapper_processor.ipynb'],
         'output.ipynb',
@@ -44,5 +47,8 @@ def test_msmapper_processor():
             'outpath': 'output.nxs',
         }
     )
-    assert os.path.isfile('output.ipynb')
-    assert os.path.isfile('output.nxs')
+
+    nb = nbformat.read('output.ipynb', as_version=4)
+    assert nb.metadata.papermill.exception is None
+
+    os.remove('output.ipynb')
