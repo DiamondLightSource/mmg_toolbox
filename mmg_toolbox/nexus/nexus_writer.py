@@ -106,6 +106,7 @@ def add_nxcrystal(root: h5py.Group, name: str, usage: str, crystal_type: str, d_
 
 
 def add_nxdetector(root: h5py.Group, name: str, data: np.ndarray,
+                   detector_type: str = 'ccd',
                    detector_distance_mm: float = 1000, pixel_size_mm: float = 0.055,
                    depends_on: str | h5py.Group | None = None,
                    transformations: list[TransformationAxis] | None = None) -> h5py.Group:
@@ -114,23 +115,24 @@ def add_nxdetector(root: h5py.Group, name: str, data: np.ndarray,
     """
     detector = add_nxclass(root, name, nn.NX_DET)
     add_nxfield(detector, 'data', data)
-    add_nxfield(detector, 'type', 'ccd')
-    module = add_nxclass(root, 'module', nn.NX_MODULE)
+    add_nxfield(detector, 'type', detector_type)
 
     if transformations is None:
         transformations = (TranslationAxis('detector_offset', detector_distance_mm, vector=(0, 0, 1)),)
     add_nxtransformations(detector, 'transformations', *transformations, depends_on=depends_on)
     path = detector[nn.NX_DEPON][...]
 
-    # Add module directions
-    add_nxfield(module, nn.NX_MODULE_ORIGIN, (0, 0))
-    add_nxfield(module, nn.NX_MODULE_SIZE, data.shape[-2:])
-    add_nxfield(module, nn.NX_MODULE_OFFSET, 0, units='mm', transformation_type=nn.NX_TTRAN,
-                vector=(0, 0, 0), offset=(0, 0, 0), offset_units='mm', depends_on=path)
-    add_nxfield(module, nn.NX_MODULE_FAST, pixel_size_mm, units='mm', transformation_type=nn.NX_TTRAN,
-                vector=(0, 0, 0), offset=(0, 0, 0), offset_units='mm', depends_on=path)
-    add_nxfield(module, nn.NX_MODULE_SLOW, pixel_size_mm, units='mm', transformation_type=nn.NX_TTRAN,
-                vector=(0, 0, 0), offset=(0, 0, 0), offset_units='mm', depends_on=path)
+    # Add module directions if 2D detector
+    if data.ndim >= 3:
+        module = add_nxclass(detector, 'module', nn.NX_MODULE)
+        add_nxfield(module, nn.NX_MODULE_ORIGIN, (0, 0))
+        add_nxfield(module, nn.NX_MODULE_SIZE, data.shape[-2:])
+        add_nxfield(module, nn.NX_MODULE_OFFSET, 0, units='mm', transformation_type=nn.NX_TTRAN,
+                    vector=(0, 0, 0), offset=(0, 0, 0), offset_units='mm', depends_on=path)
+        add_nxfield(module, nn.NX_MODULE_FAST, pixel_size_mm, units='mm', transformation_type=nn.NX_TTRAN,
+                    vector=(0, 0, 0), offset=(0, 0, 0), offset_units='mm', depends_on=path)
+        add_nxfield(module, nn.NX_MODULE_SLOW, pixel_size_mm, units='mm', transformation_type=nn.NX_TTRAN,
+                    vector=(0, 0, 0), offset=(0, 0, 0), offset_units='mm', depends_on=path)
     return detector
 
 

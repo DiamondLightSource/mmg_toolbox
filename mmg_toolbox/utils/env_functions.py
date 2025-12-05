@@ -52,17 +52,18 @@ def check_file_access(filepath: str, append: str = '_new') -> str:
     return filepath
 
 
-def get_beamline(default=''):
-    """Return current beamline from environment variable"""
-    return os.environ.get(BEAMLINE, default)
+def get_beamline(default='', filename: str | None = None) -> str:
+    """Return current beamline from filename/filepath or environment variable"""
+    env_bl = os.environ.get(BEAMLINE, default)
+    if filename is None:
+        return env_bl
+    return get_beamline_from_directory(filename, env_bl)
 
 
 def get_beamline_from_directory(directory: str, default: str = ''):
     """Return current beamline from given directory"""
     beamlines = re.findall('/([a-zA-Z][0-9]{2}-?[1-9]?)', directory)
-    if beamlines:
-        return beamlines[0]
-    return default
+    return beamlines[0] if beamlines else default
 
 
 def get_user(default=''):
