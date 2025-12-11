@@ -81,6 +81,7 @@ def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Gro
     :returns: matching Dataset, Group or None if no match
     """
 
+    #TODO: add tuple option for OR
     def recursor(group: h5py.Group, *args):
         # return object from path, e.g. obj['group/data']
         if len(args) == 1 and args[0] in group:

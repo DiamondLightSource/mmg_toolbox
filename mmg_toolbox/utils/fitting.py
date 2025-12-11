@@ -19,6 +19,10 @@ from lmfit.model import ModelResult, Model, Parameters
 from .misc_functions import stfm
 from ..nexus.nexus_scan import NexusScan
 
+__all__ = ['MODELS', 'PEAK_MODELS', 'BACKGROUND_MODELS', 'METHODS', 'poisson_errors', 'gauss', 'peak_ratio',
+           'group_adjacent', 'find_peaks', 'find_peaks_str', 'peak_results', 'peak_results_str', 'peak_results_fit',
+           'peak_results_plot', 'peakfit', 'modelfit', 'multipeakfit', 'peak2dfit', 'FitResults']
+
 # https://lmfit.github.io/lmfit-py/builtin_models.html#peak-like-models
 MODELS = {
     'gaussian': GaussianModel,
@@ -323,6 +327,12 @@ def find_peaks_str(x: np.ndarray, y: np.ndarray, yerror: np.ndarray | None = Non
     out = f"Find Peaks:\n len: {len(x)}, max: {np.max(y):.5g}, min: {np.min(y):.5g}\n\n"
     out += '\n'.join(f"  {idx:4} {_x:10.5}  power={pwr:.3}" for idx, _x, pwr in zip(index, x_vals, power))
     return out
+
+
+def max_index(array: np.ndarray) -> tuple[int, ...]:
+    """Return the index of the largest value in an array."""
+    max_idx = np.nanargmax(array)
+    return np.unravel_index(max_idx, array.shape)
 
 
 def peak_results(res: ModelResult) -> dict:

@@ -4,6 +4,7 @@ Functions to load data from i06-1 and i10-1 beamline XAS measurements
 
 import numpy as np
 import h5py
+import hdfmap
 import datetime
 
 from mmg_toolbox.utils.file_functions import get_scan_number
@@ -15,6 +16,11 @@ from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 from .spectra_analysis import energy_range_edge_label
 from .spectra import Spectra
 from .spectra_container import SpectraContainer, XasMetadata
+
+
+def is_nxxas(filename: str) -> bool:
+    """Return True if the NeXus file contains an entry or sub-entry with application definition NXxas"""
+    return bool(nx_find_data(hdfmap.load_hdf(filename), 'NXentry', 'definition') == 'NXxas')
 
 
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
@@ -36,10 +42,13 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
     for detector, array in raw_signals.items():
         if len(array) != len(energy):
             print(f"Removing signal '{detector}' as the length is wrong")
-            raw_signals.pop(detector)
         if np.max(array) < 0.1:
             print(f"Removing signal '{detector}' as the values are 0")
-            raw_signals.pop(detector)
+    raw_signals = {
+        detector: array for detector, array in raw_signals.items()
+        if len(array) == len(energy) and array.max() > 0.1
+    }
+
     if len(raw_signals) == 0:
         raise ValueError("No raw_signals found")
 
@@ -196,9 +205,9 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None) -> Spectra
     )
 
 
-def load_from_nxs_using_hdfmap(filename: str, sample_name=None, element_edge=None) -> SpectraContainer:
+def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
+                               element_edge: str | None = None) -> SpectraContainer:
     """Load ScanContainer"""
-    import hdfmap
 
     with hdfmap.load_hdf(filename) as hdf:
         # HdfMap creates data-path namespace
@@ -246,11 +255,12 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name=None, element_edge=Non
     )
 
 
-def load_xas_scans(*filenames: str, sample_name='') -> list[SpectraContainer]:
+def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge: str | None = None) -> list[SpectraContainer]:
     """Load scans from a list of filenames, return {'pol': [scan1, scan2, ...]}"""
     scans = [
-        load_from_dat(filename, sample_name=sample_name)
-        if filename.endswith('.dat') else load_from_nxs_using_hdfmap(filename)
+        load_from_dat(filename, sample_name=sample_name, element_edge=element_edge)
+        if filename.endswith('.dat')
+        else load_from_nxs_using_hdfmap(filename, sample_name=sample_name, element_edge=element_edge)
         for filename in filenames
     ]
     return scans
