@@ -217,6 +217,8 @@ class NXInstrumentModel:
 
         self.entry = nx_find(hdf_file, nn.NX_ENTRY)
         self.instrument = nx_find(self.entry, nn.NX_INST)
+        if self.instrument is None:
+            raise RuntimeError(f"NXInstrumentModel: instrument not found")
 
         self.detectors = [
             NXDetector(f"{self.instrument.name}/{p}", hdf_file)
@@ -274,8 +276,12 @@ class NXInstrumentModel:
         :param point: (n, i, j) == (frame, slow_axis_pixel, fast_axis_pixel)
         :return: [x, y, z] in inverse Angstrom
         """
+        n, i, j = point
         q = self.detector_q(point)
-        z = self.sample.transforms[point[0]][:3, :3]
+        if len(self.sample.transforms) > 1:
+            z = self.sample.transforms[n][:3, :3]
+        else:
+            z = self.sample.transforms[0][:3, :3]  # if sample tranformations aren't stored on every angle
         ub = 2 * np.pi * self.sample.ub_matrix
 
         inv_ub = np.linalg.inv(ub)
@@ -350,9 +356,9 @@ class NXInstrumentModel:
         axes.text(bstar[0], bstar[2], bstar[1], s='b*')
         axes.text(cstar[0], cstar[2], cstar[1], s='c*')
 
-        axes.set_xlabel('X')
-        axes.set_ylabel('Z')
-        axes.set_zlabel('Y')
+        axes.set_xlabel(r'Qx [$\AA^{-1}$]', labelpad=20)
+        axes.set_ylabel(r'Qz [$\AA^{-1}$]', labelpad=20)
+        axes.set_zlabel(r'Qy [$\AA^{-1}$]', labelpad=20)
         axes.set_title(f"Wavevectors\nHKL: {hkl}")
         axes.set_aspect('equal')
 
