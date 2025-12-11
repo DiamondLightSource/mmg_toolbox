@@ -37,7 +37,8 @@ class NexusScan(NexusLoader):
 
     def __init__(self, nxs_filename: str, hdf_map: NexusMap | None = None, config: dict | None = None):
         super().__init__(nxs_filename, hdf_map)
-        self.config = config or beamline_config()
+        self.config: dict = config or beamline_config()
+        self.beamline = self.config.get('beamline', None)
 
         # add scan number to eval namespace
         self.map.add_local(scan_number=self.scan_number())
@@ -49,6 +50,8 @@ class NexusScan(NexusLoader):
         self.plot = ScanPlotManager(self)
 
     def __repr__(self):
+        if self.beamline:
+            return f"NexusScan<{self.beamline}>({self.scan_number()}: '{self.filename}')"
         return f"NexusScan('{self.filename}')"
 
     def __str__(self):
