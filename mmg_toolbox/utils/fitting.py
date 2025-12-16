@@ -373,6 +373,7 @@ def peak_results(res: ModelResult) -> dict:
     fit_dict = {
         'lmfit': res,
         'npeaks': npeaks,
+        'peak_prefixes': peak_prefx,
         'chisqr': res.chisqr,
         'xdata': res.userkws['x'],
         'ydata': res.data,
@@ -532,6 +533,8 @@ class FitResults:
     xdata, yfit = fitres.fit(ntimes=10)  # interpolated fit results
     fig = fitres.plot(axes, xlabel, ylabel, title)  # create plot
     """
+    npeaks: int
+    peak_prefixes: list[str]
     amplitude: float
     center: float
     height: float
@@ -558,6 +561,11 @@ class FitResults:
         value = self._res.get(name, None)
         error = self._res.get(err_name, 0)
         return value, error
+
+    def get_string(self, name: str) -> str:
+        """Returns fit parameter string including error in standard form"""
+        value, error = self.get_value(name)
+        return stfm(value, error)
 
     def results(self) -> dict:
         """Returns dict of peak fit results"""

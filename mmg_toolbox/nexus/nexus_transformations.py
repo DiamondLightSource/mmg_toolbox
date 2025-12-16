@@ -57,11 +57,16 @@ def nx_direction(path: str, hdf_file: h5py.Group) -> np.ndarray:
     :param hdf_file: Nexus file object
     :return: unit-vector array
     """
-    depends_on = get_depends_on(hdf_file[path])
+    obj = hdf_file[path]
+    depends_on = get_depends_on(obj)
     if depends_on == '.':
-        dataset = hdf_file[path]
-    else:
+        dataset = obj
+    elif isinstance(obj, h5py.Group) and depends_on in obj:
+        dataset = obj[depends_on]
+    elif depends_on in hdf_file:
         dataset = hdf_file[depends_on]
+    else:
+        raise Exception(f"{depends_on} not in {obj} or {hdf_file}")
 
     vector = np.asarray(dataset.attrs.get(nn.NX_VECTOR, (0, 0, 0)))
     return norm_vector(vector)

@@ -51,4 +51,7 @@ def test_msmapper_processor():
     nb = nbformat.read('output.ipynb', as_version=4)
     assert nb.metadata.papermill.exception is None
 
+    with h5py.File(FILES_DICT['msmapper volume 527']) as hdf:
+        assert isinstance(hdf['/analysis/h_axis/fit'], h5py.Dataset)
+
     os.remove('output.ipynb')
