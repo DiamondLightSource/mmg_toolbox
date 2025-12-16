@@ -16,25 +16,46 @@ from mmg_toolbox.utils.polarisation import polarisation_label_to_stokes, analyse
 from mmg_toolbox.utils.xray_utils import photon_wavelength
 
 
-def add_nxclass(root: h5py.Group, name: str, nx_class: str) -> h5py.Group:
+def add_nxclass(root: h5py.Group, name: str, nx_class: str, **attrs) -> h5py.Group:
     """Create NXclass group"""
     group = root.create_group(name, track_order=True)
     group.attrs[nn.NX_CLASS] = nx_class
+    group.attrs.update(attrs)
     return group
 
 
-def add_nxfield(root: h5py.Group, name: str, data, **attrs) -> h5py.Dataset:
+def add_nxfield(root: h5py.Group, name: str, data,
+                add_to_axes: bool = False, add_to_signal: bool = False,
+                **attrs) -> h5py.Dataset:
     """Create NXfield for storing data"""
     field = root.create_dataset(name, data=data)
     field.attrs.update(attrs)
+    if add_to_axes and nn.NX_AXES in root.attrs:
+        root.attrs[nn.NX_AXES] = list(root.attrs[nn.NX_AXES]) + [name]
+    elif add_to_axes:
+        root.attrs[nn.NX_AXES] = [name]
+    if add_to_signal and nn.NX_SIGNAL in root.attrs:
+        if nn.NX_AUXILIARY in root.attrs:
+            root.attrs[nn.NX_AUXILIARY] = list(root.attrs[nn.NX_AUXILIARY]) +[name]
+        else:
+            root.attrs[nn.NX_AUXILIARY] = [name]
+    elif add_to_signal:
+        root.attrs[nn.NX_SIGNAL] = [name]
     return field
 
 
-def add_nxentry(root: h5py.File, name: str, definition: str | None = None) -> h5py.Group:
+def add_attr(root: h5py.Group | h5py.Dataset, **attrs):
+    """Add attributes to NXclass or NXfield"""
+    root.attrs.update(attrs)
+
+
+def add_nxentry(root: h5py.File, name: str, definition: str | None = None, default: bool = False) -> h5py.Group:
     """Create NXentry group"""
     entry = add_nxclass(root, name, nn.NX_ENTRY)
     if definition is not None:
         add_nxfield(entry, nn.NX_DEFINITION, definition)
+    if default:
+        root.attrs[nn.NX_DEFAULT] = name
     return entry
 
 
@@ -168,7 +189,8 @@ def add_nxsample(root: h5py.Group, name: str, sample_name: str = '', chemical_fo
     return sample
 
 
-def add_nxdata(root: h5py.Group, name: str, axes: list[str], signal: str, *auxilliary_signals: str) -> h5py.Group:
+def add_nxdata(root: h5py.Group, name: str, axes: list[str], signal: str, *auxilliary_signals: str,
+               default: bool = False) -> h5py.Group:
     """
     Create NXdata group
 
@@ -180,10 +202,12 @@ def add_nxdata(root: h5py.Group, name: str, axes: list[str], signal: str, *auxil
     """
     group = add_nxclass(root, name, nn.NX_DATA)
     group.attrs.update({
-        nn.NX_AXES: axes,
+        nn.NX_AXES: list(axes),
         nn.NX_SIGNAL: signal,
-        nn.NX_AUXILIARY: auxilliary_signals,
+        nn.NX_AUXILIARY: list(auxilliary_signals),
     })
+    if default:
+        root.attrs['default'] = name
     return group
 
 
@@ -208,7 +232,7 @@ def add_nxnote(root: h5py.Group, name: str, description: str, data: str | dict |
     if isinstance(data, dict):
         note.create_dataset('type', data='application/json')
     else:
-        note.create_dataset('type', data='text/plain')
+        note.create_dataset('type', data='text/html')
     note.create_dataset('description', data=str(description))
     if filename:
         note.create_dataset('file_name', data=str(filename))
@@ -222,8 +246,26 @@ def add_nxnote(root: h5py.Group, name: str, description: str, data: str | dict |
     return note
 
 
-def add_nxprocess(root: h5py.Group, name: str, program: str,
-                  version: str, date: str | None = None, sequence_index: int | None = None) -> h5py.Group:
+def add_nxparameters(root: h5py.Group, name: str, **parameters) -> h5py.Group:
+    """
+    Add NXparameters to parent group
+    """
+    group = add_nxclass(root, name, nn.NX_PARAM)
+    for key, value in parameters.items():
+        attrs = {}
+        if isinstance(value, tuple):
+            value, units = value
+            attrs['units'] = units
+        value = np.array(value)
+        if not np.issubdtype(value.dtype, np.number):
+            value = value.astype(bytes)  # convert None and other obj to str
+        add_nxfield(group, key, data=value, **attrs)
+    return group
+
+
+def add_nxprocess(root: h5py.Group, name: str, program: str | None = None,
+                  version: str | None = None, date: str | None = None, sequence_index: int | None = None,
+                  **parameters) -> h5py.Group:
     """
     Create NXprocess group
 
@@ -244,6 +286,12 @@ def add_nxprocess(root: h5py.Group, name: str, program: str,
     xdata = add_nxfield(group, 'x', xvals, units='mm')
     ydata = add_nxfield(group, 'y' yvals, units='')
     """
+    from mmg_toolbox import version_info
+
+    if program is None:
+        program = 'Python:mmg_toolbox'
+    if version_info is None:
+        version = version_info()
     if date is None:
         date = str(datetime.datetime.now())
 
@@ -253,6 +301,8 @@ def add_nxprocess(root: h5py.Group, name: str, program: str,
     group.create_dataset('program', data=str(program))
     group.create_dataset('version', data=str(version))
     group.create_dataset('date', data=str(date))
+    if parameters:
+        add_nxparameters(group, 'parameters', **parameters)
     return group
 
 

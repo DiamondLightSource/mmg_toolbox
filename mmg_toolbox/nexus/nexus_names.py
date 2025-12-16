@@ -15,6 +15,7 @@ NX_MON = 'NXmonitor'
 NX_NOTE = 'NXnote'
 NX_PROC = 'NXprocess'
 NX_TRAN = 'NXtransformations'
+NX_PARAM = 'NXparameters'
 
 # Fields
 NX_WL = 'incident_wavelength'
