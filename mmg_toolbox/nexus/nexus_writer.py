@@ -30,17 +30,17 @@ def add_nxfield(root: h5py.Group, name: str, data,
     """Create NXfield for storing data"""
     field = root.create_dataset(name, data=data)
     field.attrs.update(attrs)
-    if add_to_axes and nn.NX_AXES in root.attrs:
-        root.attrs[nn.NX_AXES] = list(root.attrs[nn.NX_AXES]) + [name]
-    elif add_to_axes:
-        root.attrs[nn.NX_AXES] = [name]
+    if add_to_axes:
+        prev_axes = list(root.attrs.get(nn.NX_AXES, []))
+        root.attrs[nn.NX_AXES] = prev_axes + [name]
+        root.attrs[nn.NX_INDICES.format(name)] = [len(prev_axes)]
     if add_to_signal and nn.NX_SIGNAL in root.attrs:
         if nn.NX_AUXILIARY in root.attrs:
             root.attrs[nn.NX_AUXILIARY] = list(root.attrs[nn.NX_AUXILIARY]) +[name]
         else:
             root.attrs[nn.NX_AUXILIARY] = [name]
     elif add_to_signal:
-        root.attrs[nn.NX_SIGNAL] = [name]
+        root.attrs[nn.NX_SIGNAL] = name
     return field
 
 
@@ -205,6 +205,9 @@ def add_nxdata(root: h5py.Group, name: str, axes: list[str], signal: str, *auxil
         nn.NX_AXES: list(axes),
         nn.NX_SIGNAL: signal,
         nn.NX_AUXILIARY: list(auxilliary_signals),
+    })
+    group.attrs.update({
+        nn.NX_INDICES.format(ax_name): [n] for n, ax_name in enumerate(axes)
     })
     if default:
         root.attrs['default'] = name
