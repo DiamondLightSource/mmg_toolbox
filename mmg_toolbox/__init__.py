@@ -42,7 +42,10 @@ def module_info():
         out += '\nhdfmap version: %s (%s)' % (hdfmap.__version__, hdfmap.__date__)
     except ImportError:
         out += '\nhdfmap version: Not available'
-    import tkinter
-    out += '\n   tkinter version: %s' % tkinter.TkVersion
+    try:
+        import tkinter
+        out += '\n   tkinter version: %s' % tkinter.TkVersion
+    except ImportError:
+        out += '\ntkinter version: Not available'
     out += '\n'
     return out
