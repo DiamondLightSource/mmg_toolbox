@@ -5,6 +5,7 @@ Example Data for tests
 
 DIR = '/dls/science/groups/das/ExampleData/hdfmap_tests/'
 FILES = [
+    (DIR + 'i16/777777.nxs', 'i16 pilatus eta scan, tiff files'),
     (DIR + 'i16/1040311.nxs', 'i16 pilatus eta scan, old nexus format'),
     (DIR + 'i16/1040323.nxs', 'i16 pilatus hkl scan, new nexus format'),
     (DIR + 'i16/982681.nxs', 'i16 pil2m single point scan'),

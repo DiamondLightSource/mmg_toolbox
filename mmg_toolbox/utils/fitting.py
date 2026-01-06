@@ -16,12 +16,14 @@ from lmfit.models import (
     SineModel
 )
 from lmfit.model import ModelResult, Model, Parameters
+from matplotlib import pyplot as plt
+
 from .misc_functions import stfm
 from ..nexus.nexus_scan import NexusScan
 
 __all__ = ['MODELS', 'PEAK_MODELS', 'BACKGROUND_MODELS', 'METHODS', 'poisson_errors', 'gauss', 'peak_ratio',
            'group_adjacent', 'find_peaks', 'find_peaks_str', 'peak_results', 'peak_results_str', 'peak_results_fit',
-           'peak_results_plot', 'peakfit', 'modelfit', 'multipeakfit', 'peak2dfit', 'FitResults']
+           'peak_results_plot', 'peakfit', 'modelfit', 'multipeakfit', 'peak2dfit', 'FitResults', 'Peak']
 
 # https://lmfit.github.io/lmfit-py/builtin_models.html#peak-like-models
 MODELS = {
@@ -365,7 +367,8 @@ def peak_results(res: ModelResult) -> dict:
     :param res: lmfit fit result - ModelResult
     :return: {totals: (value, error)}
     """
-    peak_prefx = [mod.prefix for mod in res.components if 'bkg' not in mod.prefix]
+    peak_prefx = [mod.prefix for mod in res.model.components if 'bkg' not in mod.prefix]
+    peak_models = [mod for mod in res.model.components if 'bkg' not in mod.prefix]
     npeaks = len(peak_prefx)
     nn = 1 / len(peak_prefx) if len(peak_prefx) > 0 else 1  # normalise by number of peaks
     comps = res.eval_components()
@@ -374,6 +377,7 @@ def peak_results(res: ModelResult) -> dict:
         'lmfit': res,
         'npeaks': npeaks,
         'peak_prefixes': peak_prefx,
+        'peak_models': peak_models,
         'chisqr': res.chisqr,
         'xdata': res.userkws['x'],
         'ydata': res.data,
@@ -495,6 +499,69 @@ def peak_results_plot(res: ModelResult, axes=None, xlabel: str = None, ylabel: s
     return fig
 
 
+class Peak:
+    """
+    Peak object
+    """
+    params = ['amplitude', 'center', 'height', 'fwhm', 'background']
+
+    def __init__(self, result: ModelResult, model: Model, amplitude: float, center: float, height: float, fwhm: float, background: float,
+                 stderr_amplitude: float, stderr_center: float, stderr_height: float, stderr_fwhm: float, stderr_background: float, **kwargs):
+        self._result = result
+        self.model = model
+        self.prefix = model.prefix
+        self.model_name = model._name
+        self.amplitude = amplitude
+        self.center = center
+        self.height = height
+        self.fwhm = fwhm
+        self.background = background
+        self.stderr_amplitude = stderr_amplitude
+        self.stderr_center = stderr_center
+        self.stderr_height = stderr_height
+        self.stderr_fwhm = stderr_fwhm
+        self.stderr_background = stderr_background
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+            if name.startswith('stderr_') and hasattr(self, name[7:]):
+                self.params.append(name[7:])
+
+    def __repr__(self):
+        pars = ', '.join(f"{p}={self.get_string(p)}" for p in self.params)
+        return f"Peak('{self.prefix}', '{self.model_name}', {pars})"
+
+    def get_value(self, name: str) -> tuple[float | None, float]:
+        """Returns fit parameter value and associated error"""
+        err_name = f"stderr_{name}"
+        if not hasattr(self, err_name):
+            return None, 0
+        value = getattr(self, name)
+        error = getattr(self, err_name)
+        return value, error
+
+    def get_string(self, name: str) -> str:
+        """Returns fit parameter string including error in standard form"""
+        value, error = self.get_value(name)
+        if value is None:
+            return '--'
+        return stfm(value, error)
+
+    def fit_data(self, x_data: np.ndarray | None = None, ntimes=10) -> tuple[np.ndarray, np.ndarray]:
+        """Returns interpolated x, y fit arrays"""
+        old_x = self._result.userkws['x'] if x_data is None else x_data
+        xfit = np.linspace(np.min(old_x), np.max(old_x), np.size(old_x) * ntimes)
+        yfit = self.model.eval(x=xfit)
+        return xfit, yfit
+
+    def label(self) -> str:
+        return f"{self.model_name} ({self.prefix})"
+
+    def plot(self, axes: plt.Axes, x_data: np.ndarray | None = None, ntimes=10):
+        """Plot peak fit results"""
+        xfit, yfit = self.fit_data(x_data, ntimes)
+        axes.plot(xfit, yfit, label=self.label())
+
+
 class FitResults:
     """
     FitResults Class
@@ -535,6 +602,7 @@ class FitResults:
     """
     npeaks: int
     peak_prefixes: list[str]
+    peak_models: list[Model]
     amplitude: float
     center: float
     height: float
@@ -554,6 +622,32 @@ class FitResults:
 
     def __str__(self):
         return peak_results_str(self.res)
+
+    def __getitem__(self, item: int | slice) -> Peak | list[Peak]:
+        if isinstance(item, slice):
+            return [self.get_peak(n) for n in range(*item.indices(len(self)))]
+        else:
+            return self.get_peak(item)
+
+    def __len__(self):
+        return self.npeaks
+
+    def peak_name(self, number) -> tuple[str, str]:
+        prefix = self.peak_prefixes[number]
+        return prefix, "stderr_" + prefix
+
+    def get_peak(self, number: int) -> Peak:
+        if number >= self.npeaks:
+            raise IndexError('Not enough peaks')
+        prefix, stderr = self.peak_name(number)
+        pars = {p: self._res.get(prefix + p, 0) for p in Peak.params}
+        stderr = {f"stderr_{p}": self._res.get(stderr + p, 0) for p in Peak.params}
+        return Peak(
+            result=self.res,
+            model=self.peak_models[number],
+            **pars,
+            **stderr
+        )
 
     def get_value(self, name: str) -> tuple[float | None, float]:
         """Returns fit parameter value and associated error"""

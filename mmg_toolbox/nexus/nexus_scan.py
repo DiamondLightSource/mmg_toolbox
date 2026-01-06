@@ -4,7 +4,7 @@ NeXus Scan Classes
 NexusScan - NeXus Scan class, lazy loader of scan files
 NexusDataHolder - Loads scan data and meta data into attributes
 """
-
+import os
 import datetime
 
 import h5py
@@ -16,7 +16,7 @@ from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapMMGMetadata as Md
 from mmg_toolbox.beamline_metadata.config import beamline_config, C
 from mmg_toolbox.nexus.instrument_model import NXInstrumentModel
 from mmg_toolbox.nexus.nexus_functions import get_dataset_value
-from mmg_toolbox.utils.file_functions import get_scan_number
+from mmg_toolbox.utils.file_functions import get_scan_number, read_tiff
 from mmg_toolbox.utils.misc_functions import shorten_string, DataHolder
 from mmg_toolbox.xas import SpectraContainer, load_xas_scans
 
@@ -114,7 +114,30 @@ class NexusScan(NexusLoader):
     def image(self, index: int | tuple | slice | None = None) -> np.ndarray:
         """Return image or selection from default detector"""
         with self.load_hdf() as hdf:
-            return self.map.get_image(hdf, index)
+            image = self.map.get_image(hdf, index)
+
+            if issubclass(type(image), str):
+                # TIFF image, NXdetector/image_data -> array('file.tif')
+                file_directory = os.path.dirname(self.filename)
+                image_filename = os.path.join(file_directory, image)
+                if not os.path.isfile(image_filename):
+                    raise FileNotFoundError(f"File not found: {image_filename}")
+                image = read_tiff(image_filename)
+            elif image.ndim == 0:
+                # image is file path number, NXdetector/path -> arange(n_points)
+                scan_number = get_scan_number(self.filename)
+                file_directory = os.path.dirname(self.filename)
+                detector_names = list(self.map.image_data.keys())
+                for detector_name in detector_names:
+                    image_filename = os.path.join(file_directory, f"{scan_number}-{detector_name}-files/{image:05.0f}.tif")
+                    if os.path.isfile(image_filename):
+                        break
+                if not os.path.isfile(image_filename):
+                    raise FileNotFoundError(f"File not found: {image_filename}")
+                image = read_tiff(image_filename)
+            elif image.ndim != 2:
+                raise Exception(f"detector image[{index}] is the wrong shape: {image.shape}")
+            return image
 
     def table(self, delimiter=', ', string_spec='', format_spec='f', default_decimals=8) -> str:
         """Return data table"""
