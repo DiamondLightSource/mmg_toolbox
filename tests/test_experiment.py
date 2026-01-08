@@ -18,6 +18,18 @@ def test_file_loader():
     scans = exp.scans(*scan_range)
     assert len([scn for scn in scans if isinstance(scn, NexusScan)]) == len(scans)
 
+
+@only_dls_file_system
+def test_experiment_getitem():
+    exp = Experiment(DIR + '/i16')
+    all_scan_numbers = exp.all_scan_numbers()
+    all_scans = [s for s in exp]
+    assert len(all_scans) == len(exp) == len(all_scan_numbers)
+    last_scans = exp[-5:]
+    assert len(last_scans) == 5
+    assert isinstance(last_scans[0], NexusScan)
+
+
 @only_dls_file_system
 def test_check_scan():
     exp = Experiment(DIR + '/i16/cm37262-1', instrument='i16')

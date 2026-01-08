@@ -11,7 +11,7 @@ from hdfmap import create_nexus_map
 from hdfmap.eval_functions import generate_identifier
 
 from mmg_toolbox.utils.env_functions import get_scan_number
-from mmg_toolbox.utils.fitting import multipeakfit, FitResults, find_peaks_str
+from mmg_toolbox.fitting import multipeakfit, FitResults, find_peaks_str
 from ..misc.logging import create_logger
 from ..misc.config import get_config
 from .simple_plot import SimplePlot

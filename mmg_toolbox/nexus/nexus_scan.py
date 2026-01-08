@@ -4,6 +4,7 @@ NeXus Scan Classes
 NexusScan - NeXus Scan class, lazy loader of scan files
 NexusDataHolder - Loads scan data and meta data into attributes
 """
+
 import os
 import datetime
 
@@ -43,7 +44,7 @@ class NexusScan(NexusLoader):
         # add scan number to eval namespace
         self.map.add_local(scan_number=self.scan_number())
 
-        from mmg_toolbox.utils.fitting import ScanFitManager, poisson_errors
+        from mmg_toolbox.fitting import ScanFitManager, poisson_errors
         self.fit = ScanFitManager(self)
         self._error_function = poisson_errors
         from mmg_toolbox.plotting.scan_plot_manager import ScanPlotManager
@@ -139,14 +140,18 @@ class NexusScan(NexusLoader):
                 raise Exception(f"detector image[{index}] is the wrong shape: {image.shape}")
             return image
 
+    def volume(self) -> np.ndarray:
+        """Return complete stack of images"""
+        return self.image(index=())
+
     def table(self, delimiter=', ', string_spec='', format_spec='f', default_decimals=8) -> str:
         """Return data table"""
         with self.load_hdf() as hdf:
             return self.map.create_scannables_table(hdf, delimiter, string_spec, format_spec, default_decimals)
 
-    #TODO: Remove this?
     def get_plot_data(self, x_axis: str = 'axes0', y_axis: str = 'signal0') -> dict:
         with self.load_hdf() as hdf:
+            data = self.map.get_plot_data(hdf)
             cmd = self.map.eval(hdf, Md.cmd)
             if len(cmd) > self.MAX_STR_LEN:
                 cmd = shorten_string(cmd)
@@ -154,14 +159,21 @@ class NexusScan(NexusLoader):
             ydata = self.map.eval(hdf, y_axis)
             yerror = self._error_function(ydata)
             x_lab, y_lab = self.map.generate_ids(x_axis, y_axis, modify_missing=False)
-            return {
+            additional = {
                 'x': xdata,
                 'y': ydata,
+                'xdata': xdata,
+                'ydata': ydata,
                 'yerror': yerror,
                 'xlabel': x_lab,
                 'ylabel': y_lab,
                 'title': f"#{self.scan_number()}\n{cmd}"
             }
+            if 'grid_xlabel' in data and ydata.ndim == 2:
+                additional['grid_label'] = y_lab
+                additional['grid_data'] = ydata
+            data.update(additional)
+            return data
 
     def xas_scan(self) -> SpectraContainer:
         """Load XAS Spectra"""

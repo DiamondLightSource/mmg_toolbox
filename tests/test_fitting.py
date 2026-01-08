@@ -7,7 +7,7 @@ import numpy as np
 from lmfit.models import GaussianModel
 
 from mmg_toolbox import data_file_reader
-from mmg_toolbox.utils.fitting import FitResults, peakfit, multipeakfit, gauss, Peak
+from mmg_toolbox.fitting import FitResults, peakfit, multipeakfit, gauss, Peak
 
 from . import only_dls_file_system
 from .example_files import DIR

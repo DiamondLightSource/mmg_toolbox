@@ -6,15 +6,16 @@ build-backend = "setuptools.build_meta"
 name = "mmg_toolbox"
 dynamic = ['version']
 dependencies = [
-  "numpy",
-  "h5py",
-  "hdf5plugin",
-  "hdfmap>=1.1.0",
-  "matplotlib",
-  "imageio",
-  "scipy",
-  "lmfit",
-  "diffcalc-core"
+    "numpy",
+    "h5py",
+    "hdf5plugin",
+    "hdfmap>=1.1.0",
+    "matplotlib",
+    "imageio",
+    "scipy",
+    "lmfit",
+    "stomp.py",
+    "diffcalc-core",
 ]
 requires-python = ">=3.10"
 authors = [

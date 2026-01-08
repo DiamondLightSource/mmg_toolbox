@@ -48,6 +48,17 @@ class Experiment:
             lines.extend(["  No NeXus files found."])
         return '\n'.join(lines)
 
+    def __getitem__(self, item: int | slice) -> NexusScan | list[NexusScan]:
+        if isinstance(item, slice):
+            scan_numbers = self.all_scan_numbers()[item]
+            return self.scans(*scan_numbers)
+        else:
+            scan_numbers = self.all_scan_numbers()[item]
+            return self.scans(scan_numbers)[0]
+
+    def __len__(self) -> int:
+        return len(self.all_scan_numbers())
+
     def _update_scan_list(self):
         mod_times = [last_folder_update(folder) for folder in self.folder_paths]
         folders = [
