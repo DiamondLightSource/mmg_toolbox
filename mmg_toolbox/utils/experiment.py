@@ -39,10 +39,13 @@ class Experiment:
         scan_numbers = self._scan_numbers()
         lines = ['Instrument: ' + self.instrument]
         lines.extend(self.folder_paths)
-        lines.extend([
-            f"    Files: {len(scan_numbers)}",
-            f"    Scans: {scan_numbers[0]}-{scan_numbers[-1]}",
-        ])
+        if scan_numbers:
+            lines.extend([
+                f"    Files: {len(scan_numbers)}",
+                f"    Scans: {scan_numbers[0]}-{scan_numbers[-1]}",
+            ])
+        else:
+            lines.extend(["  No NeXus files found."])
         return '\n'.join(lines)
 
     def _update_scan_list(self):

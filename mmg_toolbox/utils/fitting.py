@@ -21,12 +21,16 @@ from matplotlib import pyplot as plt
 from .misc_functions import stfm
 from ..nexus.nexus_scan import NexusScan
 
-__all__ = ['MODELS', 'PEAK_MODELS', 'BACKGROUND_MODELS', 'METHODS', 'poisson_errors', 'gauss', 'peak_ratio',
-           'group_adjacent', 'find_peaks', 'find_peaks_str', 'peak_results', 'peak_results_str', 'peak_results_fit',
-           'peak_results_plot', 'peakfit', 'modelfit', 'multipeakfit', 'peak2dfit', 'FitResults', 'Peak']
+__all__ = ['MODELS', 'PEAK_MODELS', 'BACKGROUND_MODELS', 'METHODS', 'PEAK_PARS', 'poisson_errors', 'gauss',
+           'peak_ratio', 'group_adjacent', 'find_peaks', 'find_peaks_str', 'peak_results',
+           'peak_results_str', 'peak_results_fit', 'peak_results_plot', 'peakfit', 'modelfit',
+           'multipeakfit', 'peak2dfit', 'FitResults', 'Peak']
 
 # https://lmfit.github.io/lmfit-py/builtin_models.html#peak-like-models
-MODELS = {
+
+ModelType = type[GaussianModel | LorentzianModel | VoigtModel | PseudoVoigtModel | LinearModel | ExponentialModel | SineModel]
+
+MODELS: dict[str, type[ModelType]] = {
     'gaussian': GaussianModel,
     'lorentz': LorentzianModel,
     'voight': VoigtModel,
@@ -36,20 +40,20 @@ MODELS = {
     'SineModel': SineModel,
 }  # list of available lmfit models
 
-PEAK_MODELS = {
+PEAK_MODELS: dict[str, list[str]] = {
     'gaussian': ['gaussian', 'gauss'],
     'voight': ['voight', 'voight model'],
     'pvoight': ['pseudovoight', 'pvoight'],
     'lorentz': ['lorentz', 'lorentzian', 'lor'],
-}  # alternaive names for peaks
+}  # alternative names for peaks
 
-BACKGROUND_MODELS = {
+BACKGROUND_MODELS: dict[str, list[str]] = {
     'linear': ['flat', 'slope', 'linear', 'line', 'straight'],
     'exponential': ['exponential', 'curve']
-}  # alternaive names for background models
+}  # alternative names for background models
 
 # https://lmfit.github.io/lmfit-py/fitting.html#fit-methods-table
-METHODS = {
+METHODS: dict[str, str] = {
     'leastsq': 'Levenberg-Marquardt',
     'nelder': 'Nelder-Mead',
     'lbfgsb': 'L-BFGS-B',
@@ -73,6 +77,31 @@ METHODS = {
     'dual_annealing': 'Dual Annealing',
     'emcee': 'Maximum likelihood via Monte-Carlo Markov Chain',
 }
+
+# Peak parameter names
+PEAK_PARS = ['amplitude', 'center', 'height', 'fwhm']
+
+
+def get_peak_model(name: str) -> type[ModelType]:
+    """Get peak model by name."""
+    model: type[ModelType] | None = None
+    for model_name, names in PEAK_MODELS.items():
+        if name.lower() in names:
+            model = MODELS[model_name]
+    if model is None:
+        raise ValueError(f"Peak model '{name}' not found")
+    return model
+
+
+def get_background_model(name: str) -> type[ModelType]:
+    """Get background model by name."""
+    model: type[ModelType] | None = None
+    for model_name, names in BACKGROUND_MODELS.items():
+        if name.lower() in names:
+            model = MODELS[model_name]
+    if model is None:
+        raise ValueError(f"Background model '{name}' not found")
+    return model
 
 
 def poisson_errors(y: np.ndarray) -> np.ndarray:
@@ -116,7 +145,8 @@ def gen_weights(yerrors=None) -> np.ndarray | None:
 
 def gauss(x: np.ndarray, y: np.ndarray | None = None, 
           height: float = 1, cen: float = 0, fwhm: float = 0.5, 
-          bkg: float = 0, cen_y: float | None = None) -> np.ndarray:
+          bkg: float = 0, cen_y: float | None = None,
+          fwhm_y: float | None = None) -> np.ndarray:
     """
     Define Gaussian distribution in 1 or 2 dimensions
 
@@ -126,6 +156,14 @@ def gauss(x: np.ndarray, y: np.ndarray | None = None,
 
     From http://fityk.nieto.pl/model.html
 
+    height is related to amplitude (area) by:
+        height = (area / fwhm) * sqrt(4*ln(2)/pi) ~ 0.94 * area / fwhm
+        area = height * fwhm /  sqrt(4*ln(2)/pi) ~ 1.06 * height * fwhm
+        - or for 2D -
+        area = height * fwhm_x * fwhm_y * (pi / 4*ln(2))
+    sigma is related to fwhm by:
+        fwhm = 2 * sqrt(2*ln(2)) * sigma
+        sigma = fwhm / (2*sqrt(2*ln(2)))
 
     :param x: [1xn] array of values, defines size of gaussian in dimension 1
     :param y: None* or [1xm] array of values, defines size of gaussian in dimension 2
@@ -134,20 +172,30 @@ def gauss(x: np.ndarray, y: np.ndarray | None = None,
     :param fwhm: peak full width at half-max
     :param bkg: background
     :param cen_y: peak centre in y-axis (None to use cen)
+    :param fwhm_y: peak full width in y-axis (None to use fwhm)
     :returns: [1xn array] Gassian distribution
     - or, if y is not None: -
     :returns: [nxm array] 2D Gaussian distribution
     """
 
+    cen_x = cen
+    fwhm_x = fwhm
     if cen_y is None:
         cen_y = cen
+    if fwhm_y is None:
+        fwhm_y = fwhm
     if y is None:
         y = cen_y
 
     x = np.asarray(x, dtype=float).reshape([-1])
     y = np.asarray(y, dtype=float).reshape([-1])
     X, Y = np.meshgrid(x, y)
-    g = height * np.exp(-np.log(2) * (((X - cen) ** 2 + (Y - cen) ** 2) / (fwhm / 2) ** 2)) + bkg
+    g = height * np.exp(
+        -np.log(2) * (
+                ((X - cen_x) ** 2) / (fwhm_x / 2) ** 2 +
+                ((Y - cen_y) ** 2) / (fwhm_y / 2) ** 2
+        )
+    ) + bkg
 
     if len(y) == 1:
         g = g.reshape([-1])
@@ -390,7 +438,7 @@ def peak_results(res: ModelResult) -> dict:
     for pname, param in res.params.items():
         ename = 'stderr_' + pname
         fit_dict[pname] = param.value
-        fit_dict[ename] = param.stderr if param.stderr is not None else 0
+        fit_dict[ename] = param.stderr or 0
     totals = {
         'amplitude': np.sum([res.params['%samplitude' % pfx].value for pfx in peak_prefx]),
         'center': np.mean([res.params['%scenter' % pfx].value for pfx in peak_prefx]),
@@ -422,7 +470,7 @@ def peak_results_str(res: ModelResult) -> str:
     out += 'Method: %s => %s\n' % (res.method, res.message)
     out += 'Chisqr = %1.5g\n' % res.chisqr
     # Peaks
-    peak_prefx = [mod.prefix for mod in res.components if 'bkg' not in mod.prefix]
+    peak_prefx = [mod.prefix for mod in res.model.components if 'bkg' not in mod.prefix]
     for prefx in peak_prefx:
         out += '\nPeak %s\n' % prefx
         for pn in res.params:
@@ -503,24 +551,22 @@ class Peak:
     """
     Peak object
     """
-    params = ['amplitude', 'center', 'height', 'fwhm', 'background']
 
-    def __init__(self, result: ModelResult, model: Model, amplitude: float, center: float, height: float, fwhm: float, background: float,
-                 stderr_amplitude: float, stderr_center: float, stderr_height: float, stderr_fwhm: float, stderr_background: float, **kwargs):
+    def __init__(self, result: ModelResult, model: Model, amplitude: float, center: float, height: float, fwhm: float,
+                 stderr_amplitude: float, stderr_center: float, stderr_height: float, stderr_fwhm: float, **kwargs):
         self._result = result
         self.model = model
         self.prefix = model.prefix
         self.model_name = model._name
+        self.params = PEAK_PARS
         self.amplitude = amplitude
         self.center = center
         self.height = height
         self.fwhm = fwhm
-        self.background = background
         self.stderr_amplitude = stderr_amplitude
         self.stderr_center = stderr_center
         self.stderr_height = stderr_height
         self.stderr_fwhm = stderr_fwhm
-        self.stderr_background = stderr_background
         for name, value in kwargs.items():
             setattr(self, name, value)
             if name.startswith('stderr_') and hasattr(self, name[7:]):
@@ -613,12 +659,23 @@ class FitResults:
     stderr_height: float
     stderr_fwhm: float
     stderr_background: float
+    chisqr: float  # Chi^2 of fit,
+    xdata: np.ndarray  # x-data used for fit,
+    ydata: np.ndarray  # y-data used for fit,
+    yfit: np.ndarray  # y-fit values,
+    weights: np.ndarray  # res.weights,
+    yerror: np.ndarray  # 1 / res.weights if res.weights is not None else 0 * res.data,
 
     def __init__(self, results: ModelResult):
         self.res = results
         self._res = peak_results(results)
-        for name in self._res:
-            setattr(self, name, self._res[name])
+        self.params = PEAK_PARS
+        for name, value in self._res.items():
+            setattr(self, name, value)
+
+    def __repr__(self):
+        pars = ', '.join(f"{p}={self.get_string(p)}" for p in self.params)
+        return f"FitResults(npeaks={self.npeaks}, {pars})"
 
     def __str__(self):
         return peak_results_str(self.res)
@@ -640,8 +697,8 @@ class FitResults:
         if number >= self.npeaks:
             raise IndexError('Not enough peaks')
         prefix, stderr = self.peak_name(number)
-        pars = {p: self._res.get(prefix + p, 0) for p in Peak.params}
-        stderr = {f"stderr_{p}": self._res.get(stderr + p, 0) for p in Peak.params}
+        pars = {p: self._res.get(prefix + p, 0) for p in self.params}
+        stderr = {f"stderr_{p}": self._res.get(stderr + p, 0) for p in self.params}
         return Peak(
             result=self.res,
             model=self.peak_models[number],
@@ -796,14 +853,8 @@ def peakfit(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndarray | None = N
     if fix_parameters is None:
         fix_parameters = {}
 
-    peak_mod = None
-    bkg_mod = None
-    for model_name, names in PEAK_MODELS.items():
-        if model.lower() in names:
-            peak_mod = MODELS[model_name]()
-    for model_name, names in BACKGROUND_MODELS.items():
-        if background.lower() in names:
-            bkg_mod = MODELS[model_name](prefix='bkg_')
+    peak_mod = get_peak_model(model)()
+    bkg_mod = get_background_model(background)(prefix='bkg_')
 
     pars = peak_mod.guess(yvals, x=xvals)
     pars += bkg_mod.make_params()
@@ -895,14 +946,8 @@ def generate_model(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndarray | N
     if fix_parameters is None:
         fix_parameters = {}
 
-    peak_mod = None
-    bkg_mod = None
-    for model_name, names in PEAK_MODELS.items():
-        if model.lower() in names:
-            peak_mod = MODELS[model_name]
-    for model_name, names in BACKGROUND_MODELS.items():
-        if background.lower() in names:
-            bkg_mod = MODELS[model_name]
+    peak_mod = get_peak_model(model)
+    bkg_mod = get_background_model(background)
 
     mod = bkg_mod(prefix='bkg_')
     for n in range(npeaks):
@@ -911,7 +956,7 @@ def generate_model(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndarray | N
     pars = mod.make_params()
 
     # initial parameters
-    min_wid = np.mean(np.diff(xvals))
+    min_wid = float(np.mean(np.diff(xvals)))
     max_wid = xvals.max() - xvals.min()
     area = (yvals.max() - yvals.min()) * (3 * min_wid)
     percentile = np.linspace(0, 100, npeaks + 2)
@@ -987,12 +1032,8 @@ def generate_model_script(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndar
         # Find peaks
         peak_idx, peak_pow = find_peaks(yvals, yerrors, min_peak_power, peak_distance_idx)
         peak_centers = {'p%d_center' % (n + 1): xvals[peak_idx[n]] for n in range(len(peak_idx))}
-        for model_name, names in PEAK_MODELS.items():
-            if model.lower() in names:
-                peak_mod = MODELS[model_name]
-        for model_name, names in BACKGROUND_MODELS.items():
-            if background.lower() in names:
-                bkg_mod = MODELS[model_name]
+        peak_mod = get_peak_model(model)
+        bkg_mod = get_background_model(background)
         peak_name = peak_mod.__name__
         bkg_name = bkg_mod.__name__
 
@@ -1036,7 +1077,8 @@ def multipeakfit(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndarray | Non
                  npeaks: int | None = None, min_peak_power: float | None = None, 
                  peak_distance_idx: int | None = 10, model: str = 'Gaussian', background: str = 'slope', 
                  initial_parameters: dict | None = None, fix_parameters: dict | None = None, 
-                 method: str ='leastsq', print_result: bool = False, plot_result: bool = False) -> FitResults:
+                 method: str ='leastsq', remove_peaks: bool = True,
+                 print_result: bool = False, plot_result: bool = False) -> FitResults:
     """
     Fit x,y data to a model with multiple peaks using lmfit
     See: https://lmfit.github.io/lmfit-py/builtin_models.html#example-3-fitting-multiple-peaks-and-using-prefixes
@@ -1074,13 +1116,14 @@ def multipeakfit(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndarray | Non
     :param yvals: array(n) intensity data
     :param yerrors: None or array(n) - error data to pass to fitting function as weights: 1/errors^2
     :param npeaks: None or int number of peaks to fit. None will guess the number of peaks
-    :param min_peak_power: float, only return peaks with power greater than this. If None compare against std(y)
+    :param min_peak_power: float, only return peaks with power greater than this. If None compares against std(y)
     :param peak_distance_idx: int, group adjacent maxima if closer in index than this
     :param model: str or lmfit.Model, specify the peak model 'Gaussian','Lorentzian','Voight'
     :param background: str, specify the background model: 'slope', 'exponential'
     :param initial_parameters: None or dict of initial values for parameters
     :param fix_parameters: None or dict of parameters to fix at positions
     :param method: str method name, from lmfit fitting methods
+    :param remove_peaks: bool, remove peaks consistent with zero and fit again
     :param print_result: if True, prints the fit results using fit.fit_report()
     :param plot_result: if True, plots the results using fit.plot()
     :return: FitResults object
@@ -1095,7 +1138,27 @@ def multipeakfit(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndarray | Non
                                initial_parameters=initial_parameters, fix_parameters=fix_parameters)
 
     # Fit data against model using choosen method
+    print(f"Fitting with {len(mod.components) - 1} peaks")
     res = mod.fit(yvals, pars, x=xvals, weights=weights, method=method)
+    # Remove peaks consistent with zero
+    if remove_peaks and len(mod.components) > 2:
+        peak_models = [(m, m.prefix) for m in mod.components if 'bkg' not in m.prefix]
+        new_mod = next(m for m in mod.components if 'bkg' in m.prefix)
+        for peak_model, prefix in peak_models:
+            param = res.params[f"{prefix}amplitude"]
+            amplitude = param.value
+            stderr = param.stderr or 0
+            if amplitude > 2 * stderr:
+                new_mod += peak_model
+
+        if len(new_mod.components) < len(mod.components):
+            new_pars = new_mod.make_params()
+            for par in new_pars:
+                res_par = res.params[par]
+                new_pars[par].set(value=res_par.value, vary=res_par.vary,
+                                  min=res_par.min, max=res_par.max, expr=res_par.expr)
+            print(f"Refitting with {len(new_mod.components) - 1} peaks")
+            res = new_mod.fit(yvals, new_pars, x=xvals, weights=weights, method=method)
 
     if print_result:
         print(peak_results_str(res))
