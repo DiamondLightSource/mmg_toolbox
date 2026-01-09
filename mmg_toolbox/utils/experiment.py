@@ -7,12 +7,11 @@ import numpy as np
 import hdfmap
 
 from ..utils.misc_functions import numbers2string
-from ..utils.env_functions import scan_number_mapping, last_folder_update
+from ..utils.env_functions import scan_number_mapping, last_folder_update, get_beamline_from_directory
+from ..beamline_metadata.config import beamline_config, C
 from ..nexus.nexus_scan import NexusScan, NexusDataHolder
 from ..nexus.nexus_reader import find_scans
 from ..xas import load_xas_scans, SpectraContainer
-
-DEFAULT_SCAN_DESCRIPTION = '{(cmd|scan_command)}'
 
 
 class Experiment:
@@ -20,18 +19,18 @@ class Experiment:
     Experiment class
     Monitors data folders for scans
     """
-    _scan_description = DEFAULT_SCAN_DESCRIPTION
 
     def __init__(self, *folder_paths: str, instrument: str | None = None):
         self.folder_paths = folder_paths
         self.scan_list = {}
         self._scan_list_update = None
-        self.instrument = instrument
+        self.instrument = instrument or get_beamline_from_directory(folder_paths[0], None)
+        self.config = beamline_config(instrument)
         from ..plotting.exp_plot_manager import ExperimentPlotManager
         self.plot = ExperimentPlotManager(self)
 
     def __repr__(self):
-        paths = ', '.join("'{p}'" for p in self.folder_paths)
+        paths = ', '.join(f"'{p}'" for p in self.folder_paths)
         return f"Experiment({paths}, instrument={self.instrument})"
 
     def __str__(self):
@@ -79,6 +78,7 @@ class Experiment:
             if path not in self.folder_paths and os.path.isdir(path)
         )
         self.folder_paths = self.folder_paths + new_paths
+        self._update_scan_list()
 
     def all_scans(self) -> dict[int, str]:
         self._update_scan_list()
@@ -103,7 +103,7 @@ class Experiment:
 
     def scan(self, scan_file: int | str = -1) -> NexusDataHolder:
         """read Nexus file as NexusDataHolder"""
-        return NexusDataHolder(self.get_scan_filename(scan_file))
+        return NexusDataHolder(self.get_scan_filename(scan_file), config=self.config)
 
     def scans(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None) -> list[NexusScan]:
         """Read Nexus files as NexusScan"""
@@ -112,7 +112,7 @@ class Experiment:
             filenames = list(self.all_scans().values())
         if filenames and hdf_map is None:
             hdf_map = hdfmap.create_nexus_map(filenames[0])
-        return [NexusScan(file, hdf_map) for file in filenames]
+        return [NexusScan(file, hdf_map, config=self.config) for file in filenames]
 
     def find_scans(self, *scan_files: int | str,  hdf_map: hdfmap.NexusMap | None = None, first_only: bool = False,
                    **matches: str | float | tuple[float, float]) -> list[NexusScan]:
@@ -146,7 +146,7 @@ class Experiment:
         Join data from scans
         """
         scans = self.scans(*scan_files, hdf_map=hdf_map)
-        data_fields = [DEFAULT_SCAN_DESCRIPTION] if data_fields is None else data_fields
+        data_fields = [self.config[C.scan_description]] if data_fields is None else data_fields
         data = {name: [] for name in data_fields}
         for scan in scans:
             with scan.load_hdf() as hdf:
