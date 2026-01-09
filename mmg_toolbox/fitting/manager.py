@@ -72,8 +72,9 @@ class ScanFitManager:
         :return index: array(m) of indexes in y of peaks that satisfy conditions
         :return power: array(m) of estimated power of each peak
         """
-        xdata, ydata = self.scan.arrays(xaxis, yaxis)
-        errors = np.sqrt(ydata + 0.1)
+        data = self.scan.get_plot_data(xaxis, yaxis)
+        xdata, ydata, errors = (data[k] for k in ('xdata', 'ydata', 'yerror'))
+
         index, power = find_peaks(ydata, errors, min_peak_power, peak_distance_idx)
         return xdata[index], index, power
 
@@ -122,9 +123,8 @@ class ScanFitManager:
         :param plot_result: if True, plots the results using fit.plot()
         :return: FitResult object
         """
-        xdata, ydata = self.scan.arrays(xaxis, yaxis)
-        errors = self.scan._error_function(ydata)
-        xname, yname = self.scan.labels(xaxis, yaxis)
+        data = self.scan.get_plot_data(xaxis, yaxis)
+        xdata, ydata, errors, xname, yname = (data[k] for k in ('xdata', 'ydata', 'yerror', 'xlabel', 'ylabel'))
 
         # lmfit
         res = peakfit(xdata, ydata, errors, model=model, background=background,
@@ -204,9 +204,8 @@ class ScanFitManager:
         :param plot_result: if True, plots the results using fit.plot()
         :return: FitResults object
         """
-        xdata, ydata = self.scan.eval(f"{xaxis}, {yaxis}", default=np.zeros(self.scan.map.scannables_length()))
-        errors = np.sqrt(ydata + 0.1)
-        xname, yname = self.scan.map.generate_ids(xaxis, yaxis)
+        data = self.scan.get_plot_data(xaxis, yaxis)
+        xdata, ydata, errors, xname, yname = (data[k] for k in ('xdata', 'ydata', 'yerror', 'xlabel', 'ylabel'))
 
         # lmfit
         res = multipeakfit(xdata, ydata, errors, npeaks=npeaks, min_peak_power=min_peak_power,

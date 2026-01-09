@@ -114,6 +114,8 @@ class NexusScan(NexusLoader):
 
     def image(self, index: int | tuple | slice | None = None) -> np.ndarray:
         """Return image or selection from default detector"""
+        if not self.map.image_data:
+            raise ValueError(f'{repr(self)} contains no image data')
         with self.load_hdf() as hdf:
             image = self.map.get_image(hdf, index)
 
@@ -150,10 +152,15 @@ class NexusScan(NexusLoader):
             return self.map.create_scannables_table(hdf, delimiter, string_spec, format_spec, default_decimals)
 
     def get_plot_data(self, x_axis: str | None = None, y_axis: str | None = None) -> dict:
-        if x_axis is None or y_axis is None:
+        """Return dict of plottable data"""
+        # TODO: improve docs
+        # TODO: add multiple y_axis, z_axis, see scan_plot_manager
+        x_defaults = [None, 'axes', 'axes0']
+        y_defaults = [None, 'signal', 'signal0']
+        if x_axis in x_defaults or y_axis in y_defaults:
             axes_names, signal_names = self.map.nexus_default_names()
-            x_axis = x_axis or next(iter(axes_names))
-            y_axis = y_axis or next(iter(signal_names))
+            x_axis = next(iter(axes_names)) if x_axis in x_defaults else x_axis
+            y_axis = next(iter(signal_names)) if y_axis in y_defaults else y_axis
 
         with self.load_hdf() as hdf:
             data = self.map.get_plot_data(hdf)

@@ -71,6 +71,7 @@ class ScanPlotManager:
             yaxis = [yaxis]
 
         for _yaxis in yaxis:
+            # TODO: only call get_plot_data once
             data = self.scan.get_plot_data(xaxis, _yaxis)
             plot_line(axes, data['x'], data['y'], None, *args, label=_yaxis, **kwargs)
 
