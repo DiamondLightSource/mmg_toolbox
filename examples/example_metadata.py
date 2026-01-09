@@ -27,10 +27,12 @@ print(scan)
 # access metadata or scan data by accessing the scan namespace
 cmd = scan('scan_command')
 # or create formatted strings
-energy_str = scan('Energy = {incident_energy:.2f} {incident_energy@units?("keV")}')
+energy_str = scan.format('Energy = {incident_energy:.2f} {incident_energy@units?("keV")}')
 # note that '@' is used to access dataset attributes and ?() is used to handle missing fields
 print(energy_str)
 
 # The map of metadata names associated with the scan can be found in scan.map
 metadata_names = list(scan.map.metadata.keys())
+
+
 

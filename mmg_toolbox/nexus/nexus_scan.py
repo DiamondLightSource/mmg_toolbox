@@ -149,7 +149,12 @@ class NexusScan(NexusLoader):
         with self.load_hdf() as hdf:
             return self.map.create_scannables_table(hdf, delimiter, string_spec, format_spec, default_decimals)
 
-    def get_plot_data(self, x_axis: str = 'axes0', y_axis: str = 'signal0') -> dict:
+    def get_plot_data(self, x_axis: str | None = None, y_axis: str | None = None) -> dict:
+        if x_axis is None or y_axis is None:
+            axes_names, signal_names = self.map.nexus_default_names()
+            x_axis = x_axis or next(iter(axes_names))
+            y_axis = y_axis or next(iter(signal_names))
+
         with self.load_hdf() as hdf:
             data = self.map.get_plot_data(hdf)
             cmd = self.map.eval(hdf, Md.cmd)
