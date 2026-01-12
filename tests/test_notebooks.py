@@ -15,6 +15,32 @@ NB_PATHS = {
 
 
 @only_dls_file_system
+def test_nexus_processor():
+    import papermill as pm
+    import nbformat
+
+    dat_file = '/dls/science/groups/das/ExampleData/hdfmap_tests/i10/spool/i10-618365.dat'
+    if os.path.isfile(dat_file):
+        os.remove(dat_file)
+
+    pm.execute_notebook(
+        NB_PATHS['nexus_processor.ipynb'],
+        'output.ipynb',
+        parameters={
+            'inpath': FILES_DICT['i10 scan'],
+            'outpath': 'output.nxs',
+        }
+    )
+
+    nb = nbformat.read('output.ipynb', as_version=4)
+    assert nb.metadata.papermill.exception is None
+    assert os.path.isfile(dat_file)
+
+    os.remove('output.ipynb')
+    os.remove(dat_file)
+
+
+@only_dls_file_system
 def test_autoprocess_xas_notebook():
     import papermill as pm
     pm.execute_notebook(

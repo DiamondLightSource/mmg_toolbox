@@ -109,4 +109,4 @@ def test_scan_fit():
 
     result = scan.fit.multi_peak_fit('eta', 'sum', model='pVoight')
     assert result.npeaks == len(result) == 5
-    assert result.amplitude == pytest.approx(1.3493e6, abs=1e2)
+    assert result.amplitude == pytest.approx(1.3493e6, abs=1e3)

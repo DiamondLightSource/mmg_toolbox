@@ -12,6 +12,31 @@ from .models import PEAK_PARS
 
 __all__ = ['peak_results', 'peak_results_str', 'peak_results_fit', 'peak_results_plot', 'Peak', 'FitResults']
 
+class R:
+    lmfit = 'lmfit'
+    npeaks = 'npeaks'
+    peak_prefixes = 'peak_prefixes'
+    peak_models = 'peak_models'
+    chisqr = 'chisqr'
+    xdata = 'xdata'
+    ydata = 'ydata'
+    weights = 'weights'
+    yerror = 'yerror'
+    yfit = 'yfit'
+    amplitude = 'amplitude'
+    center = 'center'
+    fwhm = 'fwhm'
+    height = 'height'
+    sigma = 'sigma'
+    background = 'background'
+    stderr_amplitude = 'stderr_amplitude'
+    stderr_center = 'stderr_center'
+    stderr_fwhm = 'stderr_fwhm'
+    stderr_height = 'stderr_height'
+    stderr_sigma = 'stderr_sigma'
+    stderr_background = 'stderr_background'
+
+
 def peak_results(res: ModelResult) -> dict:
     """
     Generate dict of fit results, including summed totals
@@ -47,18 +72,17 @@ def peak_results(res: ModelResult) -> dict:
     npeaks = len(peak_prefx)
     nn = 1 / len(peak_prefx) if len(peak_prefx) > 0 else 1  # normalise by number of peaks
     comps = res.eval_components()
-    # TODO: standardise these keys
     fit_dict = {
-        'lmfit': res,
-        'npeaks': npeaks,
-        'peak_prefixes': peak_prefx,
-        'peak_models': peak_models,
-        'chisqr': res.chisqr,
-        'xdata': res.userkws['x'],
-        'ydata': res.data,
-        'weights': res.weights,
-        'yerror': 1 / res.weights if res.weights is not None else 0 * res.data,
-        'yfit': res.best_fit,
+        R.lmfit: res,
+        R.npeaks: npeaks,
+        R.peak_prefixes: peak_prefx,
+        R.peak_models: peak_models,
+        R.chisqr: res.chisqr,
+        R.xdata: res.userkws['x'],
+        R.ydata: res.data,
+        R.weights: res.weights,
+        R.yerror: 1 / res.weights if res.weights is not None else 0 * res.data,
+        R.yfit: res.best_fit,
     }
     for comp_prefx, comp in comps.items():
         fit_dict['%sfit' % comp_prefx] = comp
@@ -67,18 +91,18 @@ def peak_results(res: ModelResult) -> dict:
         fit_dict[pname] = param.value
         fit_dict[ename] = param.stderr or 0
     totals = {
-        'amplitude': np.sum([res.params['%samplitude' % pfx].value for pfx in peak_prefx]),
-        'center': np.mean([res.params['%scenter' % pfx].value for pfx in peak_prefx]),
-        'sigma': np.mean([res.params['%ssigma' % pfx].value for pfx in peak_prefx]),
-        'height': np.mean([res.params['%sheight' % pfx].value for pfx in peak_prefx]),
-        'fwhm': np.mean([res.params['%sfwhm' % pfx].value for pfx in peak_prefx]),
-        'background': np.mean(comps['bkg_']) if 'bkg_' in comps else 0.0,
-        'stderr_amplitude': np.sqrt(np.sum([fit_dict['stderr_%samplitude' % pfx] ** 2 for pfx in peak_prefx])),
-        'stderr_center': np.sqrt(np.sum([fit_dict['stderr_%scenter' % pfx] ** 2 for pfx in peak_prefx])) * nn,
-        'stderr_sigma': np.sqrt(np.sum([fit_dict['stderr_%ssigma' % pfx] ** 2 for pfx in peak_prefx])) * nn,
-        'stderr_height': np.sqrt(np.sum([fit_dict['stderr_%sheight' % pfx] ** 2 for pfx in peak_prefx])) * nn,
-        'stderr_fwhm': np.sqrt(np.sum([fit_dict['stderr_%sfwhm' % pfx] ** 2 for pfx in peak_prefx])) * nn,
-        'stderr_background': np.std(comps['bkg_']) if 'bkg_' in comps else 0.0,
+        R.amplitude: np.sum([res.params['%samplitude' % pfx].value for pfx in peak_prefx]),
+        R.center: np.mean([res.params['%scenter' % pfx].value for pfx in peak_prefx]),
+        R.sigma: np.mean([res.params['%ssigma' % pfx].value for pfx in peak_prefx]),
+        R.height: np.mean([res.params['%sheight' % pfx].value for pfx in peak_prefx]),
+        R.fwhm: np.mean([res.params['%sfwhm' % pfx].value for pfx in peak_prefx]),
+        R.background: np.mean(comps['bkg_']) if 'bkg_' in comps else 0.0,
+        R.stderr_amplitude: np.sqrt(np.sum([fit_dict['stderr_%samplitude' % pfx] ** 2 for pfx in peak_prefx])),
+        R.stderr_center: np.sqrt(np.sum([fit_dict['stderr_%scenter' % pfx] ** 2 for pfx in peak_prefx])) * nn,
+        R.stderr_sigma: np.sqrt(np.sum([fit_dict['stderr_%ssigma' % pfx] ** 2 for pfx in peak_prefx])) * nn,
+        R.stderr_height: np.sqrt(np.sum([fit_dict['stderr_%sheight' % pfx] ** 2 for pfx in peak_prefx])) * nn,
+        R.stderr_fwhm: np.sqrt(np.sum([fit_dict['stderr_%sfwhm' % pfx] ** 2 for pfx in peak_prefx])) * nn,
+        R.stderr_background: np.std(comps['bkg_']) if 'bkg_' in comps else 0.0,
     }
     fit_dict.update(totals)
     return fit_dict
@@ -110,12 +134,12 @@ def peak_results_str(res: ModelResult) -> str:
             out += '%15s = %s\n' % (pn, stfm(fit_dict[pn], fit_dict['stderr_%s' % pn]))
 
     out += '\nTotals\n'
-    out += '      amplitude = %s\n' % stfm(fit_dict['amplitude'], fit_dict['stderr_amplitude'])
-    out += '         center = %s\n' % stfm(fit_dict['center'], fit_dict['stderr_center'])
-    out += '         height = %s\n' % stfm(fit_dict['height'], fit_dict['stderr_height'])
-    out += '          sigma = %s\n' % stfm(fit_dict['sigma'], fit_dict['stderr_sigma'])
-    out += '           fwhm = %s\n' % stfm(fit_dict['fwhm'], fit_dict['stderr_fwhm'])
-    out += '     background = %s\n' % stfm(fit_dict['background'], fit_dict['stderr_background'])
+    out += '      amplitude = %s\n' % stfm(fit_dict[R.amplitude], fit_dict[R.stderr_amplitude])
+    out += '         center = %s\n' % stfm(fit_dict[R.center], fit_dict[R.stderr_center])
+    out += '         height = %s\n' % stfm(fit_dict[R.height], fit_dict[R.stderr_height])
+    out += '          sigma = %s\n' % stfm(fit_dict[R.sigma], fit_dict[R.stderr_sigma])
+    out += '           fwhm = %s\n' % stfm(fit_dict[R.fwhm], fit_dict[R.stderr_fwhm])
+    out += '     background = %s\n' % stfm(fit_dict[R.background], fit_dict[R.stderr_background])
     return out
 
 

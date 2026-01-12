@@ -21,7 +21,7 @@ def test_metadata_import():
 def test_scan_string():
     from mmg_toolbox import Experiment, metadata
 
-    exp = Experiment(r"D:\I16_Data\mm22052-1", instrument='i16')
+    exp = Experiment(DIR + '/i16', instrument='i16')
 
     # print all scans in folder
     m = f"{metadata.scanno}, {metadata.start}, {metadata.cmd}, {metadata.energy}, {metadata.temp}"
@@ -30,11 +30,13 @@ def test_scan_string():
         assert scn > 100
         assert len(cmd) > 10
 
-    scan = exp.scan(776058)
+    scan = exp.scan(1109527)
     s = str(scan)
     assert s.count('\n') > 10
-    assert 'energy = 8 keV' in s
+    assert 'energy = 7 keV' in s
 
     energy_str = scan.format('Energy = {incident_energy:.2f} {incident_energy@units?("keV")}')
-    assert energy_str == 'Energy = 8.00 keV'
-    assert scan.metadata.sy == pytest.approx(-1.6954)
+    assert energy_str == 'Energy = 7.11 keV'
+    assert scan.metadata.sy == pytest.approx(-0.7791)
+    assert scan.metadata['Atten'] == pytest.approx(30)
+    assert scan('Transmission') == pytest.approx(0.005684, abs=1e-6)

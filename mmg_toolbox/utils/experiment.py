@@ -246,7 +246,7 @@ class Experiment:
                   hdf_map: hdfmap.NexusMap | None = None) -> list[str]:
         """Return string description for multiple files"""
         if metadata_str is None:
-            metadata_str = " : {str(start_time):30} : " + self._scan_description
+            metadata_str = " : {str(start_time):30} : " + self.config[C.scan_description]
         filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
         if hdf_map is None:
             hdf_map = hdfmap.create_nexus_map(filenames[0])
@@ -259,7 +259,7 @@ class Experiment:
     def _generate_scans_title(self, *scans: NexusScan, metadata_str: str | None = None) -> str:
         """Generate title from multiple scan files"""
         if metadata_str is None:
-            metadata_str = "\n" + self._scan_description
+            metadata_str = "\n" + self.config[C.scan_description]
         first_scan = scans[0]
         folder = first_scan.filename.split(os.sep)[-2]
         meta = first_scan.format(metadata_str)

@@ -40,6 +40,18 @@ def test_read_nexus_tiff_files():
 
 
 @only_dls_file_system
+def test_read_old_nexus_file():
+    file = DIR + f'/i16/777777.nxs'
+    scan, = read_nexus_files(file)
+    data = scan.get_plot_data()
+    assert 'x' in data and 'y' in data
+    assert data['xlabel'] == 'TimeFromEpoch'
+    assert data['ylabel'] == 'sum'
+    assert data['x'].size == data['y'].size == 81
+    assert len(data['data'].keys()) == 19
+
+
+@only_dls_file_system
 def test_find_scans():
     files = [DIR + f'/i16/cm37262-1/{n}.nxs' for n in range(1032115, 1032135)]
     found_files = find_scans(*files, scan_command='pil3_100k')
