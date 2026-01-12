@@ -39,19 +39,19 @@ pitch = {(em_pitch|hfm_pitch?(0)):.2f}
 
 I16_META_STRING = META_STRING + """
 sample = {sample_name}
-energy = {mean(incident_energy):.0f} eV
+energy = {mean(incident_energy):.0f} keV
 pol = {mean(stokes):.2f} analyser: {analyser_name}({analyser_order}) {pa_detector_name}
 temp = {Tsample?(300):.2f} K
 
 hkl = ({mean(diffractometer_sample_h):.2g},{mean(diffractometer_sample_k):.2g},{mean(diffractometer_sample_l):.2g})
-psi = {mean(diffractometer_sample_psi):.2f} Deg, azir=({diffractometer_sample_azih},{diffractometer_sample_azik},{diffractometer_sample_azil})
+psi = {mean(diffractometer_sample_psi?(nan)):.2f} Deg, azir=({diffractometer_sample_azih?(0)},{diffractometer_sample_azik?(0)},{diffractometer_sample_azil?(0)})
 sx = {mean(sx):6.2f}, sy = {mean(sy):6.2f}, sz = {mean(sz):6.2f} mm
 eta = {mean(diffractometer_sample_eta):6.2f}, chi = {mean(diffractometer_sample_chi):6.2f}, phi = {mean(diffractometer_sample_phi):6.2f}, mu = {mean(diffractometer_sample_mu):6.2f}  Deg
 delta = {mean(diffractometer_sample_delta):6.2f}, gamma = {mean(diffractometer_sample_gam):6.2f}  Deg
 
 Atten = {Atten} ({100 * Transmission: .3g} %)
-ss = [{s5xgap:.3g}, {s5ygap:.3g}]
-ds = [{s7xgap:.3g}, {s7ygap:.3g}]
+ss = [{mean(s5xgap):.3g}, {mean(s5ygap):.3g}]
+ds = [{mean(s7xgap):.3g}, {mean(s7ygap):.3g}]
 """
 
 BEAMLINE_META = {

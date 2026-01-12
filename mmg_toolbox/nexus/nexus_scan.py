@@ -5,6 +5,7 @@ NexusScan - NeXus Scan class, lazy loader of scan files
 NexusDataHolder - Loads scan data and meta data into attributes
 """
 
+import os
 import datetime
 
 import h5py
@@ -16,7 +17,7 @@ from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapMMGMetadata as Md
 from mmg_toolbox.beamline_metadata.config import beamline_config, C
 from mmg_toolbox.nexus.instrument_model import NXInstrumentModel
 from mmg_toolbox.nexus.nexus_functions import get_dataset_value
-from mmg_toolbox.utils.file_functions import get_scan_number
+from mmg_toolbox.utils.file_functions import get_scan_number, read_tiff
 from mmg_toolbox.utils.misc_functions import shorten_string, DataHolder
 from mmg_toolbox.xas import SpectraContainer, load_xas_scans
 
@@ -43,7 +44,7 @@ class NexusScan(NexusLoader):
         # add scan number to eval namespace
         self.map.add_local(scan_number=self.scan_number())
 
-        from mmg_toolbox.utils.fitting import ScanFitManager, poisson_errors
+        from mmg_toolbox.fitting import ScanFitManager, poisson_errors
         self.fit = ScanFitManager(self)
         self._error_function = poisson_errors
         from mmg_toolbox.plotting.scan_plot_manager import ScanPlotManager
@@ -113,17 +114,56 @@ class NexusScan(NexusLoader):
 
     def image(self, index: int | tuple | slice | None = None) -> np.ndarray:
         """Return image or selection from default detector"""
+        if not self.map.image_data:
+            raise ValueError(f'{repr(self)} contains no image data')
         with self.load_hdf() as hdf:
-            return self.map.get_image(hdf, index)
+            image = self.map.get_image(hdf, index)
+
+            if issubclass(type(image), str):
+                # TIFF image, NXdetector/image_data -> array('file.tif')
+                file_directory = os.path.dirname(self.filename)
+                image_filename = os.path.join(file_directory, image)
+                if not os.path.isfile(image_filename):
+                    raise FileNotFoundError(f"File not found: {image_filename}")
+                image = read_tiff(image_filename)
+            elif image.ndim == 0:
+                # image is file path number, NXdetector/path -> arange(n_points)
+                scan_number = get_scan_number(self.filename)
+                file_directory = os.path.dirname(self.filename)
+                detector_names = list(self.map.image_data.keys())
+                for detector_name in detector_names:
+                    image_filename = os.path.join(file_directory, f"{scan_number}-{detector_name}-files/{image:05.0f}.tif")
+                    if os.path.isfile(image_filename):
+                        break
+                if not os.path.isfile(image_filename):
+                    raise FileNotFoundError(f"File not found: {image_filename}")
+                image = read_tiff(image_filename)
+            elif image.ndim != 2:
+                raise Exception(f"detector image[{index}] is the wrong shape: {image.shape}")
+            return image
+
+    def volume(self) -> np.ndarray:
+        """Return complete stack of images"""
+        return self.image(index=())
 
     def table(self, delimiter=', ', string_spec='', format_spec='f', default_decimals=8) -> str:
         """Return data table"""
         with self.load_hdf() as hdf:
             return self.map.create_scannables_table(hdf, delimiter, string_spec, format_spec, default_decimals)
 
-    #TODO: Remove this?
-    def get_plot_data(self, x_axis: str = 'axes0', y_axis: str = 'signal0') -> dict:
+    def get_plot_data(self, x_axis: str | None = None, y_axis: str | None = None) -> dict:
+        """Return dict of plottable data"""
+        # TODO: improve docs
+        # TODO: add multiple y_axis, z_axis, see scan_plot_manager
+        x_defaults = [None, 'axes', 'axes0']
+        y_defaults = [None, 'signal', 'signal0']
+        if x_axis in x_defaults or y_axis in y_defaults:
+            axes_names, signal_names = self.map.nexus_default_names()
+            x_axis = next(iter(axes_names)) if x_axis in x_defaults else x_axis
+            y_axis = next(iter(signal_names)) if y_axis in y_defaults else y_axis
+
         with self.load_hdf() as hdf:
+            data = self.map.get_plot_data(hdf)
             cmd = self.map.eval(hdf, Md.cmd)
             if len(cmd) > self.MAX_STR_LEN:
                 cmd = shorten_string(cmd)
@@ -131,14 +171,21 @@ class NexusScan(NexusLoader):
             ydata = self.map.eval(hdf, y_axis)
             yerror = self._error_function(ydata)
             x_lab, y_lab = self.map.generate_ids(x_axis, y_axis, modify_missing=False)
-            return {
+            additional = {
                 'x': xdata,
                 'y': ydata,
+                'xdata': xdata,
+                'ydata': ydata,
                 'yerror': yerror,
                 'xlabel': x_lab,
                 'ylabel': y_lab,
                 'title': f"#{self.scan_number()}\n{cmd}"
             }
+            if 'grid_xlabel' in data and ydata.ndim == 2:
+                additional['grid_label'] = y_lab
+                additional['grid_data'] = ydata
+            data.update(additional)
+            return data
 
     def xas_scan(self) -> SpectraContainer:
         """Load XAS Spectra"""

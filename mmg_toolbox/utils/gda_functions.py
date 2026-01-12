@@ -24,11 +24,18 @@ def gda_datavis_file_message(filepath: str, connect_to: str | None = None):
         connect_to = CONTROL_NAME.format(beamline=beamline)
 
     conn = stomp.Connection([(connect_to, 61613)], auto_content_length=False)
-    # conn.start()
-    conn.connect()
-    print(f"Connected to {connect_to}")
 
-    message = json.dumps({'filePath': filepath})
-    destination = '/topic/org.dawnsci.file.topic'
-    conn.send(destination, message, ack='auto')
-    print('Message sent!')
+    try:
+        # conn.start()
+        conn.connect()
+        print(f"Connected to {connect_to}")
+
+        message = json.dumps({'filePath': filepath})
+        destination = '/topic/org.dawnsci.file.topic'
+        conn.send(destination, message, ack='auto')
+        print('Message sent!')
+        conn.disconnect()
+    except Exception as err:
+        print(err)
+        print('Message failed to send.')
+

@@ -2,6 +2,7 @@
 mmg_toolbox tests
 Test nexus reader
 """
+import numpy as np
 
 from mmg_toolbox.nexus.nexus_scan import NexusScan, NexusDataHolder
 from mmg_toolbox.nexus.nexus_reader import (read_nexus_file, read_nexus_files, find_scans,
@@ -26,6 +27,28 @@ def test_read_nexus_files():
     files = [DIR + f'/i16/cm37262-1/{n}.nxs' for n in range(1032120, 1032130)]
     scans = read_nexus_files(*files)
     assert isinstance(scans[0], NexusScan)
+
+
+@only_dls_file_system
+def test_read_nexus_tiff_files():
+    file = DIR + f'/i16/777777.nxs'
+    scan, = read_nexus_files(file)
+    assert isinstance(scan, NexusScan)
+    image = scan.image()
+    assert type(image) is np.ndarray
+    assert image.shape == (195, 487)
+
+
+@only_dls_file_system
+def test_read_old_nexus_file():
+    file = DIR + f'/i16/777777.nxs'
+    scan, = read_nexus_files(file)
+    data = scan.get_plot_data()
+    assert 'x' in data and 'y' in data
+    assert data['xlabel'] == 'TimeFromEpoch'
+    assert data['ylabel'] == 'sum'
+    assert data['x'].size == data['y'].size == 81
+    assert len(data['data'].keys()) == 19
 
 
 @only_dls_file_system

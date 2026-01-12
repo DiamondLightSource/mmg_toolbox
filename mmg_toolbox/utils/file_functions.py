@@ -9,7 +9,7 @@ import h5py
 import hdfmap
 import numpy as np
 from hdfmap.eval_functions import dataset2str, dataset2data
-from PIL import Image
+from imageio.v2 import imread
 
 from mmg_toolbox.utils.misc_functions import consolidate_numeric_strings, regex_number
 
@@ -181,7 +181,7 @@ def hdfobj_string(hdf_filename: str, hdf_address: str) -> str:
 
 def read_tiff(image_filename: str) -> np.ndarray:
     """Read a tiff image, returning numpy array"""
-    image = Image.open(image_filename)
+    image = imread(image_filename)
     return np.array(image)
 
 

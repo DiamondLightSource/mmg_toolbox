@@ -175,8 +175,8 @@ def stfm(value: float, error: float) -> str:
     rval = round(value / (10. ** sigfig)) * (10. ** sigfig)
     rerr = round(error / (10. ** sigfig)) * (10. ** sigfig)
     # size of value and error
-    pw = np.floor(np.log10(np.abs(rval)))
-    pwr = np.floor(np.log10(np.abs(rerr)))
+    pw = np.floor(np.log10(np.abs(rval if abs(rval) > 0 else 0.0001)))
+    pwr = np.floor(np.log10(np.abs(rerr if abs(rerr) > 0 else 0.00001)))
 
     max_pw = max(pw, pwr)
     ln = max_pw - sigfig  # power difference
@@ -201,13 +201,31 @@ def stfm(value: float, error: float) -> str:
     return fmt.format(rval, rerr)
 
 
-def shorten_string(string: str, max_length: int = 100) -> str:
-    """Return a shortend version of the first line of the string"""
-    string = string.splitlines().strip()
+def shorten_string(string: str, max_length: int = 100, end_letters: int = 10) -> str:
+    """
+    Return a shortened version of the first line of the string
+
+    e.g.
+        s = '\n scan eta 74.89533603616637 76.49533603616636 0.02 pol hkl checkbeam msmapper euler pil3_100k 1 roi2'
+        shorten_string(s) ->
+        'scan eta 74.895 76.495 0.02 pil3_100k 1 roi2'
+
+    Only the first non-empty line is returned.
+
+    if after reducing floating point numbers the length of the string exceeds the maximum,
+    the string is curtailed skipping upto the last end_letters of the first line of the string.
+
+    :param string: string, e.g. '#810002 scan eta 74.895'
+    :param max_length: maximum length of string
+    :param end_letters: number of characters at the end of string
+    :return: shortened string
+    """
+    string = next(ss for s in string.splitlines() if (ss := s.strip()))
     string = round_string_floats(string)
     if len(string) < max_length:
-        return string 
-    return string[:max_length-3] + '...'
+        return string
+    end_string = string[-end_letters:] if end_letters > 0 else ''
+    return string[:max_length - end_letters - 5] + ' ... ' + end_string
 
 
 class DataHolder(dict):
