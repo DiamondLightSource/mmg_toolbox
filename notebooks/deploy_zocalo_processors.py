@@ -7,7 +7,7 @@ Deploy .ipynb notebooks for the gda-zocalo-connector
 import nbformat
 
 from tests.test_notebooks import (test_autoprocess_xas_notebook, test_autoprocess_xmcd_processor,
-                                  test_msmapper_processor)
+                                  test_msmapper_processor, test_nexus_processor)
 
 GDA_ZOCALO_PROCESSORS_DIR = '/dls_sw/i06/scripts/gda-zocalo/notebooks/'
 I16_PROCESSOR_DIR = '/dls_sw/i16/scripts/AutoProc'
@@ -31,6 +31,10 @@ def clean_notebook(nb_name):
 
 
 if __name__ == "__main__":
+    print('Testing nexus_processor.ipynb')
+    test_nexus_processor()
+    clean_notebook('nexus_processor.ipynb')
+
     print('Testing xas_notebook.ipynb')
     test_autoprocess_xas_notebook()
     clean_notebook('xas_notebook.ipynb')

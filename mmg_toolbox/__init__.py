@@ -5,12 +5,14 @@ Magnetic Materials Group Toolbox
 import sys
 from mmg_toolbox.utils.file_reader import data_file_reader
 from mmg_toolbox.utils.experiment import Experiment
+from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 
-__version__ = '0.4.5'
-__date__ = '19/12/2025'
+__version__ = '0.5.0'
+__date__ = '08/01/2026'
 __author__ = 'Dan Porter'
 
-__all__ = ['start_gui', 'version_info', 'title', 'module_info', 'data_file_reader', 'Experiment']
+__all__ = ['start_gui', 'version_info', 'title', 'module_info',
+           'data_file_reader', 'Experiment', 'metadata', 'xas_metadata', 'nexus_metadata']
 
 
 def start_gui(*args: str):

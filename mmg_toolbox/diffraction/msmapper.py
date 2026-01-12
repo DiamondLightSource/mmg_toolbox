@@ -6,7 +6,7 @@ import h5py
 
 from mmg_toolbox import version_info
 from mmg_toolbox.nexus import nexus_writer as nw
-from mmg_toolbox.utils.fitting import FitResults
+from mmg_toolbox.fitting import FitResults
 
 
 MSMAPPER_VERSION = '1.9'

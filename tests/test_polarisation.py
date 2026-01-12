@@ -8,7 +8,7 @@ import hdfmap
 
 from mmg_toolbox.utils import polarisation as pol
 from . import only_dls_file_system
-from .example_files import FILES
+from .example_files import FILES_DICT
 
 
 def test_polarisation():
@@ -24,7 +24,7 @@ def test_polarisation():
 
 @only_dls_file_system
 def test_read_polarisation():
-    filename, description = FILES[4]
+    filename = FILES_DICT['i16 pilatus eta scan, new nexus format']
     with hdfmap.load_hdf(filename) as hdf:
         polarisation = pol.get_polarisation(hdf)
 

@@ -7,6 +7,9 @@ class HdfMapNexus:
     instrument = 'NXinstrument_name?("beamline")'
     sample = 'NXsample_name?("none")'
     date = 'NXentry_start_time'
+    start = 'NXentry_start_time'
+    stop = 'NXentry_end_time'
+    scanno = 'NXentry_entry_identifier?(0)'
 
 
 class HdfMapMMGMetadata(HdfMapNexus):
@@ -19,7 +22,7 @@ class HdfMapMMGMetadata(HdfMapNexus):
     field_x = 'field_x?(0)'
     field_y = 'field_y?(0)'
     field_z = '(magnet_field|ips_demand_field|field_z?(0))'
-    energy = '(fastEnergy|pgm_energy|energye|energyh|energy)'
+    energy = '(fastEnergy|pgm_energy|energye|energyh|incident_energy|energy)'
     pol = 'polarisation?("lh")'
 
 

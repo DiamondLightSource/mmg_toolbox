@@ -12,8 +12,8 @@ import numpy as np
 from mmg_toolbox import Experiment
 from mmg_toolbox.plotting.matplotlib import generate_subplots, set_span_bounds
 from mmg_toolbox.utils.env_functions import get_processing_directory
-from mmg_toolbox.utils.fitting import (multipeakfit, FitResults, PEAK_MODELS, BACKGROUND_MODELS,
-                                       Model, find_peaks, find_peaks_str)
+from mmg_toolbox.fitting import multipeakfit, FitResults, find_peaks, find_peaks_str
+from mmg_toolbox.fitting.models import PEAK_MODELS, BACKGROUND_MODELS
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
 from ..misc.functions import show_error
@@ -41,7 +41,6 @@ class ScanFitModel:
         self.mask: np.ndarray | None = None
         self.title = title
         self.label = label
-        self.model: Model | None = None
         self.result: FitResults | None = None
 
     def fit(self) -> FitResults:
