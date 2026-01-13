@@ -40,3 +40,16 @@ def test_scan_string():
     assert scan.metadata.sy == pytest.approx(-0.7791)
     assert scan.metadata['Atten'] == pytest.approx(30)
     assert scan('Transmission') == pytest.approx(0.005684, abs=1e-6)
+
+
+@only_dls_file_system
+def test_scan_times():
+    from mmg_toolbox import data_file_reader
+    import datetime
+
+    scan = data_file_reader(DIR + '/i10/i10-921636.nxs')
+    start_time, end_time = scan.times('start_time', 'end_time')
+    assert isinstance(start_time, datetime.datetime)
+    assert isinstance(end_time, datetime.datetime)
+
+

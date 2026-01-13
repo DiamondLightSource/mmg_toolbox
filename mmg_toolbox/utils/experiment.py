@@ -17,7 +17,19 @@ from ..xas import load_xas_scans, SpectraContainer
 class Experiment:
     """
     Experiment class
-    Monitors data folders for scans
+    Monitors data folders for scan files and provies a
+    convenient way to load scan data using only a scan number.
+
+    E.G.
+        from mmg_toolbox import Experiment
+        exp = Experiment('path/to/folder1', 'path/to/folder2', instrument='i06')
+        print(scan)
+        scan = exp.scan(-1)  # latest scan
+        scan_list = exp.scans(*range(12345, 12355))
+        data = exp.join_scan_data(*range(-100, 0), data_fields=['cmd', 'Ta'])  # returns dict of arrays
+
+    :param folder_paths: file directories containing .nxs files
+    :param instrument: instrument name for configuration.
     """
 
     def __init__(self, *folder_paths: str, instrument: str | None = None):
@@ -25,7 +37,7 @@ class Experiment:
         self.scan_list = {}
         self._scan_list_update = None
         self.instrument = instrument or get_beamline_from_directory(folder_paths[0], None)
-        self.config = beamline_config(instrument)
+        self.config = beamline_config(self.instrument)
         from ..plotting.exp_plot_manager import ExperimentPlotManager
         self.plot = ExperimentPlotManager(self)
 
@@ -88,6 +100,10 @@ class Experiment:
         self._update_scan_list()
         return list(self.scan_list.keys())
 
+    def all_scan_files(self) -> list[str]:
+        self._update_scan_list()
+        return list(self.scan_list.values())
+
     def get_scan_filename(self, scan_file: int | str = -1) -> str:
         """Return the full filename of a scan number"""
         if isinstance(scan_file, int):
@@ -106,7 +122,7 @@ class Experiment:
         return NexusDataHolder(self.get_scan_filename(scan_file), config=self.config)
 
     def scans(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None) -> list[NexusScan]:
-        """Read Nexus files as NexusScan"""
+        """Read Nexus files as lazy NexusScan. All files use the same HdfMap, based on the first scan"""
         filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
         if not filenames:
             filenames = list(self.all_scans().values())

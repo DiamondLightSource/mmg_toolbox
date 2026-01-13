@@ -18,6 +18,7 @@ FILES = [
     (DIR + 'i10/i10-608314.nxs', 'i10 pimte scan'),
     (DIR + 'i10/i10-618365.nxs', 'i10 scan'),
     (DIR + 'i10/i10-854741.nxs', 'i10 pimte scan, single point with TIFF'),
+    (DIR + 'i10/i10-921636.nxs', 'i10 pimte new scan'),
     (DIR + 'i10/i10-1-207.nxs', 'i10-1 scan'),
     (DIR + 'i10/i10-1-10.nxs', 'i10-1 XASscan example'),
     (DIR + 'i10/i10-1-26851.nxs', 'i10-1 XASscan example'),
