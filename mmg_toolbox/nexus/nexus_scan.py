@@ -105,7 +105,14 @@ class NexusScan(NexusLoader):
     def times(self, *args) -> list[datetime.datetime]:
         """Return datetime object"""
         with self.load_hdf() as hdf:
-            return [dataset2data(hdf[self.map.combined[name]]) for name in args]
+            data = [dataset2data(hdf[self.map.combined[name]]) for name in args]
+            dt = [
+                obj if isinstance(obj, datetime.datetime)
+                else datetime.datetime.fromisoformat(obj) if isinstance(obj, str)
+                else datetime.datetime.fromtimestamp(float(obj))
+                for obj in data
+            ]
+        return dt
 
     def strings(self, *args, units=False) -> list[str]:
         """Return string value"""
