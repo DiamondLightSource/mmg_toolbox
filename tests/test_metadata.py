@@ -42,6 +42,7 @@ def test_scan_string():
     assert scan('Transmission') == pytest.approx(0.005684, abs=1e-6)
 
 
+@only_dls_file_system
 def test_scan_times():
     from mmg_toolbox import data_file_reader
     import datetime
