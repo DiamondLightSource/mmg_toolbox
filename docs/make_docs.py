@@ -50,7 +50,7 @@ def create_md_files(root_dir: str, docs_dir, yaml_file='mkdocs.yml'):
                 if group:
                     md_group_files.append({path: group})
             elif os.path.isfile(full_path) and path.endswith('.py') and not path.startswith('_'):
-                md_filename = f"{docs_dir}/{rel_path.replace('/', '_')[:-3]}.md"
+                md_filename = f"{docs_dir}/{rel_path.replace(os.path.sep, '_')[:-3]}.md"
                 md_group_files.append(os.path.relpath(md_filename, docs_dir + '/..'))
                 write_markdown(md_filename, full_path, root_dir)
         return md_group_files
