@@ -29,11 +29,10 @@ jobs:
       - name: Build Docs
         run: mkdocs build
 
-      - name: Upload Docs Artifact
-        uses: actions/upload-artifact@v4.3.6
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: docs
-          path: site
+          path: docs
 
   publish_pages:
     if: github.ref == 'refs/heads/main'
@@ -47,23 +46,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Setup Pages
-        uses: actions/configure-pages@v5.0.0
-
-      - name: Download Docs Artifact
-        uses: actions/download-artifact@v4.1.8
-        with:
-          name: docs
-          path: docs
-
-      - name: Fix File Permissions for Pages
-        run: chmod -R +rX docs
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
-
       - name: Publish Docs to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
