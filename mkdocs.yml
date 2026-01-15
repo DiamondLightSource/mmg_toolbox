@@ -3,8 +3,7 @@ repo_name: mmg_toolbox
 repo_url: https://github.com/DiamondLightSource/mmg_toolbox
 plugins:
 - search
-- techdocs-diamond:
-      use_material_search: true
+- techdocs-diamond
 - mkdocstrings:
     handlers:
       python:
