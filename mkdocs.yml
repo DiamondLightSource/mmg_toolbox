@@ -2,11 +2,12 @@ site_name: MMG_Toolbox
 repo_name: mmg_toolbox
 repo_url: https://github.com/DiamondLightSource/mmg_toolbox
 plugins:
-- techdocs-diamond
+- search
+- techdocs-diamond:
+      use_material_search: true
 - mkdocstrings:
     handlers:
       python:
-#          paths: [.]
         options:
           docstring_style: sphinx
 nav:
@@ -19,73 +20,104 @@ nav:
   - examples/examples.md
 - Code Description:
   - description/index.md
-  - tkguis:
-    - misc:
-      - description/tkguis_misc_beamline_metadata.md
-      - description/tkguis_misc_config.md
-      - description/tkguis_misc_functions.md
-      - description/tkguis_misc_logging.md
-      - description/tkguis_misc_matplotlib.md
-      - description/tkguis_misc_styles.md
-      - description/tkguis_misc_search.md
-      - description/tkguis_misc_jupyter.md
-    - widgets:
-      - description/tkguis_widgets_python_editor.md
-      - description/tkguis_widgets_folder_treeview.md
-      - description/tkguis_widgets_log_viewer.md
-      - description/tkguis_widgets_image_slider.md
-      - description/tkguis_widgets_nexus_details.md
-      - description/tkguis_widgets_nexus_image.md
-      - description/tkguis_widgets_nexus_plot.md
-      - description/tkguis_widgets_simple_plot.md
-      - description/tkguis_widgets_nexus_treeview.md
-      - description/tkguis_widgets_nexus_data_viewer.md
-      - description/tkguis_widgets_scan_range_selector.md
-      - description/tkguis_widgets_scan_selector.md
-      - description/tkguis_widgets_script_runner.md
-      - description/tkguis_widgets_title_window.md
-      - description/tkguis_widgets_size_tester.md
-      - description/tkguis_widgets_roi_editor.md
-    - description/tkguis_experiment_management.md
-    - description/tkguis_cli.md
-    - apps:
-      - description/tkguis_apps_config_editor.md
-      - description/tkguis_apps_data_viewer.md
-      - description/tkguis_apps_edit_text.md
-      - description/tkguis_apps_experiment.md
-      - description/tkguis_apps_file_browser.md
-      - description/tkguis_apps_log_viewer.md
-      - description/tkguis_apps_nexus.md
-      - description/tkguis_apps_python_editor.md
-      - description/tkguis_apps_scans.md
-      - description/tkguis_apps_script_runner.md
   - beamline_metadata:
-    - description/beamline_metadata_hdfmap_generic.md
-  - nexus:
-    - description/nexus_nexus_functions.md
-    - description/nexus_nexus_names.md
-    - description/nexus_nexus_object.md
-    - description/nexus_nexus_reader.md
-    - description/nexus_nexus_transformations.md
-    - description/nexus_nexus_writer.md
-  - utils:
-    - description/utils_dat_file_reader.md
-    - description/utils_env_functions.md
-    - description/utils_file_functions.md
-    - description/utils_file_reader.md
-    - description/utils_fitting.md
-    - description/utils_misc_functions.md
-    - description/utils_nb_runner.md
-    - description/utils_polarisation.md
-    - description/utils_rotations.md
-    - description/utils_xray_utils.md
-  - xas:
-    - description/xas_nxxas_loader.md
-    - description/xas_spectra.md
-    - description/xas_spectra_analysis.md
-    - description/xas_spectra_container.md
+    - description\beamline_metadata_config.md
+    - description\beamline_metadata_hdfmap_generic.md
+    - description\beamline_metadata_metadata_strings.md
   - diffraction:
-    - description/diffraction_diffcalc.md
+    - description\diffraction_diffcalc.md
+    - description\diffraction_lattice.md
+    - description\diffraction_msmapper.md
+  - fitting:
+    - description\fitting_fit_functions.md
+    - description\fitting_functions.md
+    - description\fitting_manager.md
+    - description\fitting_models.md
+    - description\fitting_results.md
+  - nexus:
+    - description\nexus_instrument_model.md
+    - description\nexus_nexus_functions.md
+    - description\nexus_nexus_names.md
+    - description\nexus_nexus_reader.md
+    - description\nexus_nexus_scan.md
+    - description\nexus_nexus_transformations.md
+    - description\nexus_nexus_writer.md
+  - plotting:
+    - description\plotting_exp_plot_manager.md
+    - description\plotting_matplotlib.md
+    - description\plotting_scan_plot_manager.md
+  - tkguis:
+    - apps:
+      - description\tkguis_apps_config_editor.md
+      - description\tkguis_apps_data_viewer.md
+      - description\tkguis_apps_edit_text.md
+      - description\tkguis_apps_experiment.md
+      - description\tkguis_apps_file_browser.md
+      - description\tkguis_apps_log_viewer.md
+      - description\tkguis_apps_multi_scan_analysis.md
+      - description\tkguis_apps_namespace_select.md
+      - description\tkguis_apps_nexus.md
+      - description\tkguis_apps_peak_fit_analysis.md
+      - description\tkguis_apps_python_editor.md
+      - description\tkguis_apps_scans.md
+      - description\tkguis_apps_script_runner.md
+      - description\tkguis_apps_visit_viewer.md
+    - description\tkguis_cli.md
+    - description\tkguis_experiment_management.md
+    - misc:
+      - description\tkguis_misc_beamline_metadata.md
+      - description\tkguis_misc_config.md
+      - description\tkguis_misc_functions.md
+      - description\tkguis_misc_jupyter.md
+      - description\tkguis_misc_logging.md
+      - description\tkguis_misc_matplotlib.md
+      - description\tkguis_misc_processing_options.md
+      - description\tkguis_misc_screen_size.md
+      - description\tkguis_misc_search.md
+      - description\tkguis_misc_styles.md
+    - widgets:
+      - description\tkguis_widgets_find_scans.md
+      - description\tkguis_widgets_folder_treeview.md
+      - description\tkguis_widgets_hdf_viewer.md
+      - description\tkguis_widgets_image_slider.md
+      - description\tkguis_widgets_instrument_visits.md
+      - description\tkguis_widgets_log_viewer.md
+      - description\tkguis_widgets_multi_scan_analysis.md
+      - description\tkguis_widgets_nexus_data_viewer.md
+      - description\tkguis_widgets_nexus_details.md
+      - description\tkguis_widgets_nexus_image.md
+      - description\tkguis_widgets_nexus_plot.md
+      - description\tkguis_widgets_nexus_plot_and_image.md
+      - description\tkguis_widgets_nexus_string_views.md
+      - description\tkguis_widgets_nexus_treeview.md
+      - description\tkguis_widgets_peak_fit_analysis.md
+      - description\tkguis_widgets_python_editor.md
+      - description\tkguis_widgets_roi_editor.md
+      - description\tkguis_widgets_scan_range_selector.md
+      - description\tkguis_widgets_scan_selector.md
+      - description\tkguis_widgets_script_runner.md
+      - description\tkguis_widgets_simple_plot.md
+      - description\tkguis_widgets_size_tester.md
+      - description\tkguis_widgets_title_window.md
+      - description\tkguis_widgets_treeview.md
+  - utils:
+    - description\utils_dat_file_reader.md
+    - description\utils_env_functions.md
+    - description\utils_experiment.md
+    - description\utils_file_functions.md
+    - description\utils_file_reader.md
+    - description\utils_gda_functions.md
+    - description\utils_misc_functions.md
+    - description\utils_nb_runner.md
+    - description\utils_polarisation.md
+    - description\utils_rotations.md
+    - description\utils_units.md
+    - description\utils_xray_utils.md
+  - xas:
+    - description\xas_nxxas_loader.md
+    - description\xas_spectra.md
+    - description\xas_spectra_analysis.md
+    - description\xas_spectra_container.md
 markdown_extensions:
 - pymdownx.highlight:
     anchor_linenums: true
