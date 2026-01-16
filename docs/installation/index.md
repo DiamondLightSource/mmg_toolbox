@@ -7,21 +7,25 @@ Currently, the mmg_toolbox module can only be installed manually. PyPi integrati
 
 === "PyPi"
 
-    ### pip installation from local repo
+    ### pip installation
     ```bash
-    git clone https://github.com/DiamondLightSource/mmg_toolbox.git
-    cd mmg_toolbox
-    python -m pip install .
+    pip install mmg_toolbox
     ```
 
 === "GitHub"
 
-    ### pip installation from github channel
+    ### pip installation from latest GitHub repo
     ```bash
     python -m pip install --upgrade git+https://github.com/DiamondLightSource/mmg_toolbox.git
     ```
 
 === "Conda"
+
+    ### Install in your environment
+    ```bash
+    conda activate your_env
+    python -m pip install mmg_toolbox
+    ```
 
     ### Full installation of Python environment using conda miniforge
     See [conda-forge](https://github.com/conda-forge/miniforge)

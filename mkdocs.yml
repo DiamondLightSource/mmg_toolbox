@@ -6,6 +6,7 @@ plugins:
 - techdocs-diamond:
     use_material_search: true
     use_pymdownx_blocks: true
+- search
 - mkdocstrings:
     handlers:
       python:
