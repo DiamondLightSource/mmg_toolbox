@@ -1,4 +1,5 @@
 import os
+import ast
 from ruamel.yaml import YAML
 
 # any paths in IGNORE will not be generated in docs
@@ -59,11 +60,54 @@ def create_md_files(root_dir: str, docs_dir, yaml_file='mkdocs.yml'):
     update_yaml_code_description(yaml_file, *md_files)
 
 
+def create_examples_index_md(examples_dir: str, examples_file: str):
+    """Write a table in the examples markdown file"""
+
+    examples_files = [
+        os.path.join(examples_dir, file)
+        for file in os.listdir(examples_dir)
+        if file.endswith('.py')
+    ]
+
+    def get_doc_string(path: str) -> str:
+        with open(path, 'r', encoding='utf-8') as f:
+            text = f.read()
+        module = ast.parse(text, filename=os.path.basename(path))
+        doc = ast.get_docstring(module)
+        if doc:
+            line = ' '.join([ss for s in doc.splitlines() if s and (ss := s.strip())][:2])
+            return line.replace('mmg_toolbox example ', '')
+        return ''
+
+    names_strings = [
+        (os.path.relpath(path, examples_dir), get_doc_string(path))
+        for path in examples_files
+    ]
+
+    table = "| Filename | Description |\n| --- | --- |\n"
+    for filename, docstring in names_strings:
+        table += f"| {filename} | {docstring} |\n"
+    table += "\n"
+
+    markdown = "# Examples\n\nExample files listed in the examples directory:\n\n"
+    markdown += table
+
+    print(markdown)
+
+    with open(examples_file, 'w', encoding='utf-8') as f:
+        f.write(markdown)
+    print('Overwriting examples markdown file:', examples_file)
+
+
 if __name__ == '__main__':
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mmg_toolbox'))
     docs = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'docs', 'description'))
+    examples_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'examples'))
+    examples_docs = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'docs', 'examples', 'index.md'))
     yaml = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mkdocs.yml'))
     print(root, os.path.isdir(root))
     print(docs, os.path.isdir(docs))
     print(yaml, os.path.isfile(yaml))
     create_md_files(root, docs, yaml)
+    # create examples file
+    create_examples_index_md(examples_dir, examples_docs)
