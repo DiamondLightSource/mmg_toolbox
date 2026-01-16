@@ -60,7 +60,7 @@ def create_md_files(root_dir: str, docs_dir, yaml_file='mkdocs.yml'):
     update_yaml_code_description(yaml_file, *md_files)
 
 
-def create_examples_index_md(examples_dir: str, examples_file: str):
+def create_examples_index_md(examples_dir: str, examples_file: str, examples_site_url: str):
     """Write a table in the examples markdown file"""
 
     examples_files = [
@@ -86,7 +86,7 @@ def create_examples_index_md(examples_dir: str, examples_file: str):
 
     table = "| Filename | Description |\n| --- | --- |\n"
     for filename, docstring in names_strings:
-        table += f"| {filename} | {docstring} |\n"
+        table += f"| [{filename}]({examples_site_url}{filename}) | {docstring} |\n"
     table += "\n"
 
     markdown = "# Examples\n\nExample files listed in the examples directory:\n\n"
@@ -102,12 +102,13 @@ def create_examples_index_md(examples_dir: str, examples_file: str):
 if __name__ == '__main__':
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mmg_toolbox'))
     docs = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'docs', 'description'))
-    examples_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'examples'))
+    examples = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'examples'))
     examples_docs = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'docs', 'examples', 'index.md'))
     yaml = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mkdocs.yml'))
+    examples_url = 'https://github.com/DiamondLightSource/mmg_toolbox/blob/main/examples/'
     print(root, os.path.isdir(root))
     print(docs, os.path.isdir(docs))
     print(yaml, os.path.isfile(yaml))
     create_md_files(root, docs, yaml)
     # create examples file
-    create_examples_index_md(examples_dir, examples_docs)
+    create_examples_index_md(examples, examples_docs, examples_url)
