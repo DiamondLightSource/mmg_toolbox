@@ -1,5 +1,5 @@
 site_name: MMG_Toolbox
-site_url: !ENV SITE_URL
+site_url: https://diamondlightsource.github.io/mmg_toolbox/
 repo_name: mmg_toolbox
 repo_url: https://github.com/DiamondLightSource/mmg_toolbox
 
