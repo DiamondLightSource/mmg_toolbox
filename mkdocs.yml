@@ -3,8 +3,9 @@ site_url: !ENV SITE_URL
 repo_name: mmg_toolbox
 repo_url: https://github.com/DiamondLightSource/mmg_toolbox
 plugins:
-- search
-- techdocs-diamond
+- techdocs-diamond:
+    use_material_search: true
+    use_pymdownx_blocks: true
 - mkdocstrings:
     handlers:
       python:
