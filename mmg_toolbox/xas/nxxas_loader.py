@@ -9,7 +9,7 @@ import datetime
 
 from mmg_toolbox.utils.file_functions import get_scan_number
 from mmg_toolbox.utils.file_reader import read_dat_file
-from mmg_toolbox.utils.polarisation import check_polarisation
+from mmg_toolbox.utils.polarisation import get_polarisation, check_polarisation
 from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
@@ -25,7 +25,8 @@ def is_nxxas(filename: str) -> bool:
 
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
                     filename: str = '', beamline: str = '', scan_no: int = 0, start_date_iso: str = '',
-                    end_date_iso: str = '', cmd: str = '', default_mode: str = 'tey', pol: str = 'pc',
+                    end_date_iso: str = '', cmd: str = '', default_mode: str = 'tey',
+                    pol: str = 'pc', pol_angle: float = 0.0,
                     sample_name: str = '', temp: float = 300, mag_field: float = 0, pitch: float = 0,
                     element_edge: str | None = None) -> SpectraContainer:
     """
@@ -66,6 +67,7 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
         cmd=cmd,
         default_mode=default_mode,
         pol=pol,
+        pol_angle=pol_angle,
         sample_name=sample_name,
         temp=temp,
         mag_field=mag_field,
@@ -228,7 +230,8 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
         start_date_iso = m.eval(hdf, 'str(start_time)')
         end_date_iso = m.eval(hdf, 'str(end_time)')
         cmd = m.eval(hdf, Md.cmd)
-        pol = check_polarisation(m.eval(hdf, Md.pol))
+        pol = get_polarisation(hdf)
+        pol_angle = m.eval(hdf, Md.pol_angle)
         if sample_name is None:
             sample_name = m.eval(hdf, 'sample_name', '')
         temp = m.eval(hdf, Md.temp)
@@ -247,6 +250,7 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
         cmd=cmd,
         default_mode=mode,
         pol=pol,
+        pol_angle=pol_angle,
         sample_name=sample_name,
         temp=temp,
         mag_field=mag_field,
@@ -296,6 +300,8 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
         similar_pols = ['cl', 'cr']
     elif pol in ['nc', 'pc']:
         similar_pols = ['nc', 'pc']
+    elif pol in ['la']:
+        similar_pols = []
     else:
         raise ValueError(f"Unknown polarisation: {pol}")
 

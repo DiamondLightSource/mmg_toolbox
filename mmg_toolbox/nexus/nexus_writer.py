@@ -158,14 +158,14 @@ def add_nxdetector(root: h5py.Group, name: str, data: np.ndarray,
 
 
 def add_nxbeam(root: h5py.Group, name: str, incident_energy_ev: float, polarisation_label: str = 'lh',
-               beam_size_um: tuple[float, float] | None = None) -> h5py.Group:
+               beam_size_um: tuple[float, float] | None = None, arbitrary_polarisation_angle: float = 0.0) -> h5py.Group:
     """Create NXbeam group"""
     beam = add_nxclass(root, name, nn.NX_BEAM)
     # Fields
     add_nxfield(beam, nn.NX_EN, incident_energy_ev, units='eV')
     wl = photon_wavelength(incident_energy_ev / 1000.)
     add_nxfield(beam, nn.NX_WL, wl, units='angstrom')
-    pol_stokes = polarisation_label_to_stokes(polarisation_label)
+    pol_stokes = polarisation_label_to_stokes(polarisation_label, arbitrary_polarisation_angle)
     add_nxfield(beam, nn.NX_STOKES, pol_stokes)
     if beam_size_um is not None:
         add_nxfield(beam, nn.NX_BSIZE, beam_size_um, units='μm')

@@ -12,6 +12,7 @@ from mmg_toolbox.nexus.nexus_names import NX_POLARISATION_FIELDS
 class PolLabels:
     linear_horizontal = 'lh'
     linear_vertical = 'lv'
+    linear_arbitrary = 'la'
     circular_left = 'cl'
     circular_right = 'cr'
     circular_positive = 'pc'  # == circular_right
@@ -35,12 +36,16 @@ def stokes_from_vector(*parameters: float) -> tuple[float, float, float, float]:
         p0, p3 = 1, 0
         phi = np.arctan2(v, h)
         p1, p2 = np.cos(2*phi), np.sin(2*phi)
+    elif len(parameters) == 1:
+        phi = np.deg2rad(parameters[0])
+        p0, p3 = 1, 0
+        p1, p2 = np.cos(2 * phi), np.sin(2 * phi)
     else:
         raise ValueError(f"Stokes parameters wrong length: {parameters}")
     return p0, p1, p2, p3
 
 
-def polarisation_label_from_stokes(*stokes_parameters: float):
+def polarisation_label_from_stokes(*stokes_parameters: float) -> str:
     """Convert Stokes vector to polarisation mode"""
     p0, p1, p2, p3 = stokes_from_vector(*stokes_parameters)
     circular = abs(p3) > 0.1
@@ -48,6 +53,8 @@ def polarisation_label_from_stokes(*stokes_parameters: float):
         return PolLabels.linear_horizontal
     if not circular and p1 < -0.9:
         return PolLabels.linear_vertical
+    if not circular and np.sqrt(p1**2 + p2**2) > 0.9:
+        return PolLabels.linear_arbitrary
     if circular and p3 > 0:
         return PolLabels.circular_right
     if circular and p3 < 0:
@@ -55,7 +62,7 @@ def polarisation_label_from_stokes(*stokes_parameters: float):
     raise ValueError(f"Stokes parameters not recognized: {stokes_parameters}")
 
 
-def polarisation_label_to_stokes(label: str) -> tuple[float, float, float, float]:
+def polarisation_label_to_stokes(label: str, arbitrary_angle: float | None = None) -> tuple[float, float, float, float]:
     """Convert polarisation mode to Stokes vector"""
     label = bytes2str(label).strip().lower()
     match label:
@@ -67,6 +74,10 @@ def polarisation_label_to_stokes(label: str) -> tuple[float, float, float, float
             return 1, 0, 0, 1
         case PolLabels.circular_left:
             return 1, 0, 0, -1
+        case PolLabels.linear_arbitrary:
+            if arbitrary_angle is not None:
+                return stokes_from_vector(arbitrary_angle)
+            raise ValueError("Linear arbitrary polarisation requires arbitrary_angle")
         # assume positive-circular is right-handed
         case PolLabels.circular_positive:
             return 1, 0, 0, 1
@@ -75,9 +86,15 @@ def polarisation_label_to_stokes(label: str) -> tuple[float, float, float, float
     return 1, 0, 0, 0
 
 
-def check_polarisation(label: str) -> str:
+def check_polarisation(label: str | np.ndarray | None, arbitrary_angle: float | None = None) -> str:
     """Return regularised polarisation mode"""
-    return polarisation_label_from_stokes(*polarisation_label_to_stokes(label))
+    if isinstance(label, str):
+        return polarisation_label_from_stokes(*polarisation_label_to_stokes(label, arbitrary_angle))
+    if isinstance(label, np.ndarray):
+        return polarisation_label_from_stokes(*stokes_from_vector(*label))
+    if label is None and arbitrary_angle is not None:
+        return polarisation_label_from_stokes(*stokes_from_vector(arbitrary_angle))
+    raise ValueError(f"Polarisation parameters not recognized: {label}")
 
 
 def get_polarisation(pol: h5py.Dataset | h5py.Group) -> str:
@@ -104,6 +121,8 @@ def get_polarisation(pol: h5py.Dataset | h5py.Group) -> str:
                 return get_polarisation(dataset)
         raise KeyError(f"{pol} contains no polarisation fields")
     if np.issubdtype(pol.dtype, np.number):
+        if pol.size == 1:
+            return polarisation_label_from_stokes(pol[...])
         return polarisation_label_from_stokes(*pol)
     return check_polarisation(pol[()])
 
