@@ -61,4 +61,5 @@ NX_POLARISATION_FIELDS = [
     'incident_polarization_stokes',  # NXbeam
     'incident_polarization',  # NXbeam
     'polarisation',  # DLS specific in NXinsertion_device
+    'linear_arbitrary_angle',  # DLS specific in NXinsertion_device
 ]

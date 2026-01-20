@@ -31,6 +31,7 @@ class Metadata:
     end_date_iso: str = ''
     cmd: str = ''
     pol: str = 'pc'
+    pol_angle: float = 0.0
     sample_name: str = ''
     temp: float = 300
     mag_field: float = 0
@@ -199,7 +200,8 @@ class SpectraContainer:
             name='beam',
             incident_energy_ev=float(np.mean(energy)),
             polarisation_label=self.metadata.pol,
-            beam_size_um=None
+            beam_size_um=None,
+            arbitrary_polarisation_angle=self.metadata.pol_angle,
         )
         return sample
 

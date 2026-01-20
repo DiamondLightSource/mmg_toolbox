@@ -24,6 +24,7 @@ class HdfMapMMGMetadata(HdfMapNexus):
     field_z = '(magnet_field|ips_demand_field|field_z?(0))'
     energy = '(fastEnergy|pgm_energy|energye|energyh|incident_energy|energy)'
     pol = 'polarisation?("lh")'
+    pol_angle = 'linear_arbitrary_angle?(0.0)'
 
 
 class HdfMapXASMetadata(HdfMapMMGMetadata):
