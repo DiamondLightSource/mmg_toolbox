@@ -29,6 +29,7 @@ def test_nexus_processor():
         parameters={
             'inpath': FILES_DICT['i10 scan'],
             'outpath': 'output.nxs',
+            'nxs2dat': True,
         }
     )
 
