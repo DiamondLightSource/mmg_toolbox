@@ -5,7 +5,7 @@ Test utils.misc_functions
 
 import numpy as np
 from mmg_toolbox.utils.misc_functions import (stfm, consolidate_numeric_strings, findranges, numbers2string,
-                                              round_string_floats, shorten_string, data_holder)
+                                              round_string_floats, shorten_string, data_holder, string2numbers)
 
 
 def test_stfm():
@@ -32,6 +32,12 @@ def test_find_ranges():
 def test_numbers2string():
     assert numbers2string([50001, 50002, 50003]) == '5000[1:3]'
     assert numbers2string([51020, 51030, 51040]) == '510[20:10:40]'
+
+
+def test_string2numbers():
+    s = '12,13,12345,20-30, 1:5:2'
+    assert string2numbers(s) == [12, 13, 12345, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 1, 3]
+    assert string2numbers('1000:1005') == [1000, 1001, 1002, 1003, 1004]
 
 
 def test_round_string_floats():
