@@ -206,6 +206,8 @@ class ScanFitManager:
         """
         data = self.scan.get_plot_data(xaxis, yaxis)
         xdata, ydata, errors, xname, yname = (data[k] for k in ('xdata', 'ydata', 'yerror', 'xlabel', 'ylabel'))
+        ydata = ydata.squeeze()
+        errors = errors.squeeze()
 
         # lmfit
         res = multipeakfit(xdata, ydata, errors, npeaks=npeaks, min_peak_power=min_peak_power,

@@ -62,6 +62,11 @@ def set_plot_defaults(rcdefaults=False):
     # plt.rcParams["savefig.directory"] = os.path.dirname(__file__) # Default save directory for figures
 
 
+def new_plot(projection: str | None = None) -> Axes | Axes3D:
+    """Create a new figure with a single axes"""
+    return plt.figure().add_subplot(projection=projection)
+
+
 def generate_subplots(n_plots: int, subplots: tuple[int, int] = (4, 4), ax_size: tuple[float, float] = (5, 3),
                       suptitle: str | None = None) -> list[tuple[plt.Figure, Axes]]:
     """
