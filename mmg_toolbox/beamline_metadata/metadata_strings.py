@@ -20,10 +20,12 @@ endstation: {end_station}
 sample = {sample_name}
 energy = {mean((energyh|incident_energy)):.0f} eV
 pol = {polarisation}
-field = {field_x?(0)**2 + field_y?(0)**2 + field_z?(0)**2:.2f} T
+field x,y,z = ({field_x?(0):.2f}, {field_y?(0):.2f}, {field_z?(0):.2f}) T
+|field| = {sqrt(field_x?(0)**2 + field_y?(0)**2 + field_z?(0)**2):.2f} T
 temp = {(lakeshore336_cryostat|itc3_device_sensor_temp?(300)):.2f} K
-sample y pos = {scm_y?(0):.2f} 
-pitch = {m7_pitch?(0):.2f}
+theta = {s_scm_theta}
+sample y pos = {s_scm_y} 
+pitch = {s_m7_pitch}
 """
 
 I10_1_META_STRING = META_STRING + """
