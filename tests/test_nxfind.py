@@ -24,9 +24,18 @@ def test_nx_find():
         assert dataset.shape == (500, )
         assert dataset.name == '/entry/fesData/fastEnergy'
 
+        dataset = nx_find(hdf, ['beamline', 'NXinstrument'], 'NXdetector', ['signal', 'data'])
+        assert isinstance(dataset, h5py.Dataset)
+        assert dataset.shape == (500,)
+        assert dataset.name == '/entry/xas_entry/instrument/absorbed_beam/data'
+
         datasets = nx_find_all(hdf, 'axes')
         assert isinstance(datasets, list)
         assert len(datasets) == 6
+
+        datasets = nx_find_all(hdf, 'NXinstrument', 'NXslit', ['y_gap', 'x_gap'])
+        assert isinstance(datasets, list)
+        assert len(datasets) == 8
 
         dataset = nx_find(hdf, 'NXentry', 'instrument/s1/x_gap')
         assert isinstance(dataset, h5py.Dataset)

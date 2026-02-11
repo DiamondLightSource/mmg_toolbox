@@ -40,7 +40,7 @@ def reorder_group_items(group: h5py.Group) -> dict[str, h5py.Group | h5py.Datase
     return items
 
 
-def update_args(name: str, obj: h5py.Group, axes: str, signal: str, *args: str) -> list[str]:
+def update_args(name: str, obj: h5py.Group, axes: str, signal: str, *args: str | list[str]) -> list[str]:
     """remove object from search arguments if it matches"""
     # expand match-names with SEARCH_ATTRS
     names = [name] + [bytes2str(obj.attrs.get(attr, '')) for attr in nn.SEARCH_ATTRS]
@@ -53,10 +53,12 @@ def update_args(name: str, obj: h5py.Group, axes: str, signal: str, *args: str) 
     if name == signal:
         names.append(nn.NX_SIGNAL)
     # check if object matches first arg, otherwise drill down or continue
-    return list(args[1:] if args[0] in names else args)
+    alt_args = [args[0]] if isinstance(args[0], (str, bytes)) else args[0]
+    arg = next((True for _a in alt_args if _a in names), False)
+    return list(args[1:] if arg else args)
 
 
-def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Group | None:
+def nx_find(parent: h5py.Group, *field_or_class: str | list[str]) -> h5py.Dataset | h5py.Group | None:
     """
     Return default or first object to match a set of NXclass or field names
 
@@ -64,9 +66,10 @@ def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Gro
         with h5py.File('/path/to/file.h5', 'r') as hdf
             group = nx_find(hdf, 'NXentry', 'NXinstrument', 'NXdetector')  # returns NXdetector group
             dataset = nx_find(hdf, 'NXdata', 'signal')  # returns @signal dataset in @default NXdata
+            dataset = nx_find(hdf, ('NXdata', 'measurement'), 'eta')  # returns dataset 'eta' in either group
             data = dataset[()]
 
-    Accepted field_or_class arguments:
+    Accepted field_or_class arguments (strings):
         - dataset name, e.g. 'data' (returns dataset)
         - group name, e.g. 'entry' (returns group)
         - NX class name, e.g. 'NX_class' (returns NXclass group)
@@ -74,6 +77,7 @@ def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Gro
         - local_name attribute name, e.g. 'eta.eta' (returns dataset)
         - 'axes' or 'signal' in NXdata group (returns dataset)
         - hdf path, e.g. 'group/dataset' (returns dataset)
+        - list of the above accepting first in list ['name1', 'name2'] == name1 or name2
 
     Parameters:
     :param parent: parent group, must be h5py.File or h5py.Group
@@ -81,11 +85,13 @@ def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Gro
     :returns: matching Dataset, Group or None if no match
     """
 
-    #TODO: add tuple option for OR
-    def recursor(group: h5py.Group, *args):
+    def recursor(group: h5py.Group, *args: str | list[str]) -> h5py.Dataset | h5py.Group | None:
         # return object from path, e.g. obj['group/data']
-        if len(args) == 1 and args[0] in group:
-            return group[args[0]]
+        if len(args) == 1:
+            alt_args = [args[0]] if isinstance(args[0], (str, bytes)) else args[0]
+            arg = next((_a for _a in alt_args if _a in group), None)
+            if arg:
+                return group[arg]
         # Get group axes & signal datasets
         axes = bytes2str(group.attrs.get(nn.NX_AXES, ''))
         signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
@@ -103,14 +109,15 @@ def nx_find(parent: h5py.Group, *field_or_class: str) -> h5py.Dataset | h5py.Gro
     return recursor(parent, *field_or_class)
 
 
-def nx_find_all(parent: h5py.Group, *field_or_class: str) -> list[h5py.Dataset | h5py.Group]:
+def nx_find_all(parent: h5py.Group, *field_or_class: str | list[str]) -> list[h5py.Dataset | h5py.Group]:
     """
     Return all objects that match a set of NXclass or field names
 
     Example:
         with h5py.File('/path/to/file.h5', 'r') as hdf
             groups = nx_find_all(hdf, 'NXdetector')  # returns list of NXdetector group
-            datasets = nx_find(hdf, 'NXdata', 'signal')  # returns list of @signal datasets in NXdata groups
+            datasets = nx_find_all(hdf, 'NXdata', 'signal')  # returns list of @signal datasets in NXdata groups
+            datasets = nx_find_all(hdf, ['NXdata', 'measurement'], 'eta')  # returns list datasets from either group
             arrays = [dataset[()] for dataset in datasets]
 
     Accepted field_or_class arguments:
@@ -120,6 +127,7 @@ def nx_find_all(parent: h5py.Group, *field_or_class: str) -> list[h5py.Dataset |
         - NXclass definition, e.g. 'NXmx' (returns NXentry group)
         - local_name attribute name, e.g. 'eta.eta' (returns dataset)
         - 'axes' or 'signal' in NXdata group (returns dataset)
+        - list of strings as above, finding either element
 
     Parameters:
     :param parent: parent group, must be h5py.File or h5py.Group
@@ -127,12 +135,15 @@ def nx_find_all(parent: h5py.Group, *field_or_class: str) -> list[h5py.Dataset |
     :returns: list of matching Datasets or Groups
     """
 
-    def recursor(group: h5py.Group, *args):
+    def recursor(group: h5py.Group, *args: str | list[str]) -> list[h5py.Dataset | h5py.Group]:
         found = []
         # object from path, e.g. obj['group/data']
-        if len(args) == 1 and args[0] in group:
-            found.append(group[args[0]])
-            return found
+        if len(args) == 1:
+            alt_args = [args[0]] if isinstance(args[0], (str, bytes)) else args[0]
+            found_obj = [group[_a] for _a in alt_args if _a in group]
+            if found_obj:
+                found.extend(found_obj)
+                return found
         # Get group axes & signal datasets
         axes = bytes2str(group.attrs.get(nn.NX_AXES, ''))
         signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
@@ -148,7 +159,7 @@ def nx_find_all(parent: h5py.Group, *field_or_class: str) -> list[h5py.Dataset |
     return recursor(parent, *field_or_class)
 
 
-def nx_find_data(parent: h5py.Group, *field_or_class: str, default=None):
+def nx_find_data(parent: h5py.Group, *field_or_class: str | list[str], default=None):
     """Use nx_find to get dataset, return data or default"""
     dataset = nx_find(parent, *field_or_class)
     if isinstance(dataset, h5py.Dataset):
