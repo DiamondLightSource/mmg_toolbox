@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ..nexus.nexus_scan import NexusScan
 from .matplotlib import (
-    set_plot_defaults, plot_line, plot_image,
+    set_plot_defaults, new_plot, plot_line, plot_image, plot_2d_surface,
     FIG_SIZE, FIG_DPI, DEFAULT_CMAP
 )
 
@@ -32,12 +32,13 @@ class ScanPlotManager:
         self.scan = scan
         self.show = plt.show
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> plt.Axes:
         return self.plot(*args, **kwargs)
 
-    def plotline(self, xaxis: str = 'axes', yaxis: str = 'signal', *args, **kwargs):
+    def plotline(self, xaxis: str = 'axes', yaxis: str = 'signal', *args, **kwargs) -> list[plt.Line2D]:
         """
         Plot scanned datasets on matplotlib axes subplot
+
         :param xaxis: str name or address of array to plot on x axis
         :param yaxis: str name or address of array to plot on y axis
         :param args: given directly to plt.plot(..., *args, **kwars)
@@ -49,14 +50,15 @@ class ScanPlotManager:
 
         if 'label' not in kwargs:
             kwargs['label'] = self.scan.label()
-        axes = kwargs.pop('axes') if 'axes' in kwargs else plt.subplot()
+        axes = kwargs.pop('axes') if 'axes' in kwargs else new_plot()
         lines = plot_line(axes, data['x'], data['y'], None, *args, **kwargs)
         return lines
 
     def plot(self, xaxis: str = 'axes', yaxis: str | list[str] = 'signal', *args,
              axes: plt.Axes | None = None, **kwargs) -> plt.Axes:
         """
-        Create matplotlib figure with plot of the scan
+        Create matplotlib figure with 1D lineplot of the scan
+
         :param xaxis: str name or address of array to plot on x axis
         :param yaxis: str name or address of array to plot on y axis, also accepts list of names for multiple lines
         :param args: given directly to plt.plot(..., *args, **kwars)
@@ -64,25 +66,57 @@ class ScanPlotManager:
         :param kwargs: given directly to plt.plot(..., *args, **kwars)
         :return: axes object
         """
-        #TODO: handle 2D grid scans
-        axes = plt.subplot() if axes is None else axes
+        axes = new_plot() if axes is None else axes
 
-        if isinstance(yaxis, str):
-            yaxis = [yaxis]
-
-        for _yaxis in yaxis:
-            # TODO: only call get_plot_data once
-            data = self.scan.get_plot_data(xaxis, _yaxis)
-            plot_line(axes, data['x'], data['y'], None, *args, label=_yaxis, **kwargs)
+        yaxis = [yaxis] if isinstance(yaxis, str) else yaxis
+        data = self.scan.get_plot_data(xaxis, *yaxis)
+        plot_line(axes, data['xdata'], data['ydata'], None, *args, **kwargs)
 
         # Add labels
-        xlab, ylab = self.scan.map.generate_ids(xaxis, yaxis[0], modify_missing=False)
-        axes.set_xlabel(xlab)
-        axes.set_title(self.scan.title())
+        axes.set_xlabel(data['xlabel'])
+        axes.set_title(data['title'])
         if len(yaxis) == 1:
-            axes.set_ylabel(ylab)
+            axes.set_ylabel(data['ylabel'])
         else:
-            axes.legend()
+            axes.legend(data['legend'])
+        return axes
+
+    def map2d(self, xaxis: str = 'axes0', yaxis: str = 'axes1', zaxis: str = 'signal',
+              axes: plt.Axes | None = None, clim: tuple[float, float] | None = None,
+              cmap: str = DEFAULT_CMAP, colorbar: bool = True, **kwargs) -> plt.Axes:
+        """
+        Create matplotlib figure with 2D colormap of the scan, for 2D grid scans
+
+        :param xaxis: str name or address of array to plot on x-axis
+        :param yaxis: str name or address of array to plot on y-axis
+        :param zaxis: str name or address of array to plot on colour axis
+        :param axes: matplotlib axes to plot on (None to create figure)
+        :param clim: [min, max] colormap cut-offs (None for auto)
+        :param cmap: str colormap name (None for auto)
+        :param colorbar: False/ True add colorbar to plot
+        :param axes: matplotlib.axes subplot, or None to create a figure
+        :param kwargs: given directly to plt.pcolormesh(..., *args, **kwars)
+        :return: axes object
+        """
+        if len(self.scan.map.scannables_shape()) != 2:
+            raise ValueError(f"Scan {repr(self.scan)} has shape {self.scan.map.scannables_shape()} inconsistent with map2d")
+        data = self.scan.get_plot_data(xaxis, yaxis, z_axis=zaxis)
+
+        axes = new_plot() if axes is None else axes
+        mesh = plot_2d_surface(
+            axes=axes,
+            xdata=data['grid_xdata'],
+            ydata=data['grid_ydata'],
+            image=data['grid_data'],
+            clim=clim,
+            cmap=cmap,
+            **kwargs
+        )
+        axes.set_xlabel(data['grid_xlabel'])
+        axes.set_ylabel(data['grid_ylabel'])
+        axes.set_title(data['title'])
+        if colorbar:
+            plt.colorbar(mesh, ax=axes, label=data['grid_label'])
         return axes
 
     def image(self, index: int | tuple | slice | None = None, xaxis: str = 'axes',
@@ -100,9 +134,7 @@ class ScanPlotManager:
         :return: axes object
         """
         # x axis data
-        xdata = self.scan.eval(xaxis)
-        xname, = self.scan.map.generate_ids(xaxis, modify_missing=False)
-        xdata = np.reshape(xdata, -1)  # handle multi-dimension data
+        xdata, xname = self.scan.get_plot_axis(xaxis, reduce_shape=True, flatten=True)
 
         # image data
         im = self.scan.image(index)
@@ -114,7 +146,7 @@ class ScanPlotManager:
             xvalue = xdata[index]
 
         # plot
-        axes = plt.subplot() if axes is None else axes
+        axes = new_plot() if axes is None else axes
         plot_image(axes, im, clim=clim, cmap=cmap, **kwargs)
         if not self.scan.map.image_data:
             axes.text(0.5, 0.5, 'No Detector Image', c='w',

@@ -359,7 +359,7 @@ class NXInstrumentModel:
         axes.set_xlabel(r'Qx [$\AA^{-1}$]', labelpad=20)
         axes.set_ylabel(r'Qz [$\AA^{-1}$]', labelpad=20)
         axes.set_zlabel(r'Qy [$\AA^{-1}$]', labelpad=20)
-        axes.set_title(f"Wavevectors\nHKL: {hkl}")
+        axes.set_title(f"Wavevectors\nHKL: {np.array_str(hkl, precision=2, suppress_small=True)}")
         axes.set_aspect('equal')
 
     def plot_hkl(self, axes: Axes3D):

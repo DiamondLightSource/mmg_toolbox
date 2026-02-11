@@ -7,8 +7,8 @@ from mmg_toolbox.utils.file_reader import data_file_reader
 from mmg_toolbox.utils.experiment import Experiment
 from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 
-__version__ = '0.5.1'
-__date__ = '20/01/2026'
+__version__ = '0.5.2'
+__date__ = '11/02/2026'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info',

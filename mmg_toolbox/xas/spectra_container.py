@@ -349,6 +349,7 @@ def average_polarised_scans(*scans: SpectraContainer) -> list[SpectraContainer]:
     # rename containers
     for pol, scan in average_scans.items():
         scan.name = pol
+        scan.parents = pol_scans[pol]
         for spectra in scan.spectra.values():
             spectra.process_label += f"_{pol}"
     return list(average_scans.values())

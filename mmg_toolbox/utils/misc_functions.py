@@ -123,6 +123,32 @@ def numbers2string(scannos: list[int], sep=':') -> str:
     return '{}[{}]'.format(inistr, liststr)
 
 
+def string2numbers(string: str) -> list[int]:
+    """
+    Generate a list of numbers from a simple string
+
+    e.g.
+      string2numbers('1,2,3,4, 5-10, 12:20:2')
+      >> [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18]
+
+    :param string: str input separated by commas
+    :returns: list of integers
+    """
+    string = str(string).strip('[()]')
+    values = string.split(',')
+    numbers = []
+    for value in values:
+        if value.isdigit():
+            numbers.append(int(value))
+        elif '-' in value:
+            st, nd = value.split('-')
+            numbers.extend(range(int(st), int(nd) + 1))
+        elif ':' in value:
+            range_values = [int(n) for n in value.split(':')]
+            numbers.extend(range(*range_values))
+    return numbers
+
+
 def round_string_floats(string: str) -> str:
     """
     Shorten string by removing long floats

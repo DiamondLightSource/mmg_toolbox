@@ -19,6 +19,7 @@ papermill notebook.ipynb output.ipynb -p inpath 12345.nxs -p outpath output.nxs
 | xas_notebook.ipynb                   | analyse NXxas scan, subtract background and create output file               |
 | xmcd_processor.ipynb                 | analyse dummy scan for scan numbers, subtract polarisations for XMCD or XMLD |
 | msmapper_processor.ipynb             | Look for msmapper result and plot the hkl volume                             |
+| msmapper_processor_pyvista.ipynb     | Look for msmapper result and create volumetric plot using pyvista            |
 | i21_Image_Processing.ipynb           | I21 image processing pipeline                                                |
 | nexus_processor.ipynb                | Default processor, displays data, generates .dat file                        |
 | detector_calibration_processor.ipynb | I16 detector calibration for msmapper                                        |
