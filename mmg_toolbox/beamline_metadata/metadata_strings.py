@@ -8,7 +8,7 @@ META_STRING = """
 {filename}
 {filepath}
 {start_time}
-cmd = {(cmd|user_command|scan_command)}
+cmd = {(cmd|user_input_command|user_command|scan_command)}
 axes = {_axes}
 signal = {_signal}
 detector = {_IMAGE.split('/')[-2] if '/' in _IMAGE else 'none'}

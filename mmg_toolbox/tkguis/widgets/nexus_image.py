@@ -32,6 +32,8 @@ class NexusDetectorImage:
         self.view_index = tk.IntVar(root, 0)
         self.axis_name = tk.StringVar(root, 'axis = ')
         self.axis_value = tk.DoubleVar(root, 0)
+        self.flip_y = tk.BooleanVar(root, self.config.get(C.image_flip_y, True))
+        self.flip_x = tk.BooleanVar(root, self.config.get(C.image_flip_x, False))
         self.logplot = tk.BooleanVar(root, False)
         self.difplot = tk.BooleanVar(root, False)
         self.mask = tk.DoubleVar(root, 0)
@@ -125,6 +127,10 @@ class NexusDetectorImage:
         frm = ttk.LabelFrame(window, text='Options', relief=tk.RIDGE)
         frm.pack(expand=tk.NO, pady=2, padx=5)
 
+        var = ttk.Checkbutton(frm, text='Flip-y', variable=self.flip_y, command=self.update_image)
+        var.pack(side=tk.LEFT, padx=6)
+        var = ttk.Checkbutton(frm, text='Flip-x', variable=self.flip_x, command=self.update_image)
+        var.pack(side=tk.LEFT, padx=6)
         var = ttk.Checkbutton(frm, text='Log', variable=self.logplot, command=self.update_image)
         var.pack(side=tk.LEFT, padx=6)
         var = ttk.Checkbutton(frm, text='Diff', variable=self.difplot, command=self.update_image)
@@ -260,6 +266,18 @@ class NexusDetectorImage:
             self._show_image_error(f'Error loading image: {e}')
             image = np.zeros([10, 10])
             value = np.nan
+
+        # Options
+        if self.flip_y.get():
+            image = np.flipud(image)
+        if self.flip_x.get():
+            image = np.fliplr(image)
+        if self.logplot.get():
+            image = np.log10(image)
+        if self.difplot.get():
+            raise Warning('Not implemented yet')
+        if self.mask.get():
+            raise Warning('Not implemented yet')
         return image, value
 
     def update_image_plot(self, event=None):
@@ -268,14 +286,6 @@ class NexusDetectorImage:
         if self.filename is None:
             return
         image, value = self._get_image()
-
-        # Options
-        if self.logplot.get():
-            image = np.log10(image)
-        if self.difplot.get():
-            raise Warning('Not implemented yet')
-        if self.mask.get():
-            raise Warning('Not implemented yet')
 
         cmap = self.colormap.get()
         cmin, cmax = self._get_clim()
@@ -306,9 +316,6 @@ class NexusDetectorImage:
         if self.filename is None:
             return
         image, value = self._get_image()
-
-        if self.logplot.get():
-            image = np.log10(image)
 
         self.ax_image.set_array(image)
         self.axis_value.set(value)

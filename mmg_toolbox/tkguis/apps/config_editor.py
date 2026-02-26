@@ -54,6 +54,8 @@ class ConfigEditor:
         self.create_tuple_param(C.plot_max_percent, 'Max Plot Size:', 'w x h % of screen')
         self.create_param(C.plot_dpi, 'Figure DPI:')
         self.create_list_param(C.default_colormap, 'Default colormap:', *COLORMAPS)
+        self.create_bool_params('Image:', ('image_log', 'log'),
+                                ('image_flip_y', 'flip y'), ('image_flip_x', 'flip x'))
         self.create_param(C.metadata_label, 'Metadata label', button=self.metadata_list_window)
         self.create_text_param(C.metadata_string, 'Metadata expression')
 
@@ -139,6 +141,16 @@ class ConfigEditor:
         frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
         ttk.Label(frm, text=label, width=20).pack(side=tk.LEFT, padx=2)
         ttk.Button(frm, text='Edit', command=button, width=3).pack(side=tk.LEFT)
+
+    def create_bool_params(self, label: str, *params: tuple[str, str]):
+        frm = ttk.Frame(self.window)
+        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
+        ttk.Label(frm, text=label, width=20).pack(side=tk.LEFT, padx=2)
+        for config_name, param_label in params:
+            var = tk.BooleanVar(self.root, self.config.get(config_name, False))
+            ttk.Checkbutton(frm, text=param_label, variable=var).pack(side=tk.LEFT)
+            self.config_getters[config_name] = var.get
+            self.config_setters[config_name] = lambda name=config_name: var.set(self.config.get(name, False))
 
     def _update_config(self):
         updated_config = {
