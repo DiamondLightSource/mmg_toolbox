@@ -16,7 +16,7 @@ def test_config():
 
     cfg = config.beamline_config('i06-1')
     assert cfg[config.C.beamline] == 'i06-1'
-    assert 'field =' in cfg[config.C.metadata_string]
+    assert '|field| =' in cfg[config.C.metadata_string]
     assert cfg[config.C.default_directory].startswith('/dls/i06-1/data/')
 
     cfg = config.beamline_config('i32')
