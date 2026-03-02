@@ -81,13 +81,22 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
     return SpectraContainer(name, spectra, metadata=metadata)
 
 
-def load_from_dat(filename: str, sample_name='', element_edge=None) -> SpectraContainer:
+def load_from_dat(filename: str, sample_name='', element_edge=None, mode: str | list[str] = 'all') -> SpectraContainer:
+    """
+    Load XAS Spectra from ASCII .dat file (SRS format)
+
+    Parameters
+    :param filename: path to file
+    :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+    :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+    :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :return: SpectraContainer
+    """
     # read file
     scan = read_dat_file(filename)
 
     # read Scan data
     scannables = scan.keys()
-    mode = 'tey'
     energy = next(iter(scan.values()))  # fastEnergy or something else
     if 'C1' in scannables:
         signals = {
@@ -103,6 +112,17 @@ def load_from_dat(filename: str, sample_name='', element_edge=None) -> SpectraCo
         monitor = scan['msc19']
     else:
         raise ValueError(f"file {filename} does not contain a known signal scannable")
+
+    if isinstance(mode, str):
+        if mode == 'default':
+            mode = 'tey'
+        if mode in signals:
+            signals = {mode: signals[mode]}
+        else:
+            mode = 'tey'
+    else:
+        signals = {_mode: signals[_mode] for _mode in mode}
+        mode = mode[0]
 
     # read Metadata
     metadata = scan.metadata
@@ -137,56 +157,56 @@ def load_from_dat(filename: str, sample_name='', element_edge=None) -> SpectraCo
     )
 
 
-def load_from_nxs(filename: str, sample_name=None, element_edge=None) -> SpectraContainer:
+def load_from_nxs(filename: str, sample_name=None, element_edge=None,
+                  mode: str | list[str] = 'all') -> SpectraContainer:
+    """
+    Load XAS Spectra from NeXus file with NXxas application Definition
+
+    Parameters
+    :param filename: path to file
+    :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+    :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+    :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :return: SpectraContainer
+    """
+    if isinstance(mode, str):
+        mode = [mode]
     # read file
     with h5py.File(filename, 'r') as hdf:
-        # read Scan data
-        mode = nx_find(hdf, 'NXxas', 'NXdata', 'mode')
-        if mode:
-            # NXxas application definition
-            energy = nx_find_data(hdf, 'NXxas', 'NXdata', 'axes')
-            monitor = nx_find_data(hdf, 'NXxas', 'NXmonitor', 'signal')
-            signals = {
-                nx_find_data(grp, 'mode'): nx_find_data(grp, 'signal')
-                for grp in nx_find_all(hdf, 'NXxas', 'NXdata')
-            }
-        else:
-            mode = 'tey'
-            energy = nx_find_data(hdf, 'NXdata', 'axes')
-            if '/entry/instrument/fesData/C1' in hdf:
-                # i06-1 old nexus
-                monitor = hdf['/entry/instrument/fesData/C2'][()]
-                signals = {
-                    'tey': hdf['/entry/instrument/fesData/C1'][()],
-                    'tfy': hdf['/entry/instrument/fesData/C3'][()],
-                }
-                if signals['tfy'].max() < 0.1:
-                    signals['tfy'] = hdf['/entry/instrument/fesData/C4'][()]
-            elif '/entry/mcse16/data' in hdf:
-                # i10-1 old nexus
-                monitor = hdf['/entry/mcse16/data'][()]
-                signals = {
-                    'tey': hdf['/entry/mcse17/data'][()],
-                    'tfy': hdf['/entry/mcse19/data'][()],
-                }
-            else:
-                nxdata = nx_find(hdf, 'NXdata')
-                fields = list(nxdata.keys())
-                raise ValueError(f'Unknown data fields: {fields}')
+        # Get default mode
+        default_mode = mode[0]
+        if default_mode.lower() in ['default', 'all']:
+            default_mode = str(nx_find_data(hdf, 'NXxas', 'NXdata', 'mode'))
+            if default_mode is None:
+                raise ValueError(f"NXxas:NXdata:mode not found in {filename}")
+            default_mode = default_mode.lower()
+        mode = [default_mode.lower() if _mode.lower() == 'default' else _mode.lower() for _mode in mode]
 
-        # read Metadata - currently only works for i06-1!
+        # read Scan data - NXxas application definition
+        energy = nx_find_data(hdf, 'NXxas', 'NXdata', ['axes', 'energy'])
+        if energy is None:
+            raise ValueError(f"NXxas:NXdata:energy not found in {filename}")
+        monitor = nx_find_data(hdf, 'NXxas', 'NXmonitor', ['signal', 'data'])
+        if monitor is None:
+            raise ValueError(f"NXxas:NXmonitor not found in {filename}")
+        signals = {
+            str(nx_find_data(grp, 'mode')).lower(): nx_find_data(grp, 'signal')
+            for grp in nx_find_all(hdf, 'NXxas', 'NXdata')
+            if mode[0] == 'all' or  str(nx_find_data(grp, 'mode')).lower() in mode
+        }
+
+        # read Metadata
+        sample_name = sample_name or nx_find_data(hdf, 'NXsample', 'name', default='')
         beamline = nx_find_data(hdf, 'NXinstrument', 'name', default='?')
-        pol = nx_find_data(hdf, 'NXinsertion_device', 'polarisation', default='?')
-        temp = nx_find_data(hdf, '/entry/instrument/scm/T_sample', default=300)
-        mag_field = nx_find_data(hdf, '/entry/instrument/scm/field_z', default=0)
+        temp = nx_find_data(hdf, 'NXsample', 'temperature', default=300)
+        mag_field = nx_find_data(hdf, 'NXsample', 'magnetic_field', default=0)
+        # DLS specific metadata
         cmd = nx_find_data(hdf, 'scan_command', default='')
         start_date_iso = nx_find_data(hdf, 'start_time', default='')
         end_date_iso = nx_find_data(hdf, 'end_time', default=start_date_iso)
         scan_no = nx_find_data(hdf, 'entry_identifier', default=get_scan_number(filename))
-
-        if sample_name is None:
-            sample_name = nx_find_data(hdf, 'NXsample', 'name', default='')
-
+        pol = get_polarisation(hdf)
+        pol_angle = nx_find_data(hdf, 'linear_arbitrary_angle', default=0)
     return create_xas_scan(
         name=str(scan_no),
         energy=energy,
@@ -198,8 +218,9 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None) -> Spectra
         start_date_iso=start_date_iso,
         end_date_iso=end_date_iso,
         cmd=cmd,
-        default_mode=mode,
+        default_mode=default_mode,
         pol=pol,
+        pol_angle=pol_angle,
         sample_name=sample_name,
         temp=temp,
         mag_field=mag_field,
@@ -208,8 +229,19 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None) -> Spectra
 
 
 def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
-                               element_edge: str | None = None) -> SpectraContainer:
-    """Load ScanContainer"""
+                               element_edge: str | None = None, mode: str | list[str] = 'all') -> SpectraContainer:
+    """
+    Load XAS Spectra from NeXus file with arbitrary application definition
+
+    Parameters
+    :param filename: path to file
+    :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+    :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+    :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :return: SpectraContainer
+    """
+    if isinstance(mode, str):
+        mode = [mode]
 
     with hdfmap.load_hdf(filename) as hdf:
         # HdfMap creates data-path namespace
@@ -220,11 +252,17 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
         scan_no = m.eval(hdf, 'entry_identifier', default=get_scan_number(filename))
         energy = m.eval(hdf, Md.energy)
         monitor = m.eval(hdf, Md.monitor)
-        mode = 'tey'
-        signals = {
+        default_mode = 'tey' if mode[0].lower() in ['default', 'all'] else mode[0]
+        mode_spec = {
             'tey': m.eval(hdf, Md.tey),
             'tfy': m.eval(hdf, Md.tfy),
         }
+        if mode[0].lower() == 'all':
+            use_modes = [default_mode if _mode.lower() == 'default' else _mode for _mode in mode]
+        else:
+            use_modes = mode_spec.keys()
+        signals = {_mode: mode_spec[_mode] for _mode in use_modes}
+
         # metadata
         beamline = m.eval(hdf, 'f"{beamline}_{end_station}" if end_station else instrument_name')
         start_date_iso = m.eval(hdf, 'str(start_time)')
@@ -248,7 +286,7 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
         start_date_iso=start_date_iso,
         end_date_iso=end_date_iso,
         cmd=cmd,
-        default_mode=mode,
+        default_mode=default_mode,
         pol=pol,
         pol_angle=pol_angle,
         sample_name=sample_name,
@@ -259,18 +297,31 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
     )
 
 
-def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge: str | None = None) -> list[SpectraContainer]:
-    """Load scans from a list of filenames, return {'pol': [scan1, scan2, ...]}"""
+def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge: str | None = None,
+                   mode: str | list[str] = 'all') -> list[SpectraContainer]:
+    """
+    Load XAS Spectra from a list of scan files
+
+    Parameters
+    :param filenames: path to file, can be '*.dat' or '*.nxs'
+    :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+    :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+    :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :return: SpectraContainer
+    """
     scans = [
-        load_from_dat(filename, sample_name=sample_name, element_edge=element_edge)
+        load_from_dat(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         if filename.endswith('.dat')
-        else load_from_nxs_using_hdfmap(filename, sample_name=sample_name, element_edge=element_edge)
+        else load_from_nxs(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
+        if is_nxxas(filename)
+        else load_from_nxs_using_hdfmap(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         for filename in filenames
     ]
     return scans
 
 
-def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> list[SpectraContainer]:
+def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1, sample_name: str | None = None,
+                              element_edge: str | None = None, mode: str | list[str] = 'all') -> list[SpectraContainer]:
     """
     Find similar measurements based on energy, temperature and field.
 
@@ -283,6 +334,9 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
     :param filenames: List of filenames to compare
     :param temp_tol: Tolerance for temperature comparison (default: 0.1 K)
     :param field_tol: Tolerance for field comparison (default: 0.1 T)
+    :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+    :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+    :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
     :return: List of similar measurements
     """
     from mmg_toolbox.nexus.nexus_reader import find_matching_scans
@@ -308,7 +362,7 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1) -> li
     similar = []
     for filename in filenames:
         try:
-            scan = load_xas_scans(filename)[0]
+            scan, = load_xas_scans(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         except ValueError as ve:
             print(f"Error loading {filename} as xas_scan: {ve}")
             continue
