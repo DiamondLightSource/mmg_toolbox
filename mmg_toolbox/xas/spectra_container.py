@@ -275,9 +275,9 @@ class SpectraContainer:
         print(f'Created {nexus_filename}')
 
     def create_figure(self):
-        fig, axs = plt.subplots(1, len(self.spectra))
+        fig, axs = plt.subplots(1, len(self.spectra), squeeze=False)
 
-        for ax, s in zip(axs, self.spectra.values()):
+        for ax, s in zip(axs[0], self.spectra.values()):
             s.plot(ax)
             ax.set_xlabel('E [eV]')
             ax.set_ylabel('signal')
@@ -306,6 +306,45 @@ class SpectraContainerSubtraction(SpectraContainer):
         metadata = XasMetadata(**spectra_container1.metadata.__dict__)
         metadata.filename = ''
         super().__init__(name, spectra, spectra_container1, spectra_container2, metadata=metadata)
+
+    def calculate_sum_rules(self, n_holes: float, mode: str | None = None) -> tuple[float, float]:
+        """
+        Calculate sum rules of XMCD spectra from integration
+
+            orb, spin = spectra.calculate_sum_rules(n_holes)
+
+        Parameters
+        :param n_holes: number of holes in absorbing ion
+        :param mode: select which detection mode to use (None for default)
+        :returns: orb, spin sum rule values
+        """
+        spectra = self.spectra[mode or self.metadata.default_mode]
+        return spectra.calculate_sum_rules(n_holes)
+
+    def sum_rules_report(self, n_holes: float, mode: str | None = None) -> str:
+        """
+        Calculate sum rules of XMCD spectra and return report
+
+            print(spectra.sum_rules_report(n_holes))
+
+        Parameters
+        :param n_holes: number of holes in absorbing ion
+        :param mode: select which detection mode to use (None for default)
+        :returns: str
+        """
+        spectra = self.spectra[mode or  self.metadata.default_mode]
+        return spectra.sum_rules_report(n_holes)
+
+    def sum_rules_plot(self):
+        """Create figure of subtraction plots shwoing different integration regions"""
+        fig, axs = plt.subplots(1, len(self.spectra), squeeze=False)
+
+        for ax, s in zip(axs[0], self.spectra.values()):
+            s.plot_sum_rules(ax)
+            ax.set_xlabel('E [eV]')
+            ax.set_ylabel('signal')
+            ax.legend()
+        return fig
 
     def nx_sum_rules_process(self, entry: h5py.Group):
         from mmg_toolbox import __version__

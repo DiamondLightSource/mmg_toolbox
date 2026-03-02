@@ -329,13 +329,47 @@ class SpectraSubtraction(Spectra):
         return average
 
     def calculate_sum_rules(self, n_holes: float) -> tuple[float, float]:
+        """
+        Calculate sum rules of XMCD spectra from integration
+
+            orb, spin = spectra.calculate_sum_rules(n_holes)
+
+        Parameters
+        :param n_holes: number of holes in absorbing ion
+        :returns: orb, spin sum rule values
+        """
         difference = self.signal
         average = self.average_subtracted_spectra().signal
         orb = spa.orbital_angular_momentum(self.energy, average, difference, n_holes)
         spin = spa.spin_angular_momentum(self.energy, average, difference, n_holes)
         return orb, spin
 
+    def plot_sum_rules(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
+        """
+        Create plots of spectra highlighting integration for sum rules
+        """
+        energy = self.energy
+        difference = self.signal
+        # average = self.average_subtracted_spectra().signal
+        split_energy = (self.energy[0] + self.energy[-1]) / 2
+        split_index = np.argmin(np.abs(energy - split_energy))
+
+        ax = ax or plt.subplots(1, 1)
+        lines = self.plot(ax, *args, **kwargs)
+        ax.fill_between(energy[:split_index], 0, difference[:split_index], color='r')
+        ax.fill_between(energy[split_index:], 0, difference[split_index:], color='b')
+        return lines
+
     def sum_rules_report(self, n_holes: float, element: str = '') -> str:
+        """
+        Calculate sum rules of XMCD spectra and return report
+
+            print(spectra.sum_rules_report(n_holes))
+
+        Parameters
+        :param n_holes: number of holes in absorbing ion
+        :returns: str
+        """
         orb, spin = self.calculate_sum_rules(n_holes)
         report = f"{element} n_holes = {n_holes}\nL = {orb:.3f} μB\nS = {spin:.3f} μB"
         return report

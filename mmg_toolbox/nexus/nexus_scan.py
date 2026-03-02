@@ -20,7 +20,7 @@ from mmg_toolbox.nexus.instrument_model import NXInstrumentModel
 from mmg_toolbox.nexus.nexus_functions import get_dataset_value
 from mmg_toolbox.utils.file_functions import get_scan_number, read_tiff
 from mmg_toolbox.utils.misc_functions import shorten_string, DataHolder
-from mmg_toolbox.xas import SpectraContainer, load_xas_scans
+from mmg_toolbox.xas import Spectra, SpectraContainer, load_xas_scans
 
 
 class NexusScan(NexusLoader):
@@ -308,9 +308,17 @@ class NexusScan(NexusLoader):
             data.update(additional)
             return data
 
-    def xas_scan(self) -> SpectraContainer:
-        """Load XAS Spectra"""
-        return load_xas_scans(self.filename)[0]
+    def xas_spectra(self, sample_name: str | None = None, element_edge: str | None = None, mode: str | list[str] = 'all') -> SpectraContainer:
+        """
+        Load XAS Spectra from the scan file
+
+        Parameters
+        :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+        :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+        :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+        :return: SpectraContainer
+        """
+        return load_xas_scans(self.filename, sample_name=sample_name, element_edge=element_edge, mode=mode)[0]
 
     def instrument_model(self) -> NXInstrumentModel:
         """return instrument model"""
