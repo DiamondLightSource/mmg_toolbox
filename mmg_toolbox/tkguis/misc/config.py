@@ -25,6 +25,9 @@ class C(config.C):
     plot_dpi = 'plot_dpi'
     plot_title = 'plot_title'
     default_colormap = 'default_colormap'
+    image_flip_y = 'image_flip_y'
+    image_flip_x = 'image_flip_x'
+    image_log = 'image_log'
     current_dir = 'current_dir'
     current_proc = 'current_proc'
     current_nb = 'current_nb'
@@ -54,6 +57,9 @@ CONFIG = {
     C.text_size_small: (TEXT_WIDTH, TEXT_HEIGHT_SMALL),
     C.plot_size: FIGURE_SIZE,
     C.image_size: IMAGE_SIZE,
+    C.image_flip_x: False,
+    C.image_flip_y: True,
+    C.image_log: False,
     C.plot_max_percent: MAX_PLOT_SCREEN_PERCENTAGE,
     C.plot_dpi: FIGURE_DPI,
     C.plot_title: '{filename}\n{(cmd|scan_command)}',

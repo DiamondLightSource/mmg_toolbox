@@ -21,7 +21,7 @@ class C:
     scan_description = 'scan_description'
     roi = 'roi'
 
-DEFAULT_SCAN_DESCRIPTION = '{(cmd|user_command|scan_command)}'
+DEFAULT_SCAN_DESCRIPTION = '{(cmd|user_input_command|user_command|scan_command)}'
 
 META_LIST = {
     # scan number and start_time included by default
