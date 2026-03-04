@@ -12,13 +12,9 @@ from __future__ import annotations
 
 import inspect
 from functools import wraps
-import datetime
 import numpy as np
-import h5py
 import matplotlib.pyplot as plt
 
-from mmg_toolbox.nexus import nexus_writer as nw
-from . import spectra_analysis as spa
 from mmg_toolbox.utils.polarisation import pol_subtraction_label
 from .spectra import Spectra, SpectraSubtraction
 
@@ -67,7 +63,7 @@ def spectra_method_decorator(target_cls):
                 self.process_label = next(iter(self.spectra.values())).process_label
             setattr(target_cls, name, fn)
 
-        elif name in ['create_nxnote', 'create_nxdata', 'plot', 'plot_bkg', 'plot_parents']:
+        elif name in ['plot', 'plot_bkg', 'plot_parents']:
             @wraps(method)
             def fn(self, *args, _method=method, **kwargs):
                 return [_method(s, *args, **kwargs) for s in self.spectra.values()]
@@ -76,7 +72,7 @@ def spectra_method_decorator(target_cls):
     return target_cls
 
 
-@spectra_method_decorator
+# @spectra_method_decorator
 class SpectraContainer:
     """
     Container for Spectra and metadata
@@ -100,7 +96,7 @@ class SpectraContainer:
                 f"{self.metadata.cmd}\n" +
                 f"mode: '{self.metadata.default_mode}', signals: {list(self.spectra)}\n" +
                 f"E = {np.mean(self.metadata.energy):.2f} eV -> {self.metadata.element} {self.metadata.edge}\n" +
-                f"   Sample: '{self.metadata.sample_name}'\n" +
+                f"   --- Sample: {self.metadata.sample_name} ---\n" +
                 f"T = {self.metadata.temp:.2f} K\n" +
                 f"B = {self.metadata.mag_field:.2f} T\n" +
                 f"Pol = '{self.metadata.pol}'"
@@ -151,138 +147,77 @@ class SpectraContainer:
     def analysis_steps(self):
         return {sc.label(): sc.spectra for sc in list(reversed(self.parents)) + [self]}
 
-    def nx_entry(self, nexus: h5py.File, name='entry', default=True) -> h5py.Group:
-        entry = nw.add_nxentry(nexus, name, definition='NXxas')
-        nw.add_nxfield(entry, 'entry_identifier', self.metadata.scan_no)
-        nw.add_nxfield(entry, 'start_time', self.metadata.start_date_iso)
-        nw.add_nxfield(entry, 'end_time', self.metadata.end_date_iso)
-        nw.add_nxfield(entry, 'scan_command', self.metadata.cmd)
-        nw.add_nxfield(entry, 'mode', self.metadata.default_mode)
-        nw.add_nxfield(entry, 'element', self.metadata.element)
-        nw.add_nxfield(entry, 'edge', self.metadata.edge)
-        nw.add_nxfield(entry, 'polarization_label', self.metadata.pol)
-        if default:
-            nexus.attrs['default'] = name
-        return entry
-
-    def nx_instrument(self, entry: h5py.Group) -> h5py.Group:
-        energy = self.metadata.energy
-        monitor = self.metadata.monitor
-        raw_signals = self.metadata.raw_signals
-        mode = self.metadata.default_mode
-
-        instrument = nw.add_nxinstrument(root=entry, name='instrument', instrument_name=self.metadata.beamline)
-        nw.add_nxsource(instrument, 'source')
-        nw.add_nxmono(instrument, 'mono', energy_ev=energy)
-        nw.add_nxdetector(instrument, 'incoming_beam', data=monitor)
-        nw.add_nxdetector(instrument, 'absorbed_beam', data=raw_signals[mode])
-        for name, signal in raw_signals.items():
-            nw.add_nxdetector(instrument, name, data=signal)
-        return instrument
-
-    def nx_sample(self, entry: h5py.Group) -> h5py.Group:
-        sample = nw.add_nxsample(
-            root=entry,
-            name='sample',
-            sample_name=self.metadata.sample_name,
-            chemical_formula='',
-            temperature_k=self.metadata.temp,
-            magnetic_field_t=self.metadata.mag_field,
-            electric_field_v=0,
-            mag_field_dir='z',
-            electric_field_dir='z',
-            sample_type='sample',
-            description=''
-        )
-        energy = self.metadata.energy
-        nw.add_nxbeam(
-            root=sample,
-            name='beam',
-            incident_energy_ev=float(np.mean(energy)),
-            polarisation_label=self.metadata.pol,
-            beam_size_um=None,
-            arbitrary_polarisation_angle=self.metadata.pol_angle,
-        )
-        return sample
-
-    def nx_process(self, entry: h5py.Group) -> h5py.Group:
-        from mmg_toolbox import __version__
-
-        # NXprocess - read dat
-        input_filename = self.metadata.filename
-        if input_filename.endswith('.dat'):
-            read_dat = nw.add_nxprocess(
-                root=entry,
-                name='read_dat',
-                program='xmcd_analysis_functions',
-                version=__version__,
-                date=str(datetime.datetime.now()),
-                sequence_index=1,
-            )
-            nw.add_nxnote(
-                root=read_dat,
-                name='dat_file',
-                data=open(input_filename, 'r').read(),
-                filename=input_filename,
-                description='DLS SRS format',
-                sequence_index=1
-            )
-
-        # NXProcess
-        process = nw.add_nxprocess(
-            root=entry,
-            name='process',
-            program='mmg_toolbox',
-            version=__version__,
-            date=str(datetime.datetime.now()),
-            sequence_index=2 if self.metadata.filename.endswith('.dat') else 1,
-        )
-        return process
-
-    def nx_analysis_steps(self, entry: h5py.Group, process: h5py.Group):
-        analysis_steps = self.analysis_steps()
-        for n, (name, spectra) in enumerate(analysis_steps.items()):
-            spectra[self.metadata.default_mode].create_nxnote(process, name, n + 1)
-
-        # NXdata groups
-        for name, spectra in analysis_steps.items():
-            mode_spectra = spectra[self.metadata.default_mode]
-            data = mode_spectra.create_nxdata(entry, name, default=True)
-            aux_signals = []
-            for signal, spec in spectra.items():
-                nw.add_nxfield(data, signal, spec.signal, units='')
-                aux_signals.append(signal)
-                if spec.background is not None:
-                    name = f"{signal}_background"
-                    nw.add_nxfield(data, name, spec.background, units='')
-                    aux_signals.append(name)
-            data.attrs['auxiliary_signals'] = aux_signals
-
-    def nx_main_entry(self, nexus: h5py.File, name='entry', default=True):
-        entry = self.nx_entry(nexus, name=name, default=default)
-        self.nx_instrument(entry)
-        self.nx_sample(entry)
-        process = self.nx_process(entry)
-        self.nx_analysis_steps(entry, process)
-
-    def _nx_add_items(self, nexus: h5py.File):
-        nw.add_entry_links(nexus, self.metadata.filename)
-        self.nx_main_entry(nexus)
-
     def write_nexus(self, nexus_filename: str):
-        with h5py.File(nexus_filename, 'w') as nxs:
-            self._nx_add_items(nxs)
-        print(f'Created {nexus_filename}')
+        from .nexus_writer import write_xas_nexus
+        write_xas_nexus(self, nexus_filename)
 
     def create_figure(self):
-        fig, axs = plt.subplots(1, len(self.spectra), squeeze=False)
+        fig, axs = plt.subplots(1, len(self.spectra))
 
-        for ax, s in zip(axs[0], self.spectra.values()):
+        for ax, s in zip(axs.flat, self.spectra.values()):
             s.plot(ax)
             ax.set_xlabel('E [eV]')
             ax.set_ylabel('signal')
             ax.legend()
         return fig
+
+    def create_background_figure(self):
+        """Plot background subtracted scans"""
+        fig, axes = plt.subplots(2, 2)
+
+        for n, (mode, spectra) in enumerate(self.spectra.items()):
+            spectra.plot_parents(ax=axes[0, n])
+            spectra.plot_bkg(ax=axes[0, n])
+            axes[0, n].set_ylabel(mode)
+
+            spectra.plot(ax=axes[1, n], label=self.name)
+            axes[1, n].set_ylabel(mode)
+
+        for ax in axes.flat:
+            ax.set_xlabel('E [eV]')
+            ax.legend()
+
+    ### Spectra Processing ###
+
+    def _process_spectra(self, method: str, *args, **kwargs) -> SpectraContainer:
+        """wrapper function for spectra processing"""
+        spectra = {
+            mode: getattr(spec, method)(*args, **kwargs)
+            for mode, spec in self.spectra.items()
+        }
+        parents = (self.copy(), *self.parents)
+        process_label = next(iter(spectra.values())).process_label
+        scan = SpectraContainer(self.name, spectra, *parents, metadata=self.metadata)
+        scan.process_label = process_label
+        return scan
+
+    def divide_by_signal_at_energy(self, energy1: float, energy2: float | None = None) -> SpectraContainer:
+        """Divide spectra by signal"""
+        return self._process_spectra('divide_by_signal_at_energy', energy1, energy2)
+
+    def divide_by_preedge(self, ev_from_start: float = 5) -> SpectraContainer:
+        """Divide by average of raw_signals at start"""
+        return self._process_spectra('divide_by_preedge', ev_from_start)
+
+    def divide_by_postedge(self, ev_from_end: float = 5) -> SpectraContainer:
+        """Divide by average of raw_signals at end"""
+        return self._process_spectra('divide_by_postedge', ev_from_end)
+
+    def norm_to_peak(self) -> SpectraContainer:
+        """Normalise the spectra to the highest point"""
+        return self._process_spectra('norm_to_peak')
+
+    def norm_to_jump(self, ev_from_start: float = 5, ev_from_end: float | None = None) -> SpectraContainer:
+        """Normalise the spectra to the jump between edges"""
+        return self._process_spectra('norm_to_jump', ev_from_start, ev_from_end)
+
+    def remove_background(self, name='flat', *args, **kwargs) -> SpectraContainer:
+        """remove background using various methods"""
+        return self._process_spectra('remove_background', name, *args, **kwargs)
+
+    def auto_edge_background(self, peak_width_ev: float = 5.) -> SpectraContainer:
+        """Remove generic xray absorption background from spectra"""
+        return self._process_spectra('auto_edge_background', peak_width_ev)
 
 
 class SpectraContainerSubtraction(SpectraContainer):
@@ -316,7 +251,7 @@ class SpectraContainerSubtraction(SpectraContainer):
         Parameters
         :param n_holes: number of holes in absorbing ion
         :param mode: select which detection mode to use (None for default)
-        :returns: orb, spin sum rule values
+        :returns: orb, spin sum rule values for the detector mode
         """
         spectra = self.spectra[mode or self.metadata.default_mode]
         return spectra.calculate_sum_rules(n_holes)
@@ -345,34 +280,6 @@ class SpectraContainerSubtraction(SpectraContainer):
             ax.set_ylabel('signal')
             ax.legend()
         return fig
-
-    def nx_sum_rules_process(self, entry: h5py.Group):
-        from mmg_toolbox import __version__
-        process = nw.add_nxprocess(
-            root=entry,
-            name='sum_rules',
-            program='mmg_toolbox',
-            version=__version__,
-            date=str(datetime.datetime.now()),
-            sequence_index=2,
-        )
-        try:
-            n_holes = spa.default_n_holes(self.metadata.element)
-        except KeyError as ke:
-            print(f"Warning: {ke}")
-            n_holes = 1
-        for n, (name, spectra) in enumerate(self.spectra.items()):
-            spectra.create_sum_rules_nxnote(n_holes, process, name, n + 1, element=self.metadata.element)
-
-    def _nx_add_items(self, nexus: h5py.File):
-        for parent in self.parents:
-            parent.nx_main_entry(nexus, name=parent.name, default=False)
-        entry = self.nx_entry(nexus, name=self.name, default=True)
-        self.nx_sample(entry)
-        process = self.nx_process(entry)
-        self.nx_sum_rules_process(entry)
-        self.nx_analysis_steps(entry, process)
-
 
 
 def average_polarised_scans(*scans: SpectraContainer) -> list[SpectraContainer]:

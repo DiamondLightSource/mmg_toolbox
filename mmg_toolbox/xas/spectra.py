@@ -155,7 +155,7 @@ class Spectra:
                        process_label=proc_label, process=process, mode=self.mode)
 
     def divide_by_postedge(self, ev_from_end: float = 5) -> Spectra:
-        """Divide by average of raw_signals at start"""
+        """Divide by average of raw_signals at end"""
         value = spa.postedge_signal(self.energy, self.signal, ev_from_end)
         sig = self.signal / value
         bkg = self.background / value if self.background is not None else None
@@ -254,6 +254,16 @@ class Spectra:
     """SPECTRA PLOT FUNCTIONS"""
 
     def plot(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
+        """
+        Plot spectra as line on current axes
+
+            spectra.plot()
+
+        :param ax: Matplotlib axes object or None to use plt.gca()
+        :param args: args to pass to ax.plot()
+        :param kwargs: kwargs to pass to ax.plot()
+        :return: list of Line2D objects
+        """
         if ax is None:
             ax = plt.gca()
         if 'label' not in kwargs:
@@ -261,6 +271,16 @@ class Spectra:
         return ax.plot(self.energy, self.signal, *args, **kwargs)
 
     def plot_bkg(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
+        """
+        Plot spectra background as line on current axes
+
+            spectra.plot_bkg()
+
+        :param ax: Matplotlib axes object or None to use plt.gca()
+        :param args: args to pass to ax.plot()
+        :param kwargs: kwargs to pass to ax.plot()
+        :return: list of Line2D objects
+        """
         if self.background is None:
             return []
         if ax is None:
@@ -270,7 +290,16 @@ class Spectra:
         return ax.plot(self.energy, self.background, *args, **kwargs)
 
     def plot_parents(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
-        """Plot all parents on the current axes"""
+        """
+        Plot all parents on the current axes
+
+            spectra.plot_parents()
+
+        :param ax: Matplotlib axes object or None to use plt.gca()
+        :param args: args to pass to ax.plot()
+        :param kwargs: kwargs to pass to ax.plot()
+        :return: list of Line2D objects
+        """
         if ax is None:
             ax = plt.gca()
         pl = []

@@ -10,7 +10,7 @@ import datetime
 from mmg_toolbox.utils.file_functions import get_scan_number
 from mmg_toolbox.utils.file_reader import read_dat_file
 from mmg_toolbox.utils.polarisation import get_polarisation, check_polarisation
-from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
+from mmg_toolbox.nexus.nexus_functions import nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
 from .spectra_analysis import energy_range_edge_label
@@ -258,9 +258,10 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
             'tfy': m.eval(hdf, Md.tfy),
         }
         if mode[0].lower() == 'all':
-            use_modes = [default_mode if _mode.lower() == 'default' else _mode for _mode in mode]
-        else:
             use_modes = mode_spec.keys()
+        else:
+            use_modes = [default_mode if _mode.lower() == 'default' else _mode for _mode in mode]
+
         signals = {_mode: mode_spec[_mode] for _mode in use_modes}
 
         # metadata
@@ -298,7 +299,7 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
 
 
 def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge: str | None = None,
-                   mode: str | list[str] = 'all') -> list[SpectraContainer]:
+                   mode: str | list[str] = 'all', dls_loader: bool = False) -> list[SpectraContainer]:
     """
     Load XAS Spectra from a list of scan files
 
@@ -307,13 +308,14 @@ def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge
     :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
     :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
     :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :param dls_loader: bool, if True uses explicit loading of metadata from DLS MMG beamlines
     :return: SpectraContainer
     """
     scans = [
         load_from_dat(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         if filename.endswith('.dat')
         else load_from_nxs(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
-        if is_nxxas(filename)
+        if not dls_loader and is_nxxas(filename)
         else load_from_nxs_using_hdfmap(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         for filename in filenames
     ]
@@ -321,7 +323,8 @@ def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge
 
 
 def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1, sample_name: str | None = None,
-                              element_edge: str | None = None, mode: str | list[str] = 'all') -> list[SpectraContainer]:
+                              element_edge: str | None = None, mode: str | list[str] = 'all',
+                              dls_loader: bool = False) -> list[SpectraContainer]:
     """
     Find similar measurements based on energy, temperature and field.
 
@@ -337,6 +340,7 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1, sampl
     :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
     :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
     :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :param dls_loader: bool, if True uses explicit loading of metadata from DLS MMG beamlines
     :return: List of similar measurements
     """
     from mmg_toolbox.nexus.nexus_reader import find_matching_scans
@@ -362,7 +366,8 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1, sampl
     similar = []
     for filename in filenames:
         try:
-            scan, = load_xas_scans(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
+            scan, = load_xas_scans(filename, sample_name=sample_name, element_edge=element_edge,
+                                   mode=mode, dls_loader=dls_loader)
         except ValueError as ve:
             print(f"Error loading {filename} as xas_scan: {ve}")
             continue

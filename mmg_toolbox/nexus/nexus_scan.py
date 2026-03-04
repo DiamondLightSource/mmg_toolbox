@@ -10,6 +10,7 @@ import datetime
 import re
 
 import h5py
+import hdfmap
 import numpy as np
 from hdfmap import NexusLoader, NexusMap, load_hdf
 from hdfmap.eval_functions import dataset2data, dataset2str
@@ -17,10 +18,10 @@ from hdfmap.eval_functions import dataset2data, dataset2str
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapMMGMetadata as Md
 from mmg_toolbox.beamline_metadata.config import beamline_config, C
 from mmg_toolbox.nexus.instrument_model import NXInstrumentModel
-from mmg_toolbox.nexus.nexus_functions import get_dataset_value
+from mmg_toolbox.nexus.nexus_functions import get_dataset_value, nx_find, nx_find_all
 from mmg_toolbox.utils.file_functions import get_scan_number, read_tiff
 from mmg_toolbox.utils.misc_functions import shorten_string, DataHolder
-from mmg_toolbox.xas import Spectra, SpectraContainer, load_xas_scans
+from mmg_toolbox.xas import SpectraContainer, load_xas_scans
 
 
 class NexusScan(NexusLoader):
@@ -80,6 +81,35 @@ class NexusScan(NexusLoader):
     def load_hdf(self) -> h5py.File:
         """Load the Hdf file"""
         return load_hdf(self.filename)
+
+    def hdf_tree_string(self, group: str = '/', all_links: bool = True, attributes: bool = True) -> str:
+        """
+        Generate string of the hdf file structure, similar to h5ls. Uses h5py.visititems
+
+        :param all_links: bool, if True, also show links
+        :param group: only display tree structure of this group (default root)
+        :param attributes: if True, display the attributes of groups and datasets
+        :return: str
+        """
+        return hdfmap.hdf_tree_string(self.filename, all_links=all_links, group=group, attributes=attributes)
+
+    def hdf_find(self, *field_or_class: str | list[str], find_all: bool = False) -> (h5py.Dataset | h5py.Group) | list[h5py.Dataset | h5py.Group]:
+        """
+        Find datasets and groups within hdf file
+
+            HdfDataset = scan.hdf_find('NXentry', ['NXdata', 'measurement'], 'signal')
+
+        Warning: HDF file stays in open state while Dataset or Group objects exist.
+
+        Parameters:
+        :param field_or_class: names to search for, in hierarchical order. Lists treated as OR
+        :param find_all: whether to return all datasets or only the first match
+        :returns: matching Dataset or Group, or list of matching Datasets or Groups
+        """
+        with self.load_hdf() as hdf:
+            if find_all:
+                return nx_find_all(hdf, *field_or_class)
+            return nx_find(hdf, *field_or_class)
 
     def datasets(self, *args) -> list[h5py.Dataset]:
         """Return HDF5 datasets from NeXus file (leaves file in open state)"""
@@ -308,7 +338,8 @@ class NexusScan(NexusLoader):
             data.update(additional)
             return data
 
-    def xas_spectra(self, sample_name: str | None = None, element_edge: str | None = None, mode: str | list[str] = 'all') -> SpectraContainer:
+    def xas_spectra(self, sample_name: str | None = None, element_edge: str | None = None, mode: str | list[str] = 'all',
+                    dls_loader: bool = False) -> SpectraContainer:
         """
         Load XAS Spectra from the scan file
 
@@ -316,9 +347,11 @@ class NexusScan(NexusLoader):
         :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
         :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
         :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+        :param dls_loader: bool, if True uses explicit loading of metadata from DLS MMG beamlines
         :return: SpectraContainer
         """
-        return load_xas_scans(self.filename, sample_name=sample_name, element_edge=element_edge, mode=mode)[0]
+        return load_xas_scans(self.filename, sample_name=sample_name, element_edge=element_edge,
+                              mode=mode, dls_loader=dls_loader)[0]
 
     def instrument_model(self) -> NXInstrumentModel:
         """return instrument model"""
