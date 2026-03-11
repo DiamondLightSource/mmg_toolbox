@@ -84,7 +84,7 @@ def test_autoprocess_xas_notebook():
     with h5py.File('output.nxs', 'r') as hdf:
         assert isinstance(hdf['/entry/divide_by_preedge/tey'], h5py.Dataset)
 
-    os.remove('output.ipynb')
+    # os.remove('output.ipynb')
     os.remove('output.nxs')
 
 
