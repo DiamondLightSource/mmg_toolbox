@@ -90,25 +90,52 @@ def test_autoprocess_xas_notebook():
 
 @only_dls_file_system
 def test_autoprocess_xmcd_processor():
-    print("No example xmcd_processor file, skipping...")
     assert os.path.isfile(NB_PATHS['xmcd_processor.ipynb'])
-    # import papermill as pm
-    # pm.execute_notebook(
-    #     NB_PATHS['xmcd_processor.ipynb'],
-    #     'output.ipynb',
-    #     parameters={
-    #         'inpath': FILES_DICT[''],  # need example with scan x -10 -1 1 xmcd_processor
-    #         'outpath': 'output.nxs',
-    #     }
-    # )
-    # assert os.path.isfile('output.ipynb')
-    # assert os.path.isfile('1234-1235_xmcd.nxs')
-    #
-    # with h5py.File('output.nxs', 'r') as hdf:
-    #     assert isinstance(hdf['/processed/xmcd/tey'], h5py.Dataset)
-    #
-    # os.remove('output.ipynb')
-    # os.remove('output.nxs')
+    import papermill as pm
+    import json
+
+    # inject working files into notebook
+    # Construct the new notebook cell
+    new_code = (
+        "scan_files = ['/dls/science/groups/das/ExampleData/hdfmap_tests/i10/i10-1-37436.nxs',\n"
+        " '/dls/science/groups/das/ExampleData/hdfmap_tests/i10/i10-1-37437.nxs',\n"
+        " '/dls/science/groups/das/ExampleData/hdfmap_tests/i10/i10-1-37438.nxs',\n"
+        " '/dls/science/groups/das/ExampleData/hdfmap_tests/i10/i10-1-37439.nxs']"
+    )
+    new_cell = {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": new_code.splitlines(keepends=True)
+    }
+
+    # Load notebook JSON
+    with open(NB_PATHS['xmcd_processor.ipynb'], "r", encoding="utf-8") as f:
+        nb = json.load(f)
+    # Insert after the 4th cell (index 3)
+    nb["cells"].insert(4, new_cell)
+
+    # Save modified notebook
+    # temp_path = NB_PATHS['xmcd_processor.ipynb'].replace(".ipynb", "_temp.ipynb")
+    with open('output.ipynb', "w", encoding="utf-8") as f:
+        json.dump(nb, f, indent=2)
+
+    pm.execute_notebook(
+        'output.ipynb',
+        'output.ipynb',
+        parameters={
+            'inpath': FILES_DICT['i06-1 xmcd_processor dummy'],  # need example with scan x -10 -1 1 xmcd_processor
+            'outpath': 'output.nxs',
+        }
+    )
+    assert os.path.isfile('37436-37439_xmcd.nxs')
+
+    with h5py.File('37436-37439_xmcd.nxs', 'r') as hdf:
+        assert isinstance(hdf['/processed/xmcd/tey'], h5py.Dataset)
+
+    os.remove('output.ipynb')
+    os.remove('37436-37439_xmcd.nxs')
 
 
 @only_dls_file_system

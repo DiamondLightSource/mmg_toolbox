@@ -369,7 +369,7 @@ class SpectraContainerSubtraction(SpectraContainer):
         fig: plt.Figure
         axes: np.ndarray[plt.Axes, np.object_]
         fig, axes = plt.subplots(2, len(self.spectra), squeeze=False, **kwargs)
-        fig.tight_layout()
+        fig.tight_layout(h_pad=0.1, w_pad=0.1)
         signal_ratio = self.calculate_signal_ratio()
 
         for parent in self.parents:

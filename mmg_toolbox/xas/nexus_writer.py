@@ -180,8 +180,9 @@ class XasSubtractionNexusWriter(XasNexusWriter):
 
     def _nx_add_items(self, nexus: h5py.File):
         for parent in self.scan.parents:
-            parent.nx_main_entry(nexus, name=parent.name, default=False)
-        entry = self.nx_entry(nexus, name=self.scan.name, default=True)
+            parent_writer = XasNexusWriter(parent)
+            parent_writer.nx_main_entry(nexus, name=parent.name, default=False)
+        entry = self.nx_entry(nexus, name='processed', default=True)
         self.nx_sample(entry)
         process = self.nx_process(entry)
         self.nx_sum_rules_process(entry)

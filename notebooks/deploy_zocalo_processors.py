@@ -43,7 +43,7 @@ if __name__ == "__main__":
     test_autoprocess_xas_notebook()
     clean_and_copy_notebook('xas_notebook.ipynb')
 
-    print('Testing xmcd_processor.ipynb (not testing as no test data)')
+    print('Testing xmcd_processor.ipynb')
     test_autoprocess_xmcd_processor()
     clean_and_copy_notebook('xmcd_processor.ipynb')
 

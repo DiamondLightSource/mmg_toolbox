@@ -52,6 +52,9 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
 
     if len(raw_signals) == 0:
         raise ValueError("No raw_signals found")
+    if np.max(monitor) < 0.001:
+        print(f"Monitor values are too low, setting monitor values to 1")
+        monitor = np.ones_like(monitor)
 
     # perform Analysis steps
     spectra = {
