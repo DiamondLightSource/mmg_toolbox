@@ -9,10 +9,9 @@ import datetime
 
 from mmg_toolbox.utils.file_functions import get_scan_number
 from mmg_toolbox.utils.file_reader import read_dat_file
-from mmg_toolbox.utils.polarisation import get_polarisation, check_polarisation
+from mmg_toolbox.utils.polarisation import get_polarisation, check_polarisation, opposite_polarisations
 from mmg_toolbox.nexus.nexus_functions import nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
-from utils.polarisation import PolLabels, opposite_polarisations
 
 from .spectra_analysis import energy_range_edge_label
 from .spectra import Spectra

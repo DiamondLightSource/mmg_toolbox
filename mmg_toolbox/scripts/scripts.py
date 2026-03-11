@@ -64,7 +64,7 @@ def generate_script(template_name: str, **replacements) -> str:
     template_string = open(template_file, 'r').read()
     for name, value in template_changes.items():
         param = "{{" + name + "}}"
-        print(f"Replacing {template_string.count(param)} instances of {param}")
+        # print(f"Replacing {template_string.count(param)} instances of {param}")
         template_string = template_string.replace(param, value)
     return template_string
 
@@ -88,7 +88,7 @@ def create_notebook(new_notebook_path: str, template_name: str, **replacements):
     template_string = open(template_file, 'r').read()
     for name, value in template_changes.items():
         param = "{{" + name + "}}"
-        print(f"Replacing {template_string.count(param)} instances of {param}")
+        # print(f"Replacing {template_string.count(param)} instances of {param}")
         template_string = template_string.replace(param, value)
 
     with open(new_notebook_path, 'w') as new:

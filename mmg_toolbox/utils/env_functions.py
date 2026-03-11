@@ -204,9 +204,10 @@ def run_jupyter_notebook(notebook_filename: str):
     run_command(command)
 
 
-def open_jupyter_lab():
+def open_jupyter_lab(directory: str | None = None):
     """
     Open a new terminal and start a Jupyter lab terminal (linux only)
     """
-    shell_cmd = f"gnome-terminal -- bash -c \"jupyter lab; exec bash\""
+    dir_cmd = f"cd {directory};" or ""
+    shell_cmd = f"gnome-terminal -- bash -c \"{dir_cmd}jupyter lab; exec bash\""
     subprocess.Popen(shell_cmd, shell=True)

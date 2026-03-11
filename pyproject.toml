@@ -82,3 +82,4 @@ version = {attr = "mmg_toolbox.__version__"}
 
 [project.scripts]
 dataviewer = "mmg_toolbox.tkguis:cli_run"
+create_notebooks = "mmg_toolbox:create_notebooks"
