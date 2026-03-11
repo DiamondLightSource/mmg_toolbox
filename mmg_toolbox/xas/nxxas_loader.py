@@ -55,7 +55,8 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
 
     # perform Analysis steps
     spectra = {
-        name: Spectra(energy, signal / monitor, mode=name, process_label='raw', process=f"{name} / monitor")
+        name: Spectra(energy, signal / monitor, label=str(scan_no), mode=name, process_label='raw',
+                      process=f"{name} / monitor")
         for name, signal in raw_signals.items()
     }
     metadata = XasMetadata(
@@ -322,9 +323,9 @@ def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge
     return scans
 
 
-def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1, sample_name: str | None = None,
-                              element_edge: str | None = None, mode: str | list[str] = 'all',
-                              dls_loader: bool = False) -> list[SpectraContainer]:
+def find_similar_measurements(*filenames: str, temp_tol: float = 1., field_tol: float = 0.1,
+                              sample_name: str | None = None, element_edge: str | None = None,
+                              mode: str | list[str] = 'all', dls_loader: bool = False) -> list[SpectraContainer]:
     """
     Find similar measurements based on energy, temperature and field.
 
@@ -344,7 +345,8 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1, sampl
     :return: List of similar measurements
     """
     from mmg_toolbox.nexus.nexus_reader import find_matching_scans
-    ini_scan = load_xas_scans(filenames[0])[0]
+    ini_scan, = load_xas_scans(filenames[0], sample_name=sample_name, element_edge=element_edge,
+                              mode=mode, dls_loader=dls_loader)
     if len(filenames) == 1:
         filenames = find_matching_scans(filenames[0])
     element = ini_scan.metadata.element
@@ -359,7 +361,7 @@ def find_similar_measurements(*filenames: str, temp_tol=1., field_tol=0.1, sampl
     elif pol in ['nc', 'pc']:
         similar_pols = ['nc', 'pc']
     elif pol in ['la']:
-        similar_pols = []
+        similar_pols = ['la']
     else:
         raise ValueError(f"Unknown polarisation: {pol}")
 

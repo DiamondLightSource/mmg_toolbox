@@ -171,7 +171,7 @@ class XasSubtractionNexusWriter(XasNexusWriter):
             sequence_index=2,
         )
         try:
-            n_holes = spa.default_n_holes(self.metadata.element)
+            n_holes = spa.d_electron_holes(self.metadata.element)
         except KeyError as ke:
             print(f"Warning: {ke}")
             n_holes = 1

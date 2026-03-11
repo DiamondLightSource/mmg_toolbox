@@ -130,7 +130,7 @@ def get_polarisation(pol: h5py.Dataset | h5py.Group) -> str:
 def pol_subtraction_label(label: str):
     """Return xmcd or xmld"""
     label = check_polarisation(label)
-    if label in [PolLabels.linear_horizontal, PolLabels.linear_vertical]:
+    if label in [PolLabels.linear_horizontal, PolLabels.linear_vertical, PolLabels.linear_arbitrary]:
         return PolLabels.linear_dichroism
     elif label in [PolLabels.circular_left, PolLabels.circular_right]:
         return PolLabels.circular_dichroism

@@ -58,13 +58,13 @@ print('\ntitle: ', title)
 ###
 
 print(f"Absorption edges between: {energy.min()}, {energy.max()} eV")
-print('\n'.join(f"{en} eV : {lab}" for en, lab in xas.xray_edges_in_range(energy.min(), energy.max(), search_edges=None)))
+print('\n'.join(f"{en} eV : {lab}" for lab, en in xas.xray_edges_in_range(energy.min(), energy.max(), search_edges=None).items()))
 
 # search L edges only, returns single element edge or set
 available_l_edges = xas.xray_edges_in_range(energy.min(), energy.max())
 edge_label = ' '.join(xas.energy_range_edge_label(energy.min(), energy.max()))
 print('\nAutomatically determined absorption edge:')
-print('\n'.join(f"{en} eV : {lab}" for en, lab in available_l_edges))
+print('\n'.join(f"{en} eV : {lab}" for lab, en in available_l_edges.items()))
 print(f"Edge label: {edge_label}")
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))

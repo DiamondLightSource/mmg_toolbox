@@ -61,9 +61,9 @@ def get_beamline(default='', filename: str | None = None) -> str:
 
 
 def get_beamline_from_directory(directory: str, default: str = ''):
-    """Return current beamline from given directory"""
+    """Return current beamline from given directory. Finds the last instance of [ijk]##-#."""
     beamlines = re.findall('/([a-zA-Z][0-9]{2}-?[1-9]?)', directory)
-    return beamlines[0] if beamlines else default
+    return next(iter(beamlines[::-1]), default)
 
 
 def get_user(default=''):

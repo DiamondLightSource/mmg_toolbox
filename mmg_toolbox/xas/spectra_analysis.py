@@ -5,9 +5,11 @@ Set of functions for analysing x-ray absorption spectra
 import json
 
 import os
+import re
 import numpy as np
 from lmfit.model import ModelResult
 from lmfit.models import LinearModel, QuadraticModel, ExponentialModel, StepModel, PolynomialModel
+
 
 # trapz replaced by trapezoid in Numpy 2.0
 try:
@@ -15,45 +17,110 @@ try:
 except ImportError:
     from numpy import trapz
 
+# Regular expressions
+ELEMENTS = (
+    r"He|Li|Be|Ne|Na|Mg|Al|Si|Cl|Ar|Ca|Sc|Ti|Cr|Mn|Fe|Co|Ni|Cu|Zn|Ga|Ge|As|Se|Br|Kr|Rb"
+    r"|Sr|Zr|Nb|Mo|Tc|Ru|Rh|Pd|Ag|Cd|In|Sn|Sb|Te|Xe|Cs|Ba|La|Ce|Pr|Nd|Pm|Sm|Eu|Gd|Tb|Dy"
+    r"|Ho|Er|Tm|Yb|Lu|Hf|Ta|Re|Os|Ir|Pt|Au|Hg|Tl|Pb|Bi|Po|At|Rn|Fr|Ra|Ac|Th|Pa|Np|Pu|Am"
+    r"|Cm|Bk|Cf|Es|Fm|Md|No|Rf|Db|Sg|Bh|Hs|Mt|Ds|Rg|Cn|Nh|Fl|Mc|Lv|Ts|Og"
+    r"|H|B|C|N|O|F|P|S|K|V|Y|I|W|U"
+)
+regex_element = re.compile(f"({ELEMENTS})")
+regex_oxidation = re.compile(rf"({ELEMENTS})(\d?)([+-]?)")
+regex_edges = re.compile(r"([KLMN][2-5]*)\b", re.IGNORECASE)
+
 
 EDGE_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'xray_edges.json')
 SEARCH_EDGES = ('L3', 'L2')
 
+# Neutral d-electron counts for transition metals
+NEUTRAL_D_ELECTRONS = {
+    "Sc": 1, "Ti": 2, "V": 3, "Cr": 4, "Mn": 5, "Fe": 6, "Co": 7, "Ni": 8, "Cu": 9, "Zn": 10,  # 3d
+    "Y": 1, "Zr": 2, "Nb": 3, "Mo": 4, "Tc": 5, "Ru": 3, "Rh": 7, "Pd": 8, "Ag": 9, "Cd": 10,  # 4d
+    "La": 1, "Hf": 2, "Ta": 3, "W": 4, "Re": 5, "Os": 6, "Ir": 7, "Pt": 8, "Au": 9, "Hg": 10  # 5d
+}
 
-def load_edge_energies(edges=SEARCH_EDGES) -> tuple[np.ndarray, np.ndarray]:
+
+def find_edge_labels(string: str) -> list[str]:
     """
-    return arrays of energies and labels for x-ray absorption edges
-    :param edges: if not None, only return energies for these edges, e.g. ('L3', 'L2')
-    :return: energies[ndarray], labels[ndarray]
+    Extract edge labels from string
     """
+    match = regex_element.match(string)
+    if match:
+        element = match.group()
+    else:
+        raise ValueError(f"string '{string}' does not contain an element")
+    edges = regex_edges.findall(string)
+    edge_labels = []
+    for edge in edges:
+        edge_labels.append(f"{element} {edge[:2].upper()}")
+        if len(edge) == 3:
+            edge_labels.append(f"{element} {edge[0].upper()}{edge[2]}")
+    return edge_labels
+
+
+def _load_edge_file(edges: list[str] | None = SEARCH_EDGES) -> dict[str, float]:
+    """Load edges from file"""
     with open(EDGE_FILE, 'r') as infile:
         edge_dict = json.load(infile)
     edge_energies = {
         label: edge['energy'] for label, edge in edge_dict.items()
         if (edge['edge'] in edges if edges else True)
     }
+    return edge_energies
+
+
+def load_edge_energies(edges: list[str] | None = SEARCH_EDGES) -> tuple[np.ndarray, np.ndarray]:
+    """
+    return arrays of energies and labels for x-ray absorption edges
+    :param edges: if not None, only return energies for these edges, e.g. ('L3', 'L2')
+    :return: energies[ndarray], labels[ndarray]
+    """
+    edge_energies = _load_edge_file(edges)
     energies = np.array(list(edge_energies.values()))
     labels = np.array(list(edge_energies.keys()))
     idx = np.argsort(energies)
     return energies[idx], labels[idx]
 
 
+def get_edge_energies(*label: str) -> dict[str, float]:
+    """
+    Return energies for given label in eV.
+    Labels must contain a single element symbol, e.g. 'Co',
+    and at least one edge symbol e.g. 'L3' or 'L23' or 'K, L3'
+
+        {label: energy} = get_edge_energies('Co L23', 'Mn L3', 'OK')
+
+    :param label: label to get energies for
+    :return: {label: energy in eV}
+    """
+    edge_energies = _load_edge_file(None)
+    labels = []
+    for _label in label:
+        labels.extend(find_edge_labels(_label))
+    return {_label: edge_energies[_label] for _label in labels if _label in edge_energies}
+
+
 def xray_edges_in_range(min_energy_ev: float, max_energy_ev: float | None = None,
-                        energy_range_ev: float = 10., search_edges: None | tuple[str] = SEARCH_EDGES) -> list[tuple[str, float]]:
+                        energy_range_ev: float = 10., search_edges: list[str] | None = SEARCH_EDGES) -> dict[str, float]:
     """
     Return all x-ray absorption edges within the range
-    :param min_energy_ev: energy to find x-ray absorption edges within
-    :param max_energy_ev: energy to find x-ray absorption edges within
-    :param energy_range_ev: energy to find x-ray absorption edges within
+
+        {label: energy} = xray_edges_in_range(700, energy_range_ev=10)  # 10eV around 700
+        {label: energy} = xray_edges_in_range(700, 730)  # between 700 and 730
+
+    :param min_energy_ev: minimum or central energy, in eV
+    :param max_energy_ev: max energy of range, or None
+    :param energy_range_ev: range in eV around min_energy_ev, if max is None
     :param search_edges: if not None, only return energies for these edges, e.g. ('L3', 'L2')
-    :return: list[(edge_label[str], energy[float])]
+    :return: {label: energy}
     """
     if max_energy_ev is None:
-        min_energy_ev = min_energy_ev - energy_range_ev / 2
-        max_energy_ev = min_energy_ev + energy_range_ev / 2
+        max_energy_ev = min_energy_ev + (energy_range_ev / 2)
+        min_energy_ev = min_energy_ev - (energy_range_ev / 2)
     energies, labels = load_edge_energies(search_edges)
     idx = (energies > min_energy_ev) * (energies < max_energy_ev)
-    return [(str(labels[ii]), float(energies[ii])) for ii in np.flatnonzero(idx)]
+    return {str(labels[ii]): float(energies[ii]) for ii in np.flatnonzero(idx)}
 
 
 def energy_range_edge_label(min_energy_ev: float, max_energy_ev: float | None = None,
@@ -70,12 +137,11 @@ def energy_range_edge_label(min_energy_ev: float, max_energy_ev: float | None = 
     """
     edges = xray_edges_in_range(min_energy_ev, max_energy_ev, energy_range_ev, search_edges)
     if len(edges) == 1:
-        label = edges[0][0]
+        label, = edges.keys()
         element, edge = label.split()
         return element, edge
     if len(edges) == 2:
-        label1 = edges[0][0]
-        label2 = edges[1][0]
+        label1, label2 = edges.keys()
         element1, edge1 = label1.split()
         element2, edge2 = label2.split()
         if element1 != element2:
@@ -92,7 +158,7 @@ def average_energy_scans(*args: np.ndarray):
     return np.arange(min_energy, max_energy + min_step, min_step)
 
 
-def average_energy_spectra(energy, *args: tuple[np.ndarray, np.ndarray]):
+def average_energy_spectra(energy: np.ndarray, *args: tuple[np.ndarray, np.ndarray]):
     """
     Average energy spectra, interpolating at given energy
 
@@ -110,17 +176,17 @@ def average_energy_spectra(energy, *args: tuple[np.ndarray, np.ndarray]):
     return data.mean(axis=0)
 
 
-def preedge_signal(energy, signal, ev_from_start=5.) -> float:
+def preedge_signal(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5.) -> float:
     """Return pre-edge signal"""
-    return np.mean(signal[energy < np.min(energy) + ev_from_start])
+    return float(np.mean(signal[energy < np.min(energy) + ev_from_start]))
 
 
-def postedge_signal(energy, signal, ev_from_end=5.) -> float:
+def postedge_signal(energy: np.ndarray, signal: np.ndarray, ev_from_end: float = 5.) -> float:
     """Return post-edge signal"""
-    return np.mean(signal[energy > np.max(energy) - ev_from_end])
+    return float(np.mean(signal[energy > np.max(energy) - ev_from_end]))
 
 
-def signal_jump(energy, signal, ev_from_start=5., ev_from_end=None) -> float:
+def signal_jump(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5., ev_from_end: float | None = None) -> float:
     """Return signal jump from start to end"""
     ev_from_end = ev_from_end or ev_from_start
     ini_signal = preedge_signal(energy, signal, ev_from_start)
@@ -137,19 +203,19 @@ All background functions have outputs:
 """
 
 
-def subtract_flat_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, float, None]:
+def subtract_flat_background(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5.) -> tuple[np.ndarray, float, None]:
     """Subtract flat background"""
     bkg = preedge_signal(energy, signal, ev_from_start)
     return bkg * np.ones_like(signal), 1, None
 
 
-def normalise_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, float, None]:
+def normalise_background(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5.) -> tuple[np.ndarray, float, None]:
     """Normalise background to one"""
     bkg = preedge_signal(energy, signal, ev_from_start)
     return np.zeros_like(signal), float(bkg), None
 
 
-def fit_linear_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, float, ModelResult]:
+def fit_linear_background(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5.) -> tuple[np.ndarray, float, ModelResult]:
     """Use lmfit to determine sloping background"""
     model = LinearModel(prefix='bkg_')
     region = energy < np.min(energy) + ev_from_start
@@ -161,7 +227,7 @@ def fit_linear_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray,
     return bkg, 1, fit_output
 
 
-def fit_curve_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, float, ModelResult]:
+def fit_curve_background(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5.) -> tuple[np.ndarray, float, ModelResult]:
     """Use lmfit to determine sloping background"""
     model = QuadraticModel(prefix='bkg_')
     # region = (energy < np.min(energy) + ev_from_start) + (energy > np.max(energy) - ev_from_start)
@@ -174,7 +240,7 @@ def fit_curve_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, 
     return bkg, 1, fit_output
 
 
-def fit_exp_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, float, ModelResult]:
+def fit_exp_background(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5.) -> tuple[np.ndarray, float, ModelResult]:
     """Use lmfit to determine sloping background"""
     model = ExponentialModel(prefix='bkg_')
     # region = (energy < np.min(energy) + ev_from_start) + (energy > np.max(energy) - ev_from_start)
@@ -188,7 +254,7 @@ def fit_exp_background(energy, signal, ev_from_start=5.) -> tuple[np.ndarray, fl
     return bkg, 1, fit_output
 
 
-def fit_step_background(energy, signal, ev_from_start=5.)  -> tuple[np.ndarray, float, ModelResult]:  # good?
+def fit_step_background(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5.)  -> tuple[np.ndarray, float, ModelResult]:  # good?
     """Use lmfit to detemine edge background"""
     model = LinearModel(prefix='bkg_') + StepModel(form='arctan', prefix='edge_')
     region = (energy < np.min(energy) + ev_from_start) + (energy > np.max(energy) - ev_from_start)
@@ -210,7 +276,8 @@ def fit_step_background(energy, signal, ev_from_start=5.)  -> tuple[np.ndarray, 
     return bkg, step, fit_output
 
 
-def fit_double_edge_step_background(energy, signal, l3_energy, l2_energy, peak_width_ev=5.) -> tuple[np.ndarray, float, ModelResult]:
+def fit_double_edge_step_background(energy: np.ndarray, signal: np.ndarray, l3_energy: float, l2_energy: float,
+                                    peak_width_ev: float = 5.) -> tuple[np.ndarray, float, ModelResult]:
     """Use lmfit to determine sloping background"""
     model = StepModel(form='arctan', prefix='l3_') + StepModel(form='arctan', prefix='l2_')  # form='linear'
     region = (
@@ -346,24 +413,33 @@ def fit_spectra_exp_background(energy: np.ndarray, signal: np.ndarray, *step_ene
 """
 
 
-def default_n_holes(element: str) -> float:
-    """
-    Return the default number of holes for a given element
-    """
-    elements = {
-        'Cu': 1,
-        'Ni': 2,
-        'Co': 3,
-        'Fe': 4,
-        'Mn': 5,
-        'Cr': 6,
-        'V':  7,
-        'Ti': 8,
-        'Sc': 9,
-    }
-    if element in elements:
-        return elements[element]
-    raise KeyError(f'unknown number of holes for {element}')
+def d_electron_count(element: str) -> float:
+    """Return the number of electrons in the d-orbital for a given element"""
+    match = regex_oxidation.match(element)
+    if not match:
+        raise ValueError('Invalid element: {}'.format(element))
+    element, oxidation, sign = match.groups()
+    if element not in NEUTRAL_D_ELECTRONS:
+        raise ValueError('Unknown d electrons in element: {}'.format(element))
+    if sign == '+':
+        oxidation_value = int(oxidation or 1)
+    elif sign == '-':
+        oxidation_value = -int(oxidation or 1)
+    else:
+        oxidation_value = 0
+    neutral_d = NEUTRAL_D_ELECTRONS[element]
+
+    # Oxidation removes s electrons first, then d electrons
+    # All these metals have 2 s-electrons in the neutral state
+    s_removed = min(oxidation_value, 2)
+    d_removed = max(0, oxidation_value - 2)
+    d_electrons = max(0, neutral_d - d_removed)
+    return d_electrons
+
+
+def d_electron_holes(element: str) -> float:
+    """Return the number of holes in the d-orbital for a given element"""
+    return 10 - d_electron_count(element)
 
 
 def orbital_angular_momentum(energy: np.ndarray, average: np.ndarray,
