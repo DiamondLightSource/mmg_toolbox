@@ -12,6 +12,7 @@ from mmg_toolbox.utils.file_reader import read_dat_file
 from mmg_toolbox.utils.polarisation import get_polarisation, check_polarisation
 from mmg_toolbox.nexus.nexus_functions import nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
+from utils.polarisation import PolLabels, opposite_polarisations
 
 from .spectra_analysis import energy_range_edge_label
 from .spectra import Spectra
@@ -357,16 +358,7 @@ def find_similar_measurements(*filenames: str, temp_tol: float = 1., field_tol: 
     temperature = ini_scan.metadata.temp
     field_z = abs(ini_scan.metadata.mag_field)  # allow +/- field
     pol = ini_scan.metadata.pol
-    if pol in ['lh', 'lv']:
-        similar_pols = ['lh', 'lv']
-    elif pol in ['cl', 'cr']:
-        similar_pols = ['cl', 'cr']
-    elif pol in ['nc', 'pc']:
-        similar_pols = ['nc', 'pc']
-    elif pol in ['la']:
-        similar_pols = ['la']
-    else:
-        raise ValueError(f"Unknown polarisation: {pol}")
+    similar_pols = opposite_polarisations(pol)
 
     similar = []
     for filename in filenames:

@@ -83,7 +83,8 @@ def polarisation_label_to_stokes(label: str, arbitrary_angle: float | None = Non
             return 1, 0, 0, 1
         case PolLabels.circular_negative:
             return 1, 0, 0, -1
-    return 1, 0, 0, 0
+        case _:
+            return 1, 0, 0, 0
 
 
 def check_polarisation(label: str | np.ndarray | None, arbitrary_angle: float | None = None) -> str:
@@ -95,6 +96,25 @@ def check_polarisation(label: str | np.ndarray | None, arbitrary_angle: float | 
     if label is None and arbitrary_angle is not None:
         return polarisation_label_from_stokes(*stokes_from_vector(arbitrary_angle))
     raise ValueError(f"Polarisation parameters not recognized: {label}")
+
+
+def opposite_polarisations(label: str | np.ndarray | None, arbitrary_angle: float | None = None) -> tuple[str, str]:
+    """Return regularised polarisation label and its opposite"""
+    label = check_polarisation(label, arbitrary_angle)
+    match label:
+        case PolLabels.linear_horizontal:
+            opposite = PolLabels.linear_vertical
+        case PolLabels.linear_vertical:
+            opposite = PolLabels.linear_horizontal
+        case PolLabels.circular_right:
+            opposite = PolLabels.circular_left
+        case PolLabels.circular_left:
+            opposite = PolLabels.circular_right
+        case PolLabels.linear_arbitrary:
+            opposite = PolLabels.linear_arbitrary
+        case _:
+            raise ValueError(f"Polarisation parameters not recognized: {label}")
+    return label, opposite
 
 
 def get_polarisation(pol: h5py.Dataset | h5py.Group) -> str:

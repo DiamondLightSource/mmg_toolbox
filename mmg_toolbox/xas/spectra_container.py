@@ -13,7 +13,7 @@ from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mmg_toolbox.utils.polarisation import pol_subtraction_label
+from mmg_toolbox.utils.polarisation import pol_subtraction_label, check_polarisation, opposite_polarisations, PolLabels
 from .spectra import Spectra, SpectraSubtraction, spa
 
 
@@ -294,9 +294,9 @@ class SpectraContainerSubtraction(SpectraContainer):
             spectra_container2 = spectra_container2.copy(f"B={m2.mag_field:+.1g}")
             for spectrum in spectra.values():
                 spectrum.process_label = name
-        elif m1.pol == 'la' and abs(m1.pol_angle - m2.pol_angle) > 89:
+        elif m1.pol == PolLabels.linear_arbitrary and abs(m1.pol_angle - m2.pol_angle) > 89:
             # rotate linear polarisation - XMLD
-            name = 'xmld'
+            name = PolLabels.linear_dichroism
             # rename parents (for display)
             spectra_container1 = spectra_container1.copy(f"{m1.pol}({m1.pol_angle:+.1g})")
             spectra_container2 = spectra_container2.copy(f"{m2.pol}({m2.pol_angle:+.1g})")
@@ -400,7 +400,7 @@ class SpectraContainerSubtraction(SpectraContainer):
         return fig
 
 
-def average_polarised_scans(*scans: SpectraContainer) -> list[SpectraContainer]:
+def average_polarised_scans(*scans: SpectraContainer) -> tuple[SpectraContainer, SpectraContainer | None]:
     """
     Find unique polarisations and average each scan at that polarisation
     Spectra are only separated by polarisation, all spectra with the same polarisation
@@ -409,23 +409,27 @@ def average_polarised_scans(*scans: SpectraContainer) -> list[SpectraContainer]:
         pol1, pol2 = average_polarised_scans(*scans)
 
     :param scans: list of SpectraContainer objects
-    :return: list of SpectraContainer objects
+    :return: pol1, (pol2|None) SpectraContainer objects for opposite polarisations
     """
-    unique_polarisations = reversed(sorted({scan.metadata.pol for scan in scans}))
-    pol_scans = {
-        pol: [scan for scan in scans if scan.metadata.pol == pol]
-        for pol in unique_polarisations
-    }
-    print(pol_scans)
-    average_scans = {
-        pol: sum(scan_list[1:], scan_list[0]) if len(scan_list) > 1 else scan_list[0]
-        for pol, scan_list in pol_scans.items()
-    }
+    pols = opposite_polarisations(scans[0].metadata.pol, scans[0].metadata.pol_angle)
+    pol_scans = [
+        [scan for scan in scans if check_polarisation(scan.metadata.pol) == pol]
+        for pol in pols
+    ]
+
+    # average spectra containers
+    av_scans = [
+        sum(_scans[1:], _scans[0]) if len(_scans) > 1 else _scans[0]
+        for _scans in pol_scans
+    ]
+
     # rename containers
-    for pol, scan in average_scans.items():
+    for pol, scan, pol_scans in zip(pols, av_scans, pol_scans):
         scan.name = pol
-        scan.parents = pol_scans[pol]
+        scan.parents = pol_scans
         for spectra in scan.spectra.values():
             spectra.process_label += f"_{pol}"
-    return list(average_scans.values())
+    if len(pol_scans) == 1:
+        return av_scans[0], None
+    return av_scans[0], av_scans[1]
 
