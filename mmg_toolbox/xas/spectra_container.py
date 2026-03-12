@@ -51,7 +51,25 @@ class XasMetadata(Metadata):
 
 class SpectraContainer:
     """
-    Container for Spectra and metadata
+    Container for Spectra objects and metadata
+
+    Attributes
+    :param name: name of this Scan (usually the scan number)
+    :param spectra: dict of Spectra objects for different detectors
+    :param parents: list of SpectraContainer objects for parent processes
+    :param metadata: XasMetadata object containing regularised scan metadata
+
+    Selected Behaviours (see Docs for full list)
+    print(spectra1) : displays contained spectra, metadata and previous analysis steps
+    spectra1 + spectra2 : Averages contained spectra on a regular energy grid
+    spectra1 - spectra2 : Subtracts spectra on an interpolated energy grid
+    spectra1.trim(ev_from_start=1) : trim contained spectra by 1 eV
+    spectra1.divide_by_preedge() : divide contained spectra by preedge signal
+    spectra1.remove_background(type) : Subtract background using various methods
+    spectra1.analysis_steps_str() : returns a formatted string of previous analysis steps
+    spectra1.create_background_figure() : create a matplotlib figure of all contained spectra
+    spectra1.create_background_figure() : create a matplotlib figure including background subtraction
+    spectra1.write_nexus('filename.nxs') : write a processed NeXus file
     """
 
     def __init__(self, name: str, spectra: dict[str, Spectra | SpectraSubtraction],
@@ -210,7 +228,7 @@ class SpectraContainer:
         scan.process_label = process_label
         return scan
 
-    def trim(self, ev_from_start=5., ev_from_end=None) -> SpectraContainer:
+    def trim(self, ev_from_start=1., ev_from_end=None) -> SpectraContainer:
         """Trim spectra between energies"""
         return self._process_spectra('trim', ev_from_start, ev_from_end)
 

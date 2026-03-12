@@ -260,7 +260,7 @@ class Experiment:
 
     def scans_str(self, *scan_files: int | str, metadata_str: str | None = None,
                   hdf_map: hdfmap.NexusMap | None = None) -> list[str]:
-        """Return string description for multiple files"""
+        """Return list of string descriptions for multiple files"""
         if metadata_str is None:
             metadata_str = " : {str(start_time):30} : " + self.config[C.scan_description]
         filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
@@ -271,6 +271,11 @@ class Experiment:
             name + self.scan_str(file, metadata_str, hdf_map)
             for file, name in zip(filenames, folder_file)
         ]
+
+    def all_scans_str(self, metadata_str: str | None = None, hdf_map: hdfmap.NexusMap | None = None) -> str:
+        """Return string descriptions for all files"""
+        scan_files = self.all_scan_files()
+        return '\n'.join(self.scans_str(*scan_files, metadata_str=metadata_str, hdf_map=hdf_map))
 
     def _generate_scans_title(self, *scans: NexusScan, metadata_str: str | None = None) -> str:
         """Generate title from multiple scan files"""

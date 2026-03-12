@@ -6,7 +6,7 @@ import sys
 from mmg_toolbox.utils.file_reader import data_file_reader
 from mmg_toolbox.utils.experiment import Experiment
 from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
-from mmg_toolbox.scripts.experiment_startup import cli_create_notebooks
+from mmg_toolbox.scripts.experiment_startup import create_notebooks
 
 __version__ = '0.6.0'
 __date__ = '11/03/2026'
@@ -53,5 +53,3 @@ def module_info():
         out += '\ntkinter version: Not available'
     out += '\n'
     return out
-
-create_notebooks = cli_create_notebooks

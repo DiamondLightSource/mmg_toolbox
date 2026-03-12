@@ -23,7 +23,7 @@ BEAMLINE_SCRIPTS = {
     },
     'i06-1': {
         'scripts': ['spectra'],
-        'notebooks': []
+        'notebooks': ['xmcd']
     },
     'i10': {
         'scripts': ['peak fitting', 'plot multi-line'],
@@ -31,7 +31,7 @@ BEAMLINE_SCRIPTS = {
     },
     'i10-1': {
         'scripts': ['spectra'],
-        'notebooks': []
+        'notebooks': ['xmcd']
     },
     'i16': {
         'scripts': ['peak fitting', 'plot multi-line'],
@@ -44,7 +44,7 @@ BEAMLINE_SCRIPTS = {
 }
 
 
-def create_beamline_scripts(beamline: str, directory: str, **replacements):
+def create_beamline_scripts(beamline: str, directory: str, prefix: str = '', **replacements):
     """Create default python and jupyter scripts in directory"""
     default_scripts = BEAMLINE_SCRIPTS['default']
     if beamline in BEAMLINE_SCRIPTS:
@@ -57,7 +57,7 @@ def create_beamline_scripts(beamline: str, directory: str, **replacements):
         R.description: "An example script using mmg_toolbox",
         R.title: 'mmg_toolbox Example Script',
     }
-    template.update(replacements)
+    template.update(replacements)  # note that additional values are added on create_script/notebook
     # Create script files
     for script_name in default_scripts['scripts']:
         filename = os.path.join(directory, script_name + '.py')
@@ -66,7 +66,7 @@ def create_beamline_scripts(beamline: str, directory: str, **replacements):
         else:
             print(f'Script {filename} already exists')
     for notebook_name in default_scripts['notebooks']:
-        filename = os.path.join(directory, notebook_name + '.ipynb')
+        filename = os.path.join(directory, prefix + notebook_name + '.ipynb')
         if not os.path.isfile(filename):
             create_notebook(filename, notebook_name, **template)
         else:

@@ -11,11 +11,13 @@ re_replacement = re.compile(r"{{(.+?)}}")
 
 class R:
     """Names used in replacements"""
+    date = 'date'  # note that this one is generated in generate_script
     beamline = 'beamline'
     description = 'description'
     filepaths = 'filepaths'
     exp = 'experiment_dir'
     proc = 'processing_dir'
+    scanno = 'scan_number'
     scannos = 'scan_numbers'
     title = 'title'
     xaxis = 'x-axis'
@@ -24,7 +26,7 @@ class R:
 
 SCRIPTS = {
     # name: (filename, description)
-    'example': ('example_script.py', 'a simple example'),
+    'example': ('example_script.py', 'a simple example script'),
     'plot multi-line': ('experiment_multiline.py', 'create a multi-line plot'),
     'peak fitting': ('experiment_fitting.py', 'fit peaks and plot the results'),
     'spectra': ('spectra_script.py', 'normalise spectra and subtract polarisations')
@@ -32,19 +34,22 @@ SCRIPTS = {
 
 NOTEBOOKS = {
     # name: (filename, description)
-    'example': ('example_notebook.ipynb', 'a basic example'),
+    'example': ('example_notebook.ipynb', 'An example notebook describing mmg_toolbox'),
+    'xmcd': ('xmcd_notebook.ipynb', 'An example notebook describing XAS analysis'),
 }
 
 TEMPLATE = {
     # {{template}}: replacement
+    R.beamline: '',
     R.description: 'a short description',
     R.filepaths: "'file1.nxs', 'file2.nxs', 'file3.nxs'",
     R.exp: 'path/to/dir',
+    R.scanno: '-1',
     R.scannos: 'range(-10, 0)',
     R.title: 'a nice plot',
     R.xaxis: 'axes',
     R.yaxis: 'signal',
-    R.value: 'Ta'
+    R.value: 'sample_temperature?(300)'
 }
 
 
@@ -58,8 +63,8 @@ def generate_script(template_name: str, **replacements) -> str:
     template_file, description = SCRIPTS[template_name]
     template_file = os.path.join(os.path.dirname(__file__), template_file)
     template_changes = TEMPLATE.copy()
+    template_changes[R.date] = str(datetime.date.today())
     template_changes.update(replacements)
-    template_changes['date'] = str(datetime.date.today())
 
     template_string = open(template_file, 'r').read()
     for name, value in template_changes.items():
@@ -83,6 +88,7 @@ def create_notebook(new_notebook_path: str, template_name: str, **replacements):
     template_file, description = NOTEBOOKS[template_name]
     template_file = os.path.join(os.path.dirname(__file__), template_file)
     template_changes = TEMPLATE.copy()
+    template_changes[R.date] = str(datetime.date.today())
     template_changes.update(replacements)
 
     template_string = open(template_file, 'r').read()
