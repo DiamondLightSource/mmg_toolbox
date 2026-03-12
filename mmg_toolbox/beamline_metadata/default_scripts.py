@@ -53,7 +53,7 @@ def create_beamline_scripts(beamline: str, directory: str, prefix: str = '', **r
             default_scripts[key].extend(beamline_scripts[key])
     template = {
         R.beamline: beamline,
-        R.exp: directory,
+        R.exp: directory.removesuffix('/processing'),
         R.description: "An example script using mmg_toolbox",
         R.title: 'mmg_toolbox Example Script',
     }

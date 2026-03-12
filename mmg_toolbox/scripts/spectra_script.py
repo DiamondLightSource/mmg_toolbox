@@ -17,8 +17,8 @@ exp = Experiment('{{experiment_dir}}', instrument='{{beamline}}')
 print(exp)
 
 # Load scan data and plot raw spectra
-scans = exp.scans(*{{scannos}})  # loads Scan objects that can access NeXus data file
-spectras = exp.load_xas(*{{scannos}}, sample_name='mysample', mode='tey', dls_loader=True)  # only loads NXxas spectra (energy scans) and creates a Spectra object
+scans = exp.scans(*{{scan_numbers}})  # loads Scan objects that can access NeXus data file
+spectras = exp.load_xas(*{{scan_numbers}}, sample_name='mysample', mode='tey', dls_loader=True)  # only loads NXxas spectra (energy scans) and creates a Spectra object
 
 for scan in spectras:
     print(scan)

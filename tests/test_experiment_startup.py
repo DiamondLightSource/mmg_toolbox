@@ -19,11 +19,11 @@ def test_cli_inputs():
 
     command = '.'
     out = run(command)
-    assert "{'directory': '.', 'beamline': None, 'start_jupyter': None, 'quiet': False}" in out
+    assert "{'directory': '.', 'beamline': None, 'start_jupyter': None, 'prefix': '', 'quiet': False}" in out
 
     command = '-v mm12345-1 -b i16 -j'
     out = run(command)
-    assert "{'directory': 'mm12345-1', 'beamline': 'i16', 'start_jupyter': True, 'quiet': False}" in out
+    assert "{'directory': 'mm12345-1', 'beamline': 'i16', 'start_jupyter': True, 'prefix': '', 'quiet': False}" in out
 
 
 @only_dls_file_system

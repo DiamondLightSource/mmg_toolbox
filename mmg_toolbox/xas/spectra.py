@@ -375,7 +375,7 @@ class SpectraSubtraction(Spectra):
             f"process_label='{self.process_label}')"
         )
 
-    def average_subtracted_spectra(self):
+    def average_subtracted_spectra(self) -> Spectra:
         spectra1, spectra2 = self.parents
         average = spectra1 + spectra2
         return average
@@ -401,11 +401,17 @@ class SpectraSubtraction(Spectra):
         :param edges: dictionary of edges
         :returns: (orbital, spin) sum rule values
         """
+        energy = self.energy
         difference = self.signal
         average = self.average_subtracted_spectra().signal
+        if len(average) != len(energy):
+            min_len = min(len(average), len(energy))
+            average = average[:min_len]
+            energy = energy[:min_len]
+            difference = difference[:min_len]
         split = split_energy or self.get_split_energy(edges)
-        orb = spa.orbital_angular_momentum(self.energy, average, difference, n_holes)
-        spin = spa.spin_angular_momentum(self.energy, average, difference, n_holes, split_energy=split)
+        orb = spa.orbital_angular_momentum(energy, average, difference, n_holes)
+        spin = spa.spin_angular_momentum(energy, average, difference, n_holes, split_energy=split)
         return orb, spin
 
     def plot_sum_rules(self, ax: Axes | None = None, *args, split_energy: float | None = None,

@@ -76,6 +76,7 @@ packages = [
 
 [tool.setuptools.package-data]
 "mmg_toolbox.data" = ["*.json"]
+"mmg_toolbox.scripts" = ["*.ipynb"]
 
 [tool.setuptools.dynamic]
 version = {attr = "mmg_toolbox.__version__"}
