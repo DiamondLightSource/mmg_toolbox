@@ -32,6 +32,8 @@ nav:
   - Examples:
     - examples/index.md
     - examples/examples.md
+    - examples/peak_fitting.md
+    - examples/xas_and_xmcd.md
   - Code Description:
     - description/index.md
     - beamline_metadata:
