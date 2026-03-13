@@ -24,6 +24,8 @@ mmg_toolbox is available via the module system:
 ```bash
 $ module load mmg
 (python)$ dataviewer
+# OR
+(python)$ create_notebooks
 ```
 
 ### Usage - Read a NeXus scan file
@@ -71,6 +73,17 @@ for scan in scans:
     scan.plot()
     axes, signal = scan.eval('axes, signal')
 ```
+
+### create_notebooks
+the *create_notebooks* script is included as a simple way to get started and create some default scripts in your
+working directory. By default you will be prompted to provide a beamline and a directory or visit ID. The
+script can then start a Jupyter Lab instance in that directory.
+
+| command                         |                                                        |
+|---------------------------------|--------------------------------------------------------|
+| `$ create_notebooks`            | interactively create scripts and start jupyter         |
+| `$ create_notebooks -b i10-1 .` | create i10-1 specific scripts in the current directory |
+| `$ create_notebooks --help`     | additional options                                     |
 
 ### Dataviewer
 mmg_toolbox contains a tkinter based dataviewer for viewing data in NeXus files. Various plotting and processing 

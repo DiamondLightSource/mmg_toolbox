@@ -425,7 +425,7 @@ class SpectraSubtraction(Spectra):
         split_energy = split_energy or self.get_split_energy(edges)
         split_index = np.argmin(np.abs(energy - split_energy))
 
-        ax = ax or plt.subplots(1, 1)
+        ax = ax or plt.subplots(1, 1)[1]
         lines = self.plot(ax, *args, **kwargs)
         ax.fill_between(energy[:split_index], 0, difference[:split_index], color='r')
         ax.fill_between(energy[split_index:], 0, difference[split_index:], color='b')

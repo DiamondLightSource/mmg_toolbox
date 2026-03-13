@@ -111,7 +111,10 @@ class Experiment:
                 scan_numbers = self._scan_numbers()
                 return self.scan_list[scan_numbers[scan_file]]
             self._update_scan_list()
-            return self.scan_list[scan_file]
+            if scan_file in self.scan_list:
+                return self.scan_list[scan_file]
+            scan_numbers = self._scan_numbers()
+            return self.scan_list[scan_numbers[scan_file]]
 
         if os.path.isfile(scan_file):
             return os.path.abspath(scan_file)

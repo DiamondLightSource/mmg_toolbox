@@ -31,7 +31,7 @@ xmcd_pol2 = down_left - down_right
 
 # xmcd_field1.create_sum_rules_figure()
 # xmcd_field2.create_sum_rules_figure()
-# xmcd_pol1.create_sum_rules_figure()
+xmcd_pol1.create_sum_rules_figure()
 # xmcd_pol2.create_sum_rules_figure()
 
 from mmg_toolbox.xas import average_polarised_scans

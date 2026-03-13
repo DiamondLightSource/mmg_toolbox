@@ -66,7 +66,7 @@ def create_examples_index_md(examples_dir: str, examples_file: str, examples_sit
     examples_files = [
         os.path.join(examples_dir, file)
         for file in os.listdir(examples_dir)
-        if file.endswith('.py')
+        if file.endswith('.py') and file.startswith('example_')
     ]
 
     def get_doc_string(path: str) -> str:

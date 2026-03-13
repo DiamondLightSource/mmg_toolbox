@@ -82,7 +82,9 @@ def cli() -> dict[str, str | None]:
     parser.add_argument("-j", "--jupyter", action='store_true', default=None,
                         help='Start Jupyter lab in working directory')
     parser.add_argument("-q", "--quiet", action='store_true', help='Do not start Jupyter lab on startup')
-    args = parser.parse_args(args=(sys.argv[1:] or ['--help']))
+    # args = parser.parse_args(args=(sys.argv[1:] or ['--help']))
+    args = parser.parse_args()
+    print(args)
 
     return dict(
         directory=args.directory or args.visit,
