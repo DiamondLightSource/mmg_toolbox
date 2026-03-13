@@ -62,7 +62,7 @@ def find_similar_scans(filename: str, *files: str, metadata: list[str | tuple[st
         match_files = find_similar_scans(*filenames, metadata=metadata)
 
     :param filename: nexus scan file to compare others with
-    :praam files: list of additional nexus files
+    :param files: list of additional nexus files
     :param metadata: list of nexus metadata fields to compare
     :returns: list of scan files that match all requirements
     """

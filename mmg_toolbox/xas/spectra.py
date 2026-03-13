@@ -11,7 +11,6 @@ subtracted_spectra = spectra2 - spectra3  # subtracts signals at interpolated en
 from __future__ import annotations
 
 from inspect import signature
-from typing_extensions import Self
 import numpy as np
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
@@ -25,7 +24,7 @@ from mmg_toolbox.xas import spectra_analysis as spa
 # these will be called by Spectra.remove_background
 def get_func_doc(fn):
     sig = signature(fn)
-    doc = next(iter(fn.__doc__.splitlines()), 'background function')
+    doc = next(iter(ln for ln in fn.__doc__.splitlines() if ln), 'background function')
     args = ". args: " + ', '.join(str(par) for name, par in sig.parameters.items() if name not in ['energy', 'signal'])
     return doc + args
 
@@ -62,7 +61,7 @@ class Spectra:
     """
     def __init__(self, energy: np.ndarray, signal: np.ndarray,
                  background: np.ndarray | None = None,
-                 parents: list[Self] | None = None,
+                 parents: list['Spectra'] | None = None, label: str = '',
                  mode: str = '', process_label: str = 'raw', process: str = ''):
         if parents is None:
             parents = []
@@ -74,6 +73,7 @@ class Spectra:
         self.background = background
         if background is not None and background.shape != energy.shape:
             raise Exception(f"the shape of energy[{energy.shape}] and background[{background.shape}] must match")
+        self.label = label
         self.process_label = process_label
         self.process = process
         self.mode = mode
@@ -81,21 +81,25 @@ class Spectra:
     """SPECTRA PROPERTIES"""
 
     def __repr__(self):
-        return f"Spectra('{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}, process_label='{self.process_label}')"
+        return f"Spectra('{self.label}', '{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}, process_label='{self.process_label}')"
 
-    def edge_label(self, edges=spa.SEARCH_EDGES):
+    def edge_label(self, edges=spa.SEARCH_EDGES) -> tuple[str, str]:
         return spa.energy_range_edge_label(self.energy.min(), self.energy.max(), search_edges=edges)
 
-    def edges(self, search_edges=spa.SEARCH_EDGES):
+    def edges(self, search_edges: list[str] | None = spa.SEARCH_EDGES) -> dict[str, float]:
         return spa.xray_edges_in_range(self.energy.min(), self.energy.max(), search_edges=search_edges)
+
+    def energy_index(self, energy: float) -> int:
+        """Return the array index closes to the energy value"""
+        return int(np.argmin(np.abs(self.energy - energy)))
 
     def signal_at_energy(self, energy1: float, energy2: float | None = None) -> float:
         """Return averaged signal between energy values"""
-        idx1 = np.argmin(np.abs(self.energy - energy1))
+        idx1 = self.energy_index(energy1)
         if energy2 is None:
             idx2 = idx1 + 1
         else:
-            idx2 = np.argmin(np.abs(self.energy - energy2))
+            idx2 = self.energy_index(energy2)
         return float(np.mean(self.signal[idx1:idx2]))
 
     def signal_peak(self) -> float:
@@ -109,13 +113,13 @@ class Spectra:
     def __add__(self, other) -> Spectra:
         if issubclass(type(other), Spectra):
             return SpectraAverage(self, other)
-        return Spectra(self.energy, self.signal + other, self.background, mode=self.mode,
+        return Spectra(self.energy, self.signal + other, self.background, mode=self.mode, label=self.label,
                        parents=[self], process_label='add_value', process=f"{self.mode} + {other}")
 
     def __mul__(self, other) -> Spectra:
         if issubclass(type(other), Spectra):
             raise TypeError("Cannot multiply Spectra")
-        return Spectra(self.energy, self.signal * other, self.background, mode=self.mode,
+        return Spectra(self.energy, self.signal * other, self.background, mode=self.mode, label=self.label,
                        parents=[self], process_label='multiply', process=f'{self.mode} * {other}')
 
     def __sub__(self, other) -> Spectra:
@@ -125,8 +129,25 @@ class Spectra:
         if issubclass(type(other), Spectra):
             # subtract new spectra from this spectra
             return SpectraSubtraction(self, other)
-        return Spectra(self.energy, self.signal - other, self.background, mode=self.mode,
+        return Spectra(self.energy, self.signal - other, self.background, mode=self.mode, label=self.label,
                        parents=[self], process_label='subtract_value', process=f'{self.mode}-{other}')
+
+    def trim(self, ev_from_start=5., ev_from_end=None) -> Spectra:
+        """Trim spectra between energies"""
+        en1 = float(self.energy[0] + ev_from_start)
+        en2 = float(self.energy[-1] - (ev_from_end or 0))
+        index1 = self.energy_index(en1)
+        index2 = self.energy_index(en2)
+        s = slice(index1, index2 + 1)
+        en = self.energy[s]
+        sig = self.signal[s]
+        bkg = self.background[s] if self.background is not None else None
+        proc_label = "trim"
+        process = f"trip spectra between {en1:.2f} and {en2:.2f} eV\n"
+        process += f"Spectra.energy = energy[{index1}:{index2}]\n"
+        process += f"Spectra.signal = signal[{index1}:{index2}]\n"
+        return Spectra(en, sig, parents=[self], background=bkg, label=self.label,
+                       process_label=proc_label, process=process, mode=self.mode)
 
     def divide_by_signal_at_energy(self, energy1: float, energy2: float | None = None) -> Spectra:
         """Divide spectra by signal"""
@@ -137,9 +158,9 @@ class Spectra:
         process = f"normalise  to signal at energy between {energy1:.0f} and {energy2} eV\n"
         process += f"energy1 = {energy1}\n"
         process += f"energy2 = {energy2}\n"
-        process += f"Spectra.signal_at_energy(energy1, energy2) = {value}\n"
+        process += f"Spectra.signal_at_energy(energy1, energy2) = {value:.3f}\n"
         process += f"Spectra.signal = signal / {value:.3f}"
-        return Spectra(self.energy, sig, parents=[self], background=bkg,
+        return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
 
     def divide_by_preedge(self, ev_from_start: float = 5) -> Spectra:
@@ -149,21 +170,21 @@ class Spectra:
         bkg = self.background / value if self.background is not None else None
         proc_label = 'divide_by_preedge'
         process = f"normalise signal to signal in the pre-edge region in first {ev_from_start} eV\n"
-        process += f"mean(Spectra.signal[:{ev_from_start}]) = {value}\n"
+        process += f"mean(Spectra.signal[:{ev_from_start}]) = {value:.3f}\n"
         process += f"Spectra.signal = signal / {value:.3f}"
-        return Spectra(self.energy, sig, parents=[self], background=bkg,
+        return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
 
     def divide_by_postedge(self, ev_from_end: float = 5) -> Spectra:
-        """Divide by average of raw_signals at start"""
+        """Divide by average of raw_signals at end"""
         value = spa.postedge_signal(self.energy, self.signal, ev_from_end)
         sig = self.signal / value
         bkg = self.background / value if self.background is not None else None
         proc_label = 'divide_by_postedge'
         process = f"normalise signal to signal in the post-edge region in last {ev_from_end} eV\n"
-        process += f"mean(Spectra.signal[:{ev_from_end} eV]) = {value}\n"
+        process += f"mean(Spectra.signal[:{ev_from_end} eV]) = {value:.3f}\n"
         process += f"Spectra.signal = signal / {value:.3f}"
-        return Spectra(self.energy, sig, parents=[self], background=bkg,
+        return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
 
     def norm_to_peak(self) -> Spectra:
@@ -172,9 +193,9 @@ class Spectra:
         bkg = self.background / peak if self.background is not None else None
         proc_label = 'norm_to_peak'
         process = f"normalise signal to the maximum peak height\n"
-        process += f"max(Spectra.signal) = {peak}\n"
+        process += f"max(Spectra.signal) = {peak:.3f}\n"
         process += f"Spectra.signal = signal / {peak:.3f}"
-        return Spectra(self.energy, sig, parents=[self], background=bkg,
+        return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
 
     def norm_to_jump(self, ev_from_start=5., ev_from_end=None) -> Spectra:
@@ -185,9 +206,9 @@ class Spectra:
         process = f"normalise signal to the jump in signal between start and end of spectra\n"
         process += f"ev_from_start = {ev_from_start}\n"
         process += f"ev_from_end = {ev_from_end}\n"
-        process += f"jump(Spectra.signal) = {jump}\n"
+        process += f"jump(Spectra.signal) = {jump:.3f}\n"
         process += f"Spectra.signal = signal / {jump:.3f}"
-        return Spectra(self.energy, sig, parents=[self], background=bkg,
+        return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
 
     def remove_background(self, name='flat', *args, **kwargs) -> Spectra:
@@ -199,34 +220,35 @@ class Spectra:
         bkg, norm, fit = bkg_fun(self.energy, self.signal, *args, **kwargs)
         sig = (self.signal - bkg) / norm
         proc_label = f"{name}"
-        process = f"Background removal '{name}', using function: \n    {bkg_doc}\n"
+        process = f"Background removal '{name}', using function: \n {bkg_fun.__name__}: {bkg_doc}\n"
         process += f"args: {str(args)}\n"
         process += f"kwargs: {str(kwargs)}\n"
         process += f"\nFit Report:\n{fit.fit_report() if fit is not None else 'None'}\n"
-        process += f"\nResults:\n  <bkg> = {np.mean(bkg)}\n  norm = {norm}\nsignal = (signal - bkg) / norm\n"
-        return Spectra(self.energy, sig, parents=[self], background=bkg,
+        process += f"\nResults:\n <bkg> = {np.mean(bkg):.3f}\n  norm = {norm:.3f}\nsignal = (signal - bkg) / norm\n"
+        return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
     remove_background.__doc__ += (
             "available functions:\n" +
             '\n'.join(f"'{name}': {doc}" for name, doc in BACKGROUND_DOCSTRINGS.items())
     )
 
-    def auto_edge_background(self, peak_width_ev: float = 5.) -> Spectra:
+    def auto_edge_background(self, peak_width_ev: float = 5., edges: dict[str, float] | None = None) -> Spectra:
         """
         Remove generic xray absorption background from spectra
         """
-        edges = self.edges()
-        edge_energies = [energy for lbl, energy in edges]
+        if edges is None:
+            edges = self.edges()
+        edge_energies = edges.values()
         bkg, jump, fit = spa.fit_spectra_background(self.energy, self.signal, *edge_energies, peak_width_ev=peak_width_ev)
         sig = (self.signal - bkg) / jump
         proc_label = f"Auto_edge_background"
-        process = f"Background removal 'poly_edges', using function: \n    {BACKGROUND_DOCSTRINGS['poly_edges']}\n"
+        process = f"Background removal 'poly_edges': \n {BACKGROUND_DOCSTRINGS['poly_edges']}\n"
         process += f"peak_width_ev = {peak_width_ev}\n"
-        edge_str = '\n'.join(f"  {lbl}: {energy}" for lbl, energy in edges)
+        edge_str = '\n'.join(f"  {lbl}: {energy}" for lbl, energy in edges.items())
         process += f"Edges:\n {edge_str}"
         process += f"\nFit Report:\n{fit.fit_report() if fit is not None else 'None'}\n"
         process += f"\nResults:\n  <bkg> = {np.mean(bkg)}\n  norm = {jump}\nsignal = (signal - bkg) / norm\n"
-        return Spectra(self.energy, sig, parents=[self], background=bkg,
+        return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
 
     """SPECTRA NEXUS OUTPUT"""
@@ -254,30 +276,59 @@ class Spectra:
     """SPECTRA PLOT FUNCTIONS"""
 
     def plot(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
+        """
+        Plot spectra as line on current axes
+
+            spectra.plot()
+
+        :param ax: Matplotlib axes object or None to use plt.gca()
+        :param args: args to pass to ax.plot()
+        :param kwargs: kwargs to pass to ax.plot()
+        :return: list of Line2D objects
+        """
         if ax is None:
             ax = plt.gca()
         if 'label' not in kwargs:
-            kwargs['label'] = f"{self.mode} {self.process_label}"
+            kwargs['label'] = f"{self.label} {self.mode} {self.process_label}"
         return ax.plot(self.energy, self.signal, *args, **kwargs)
 
     def plot_bkg(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
+        """
+        Plot spectra background as line on current axes
+
+            spectra.plot_bkg()
+
+        :param ax: Matplotlib axes object or None to use plt.gca()
+        :param args: args to pass to ax.plot()
+        :param kwargs: kwargs to pass to ax.plot()
+        :return: list of Line2D objects
+        """
         if self.background is None:
             return []
         if ax is None:
             ax = plt.gca()
         if 'label' not in kwargs:
-            kwargs['label'] = f"{self.mode} {self.process_label} bkg"
+            kwargs['label'] = f"{self.label} {self.mode} {self.process_label} bkg"
         return ax.plot(self.energy, self.background, *args, **kwargs)
 
     def plot_parents(self, ax: Axes | None = None, *args, **kwargs) -> list[plt.Line2D]:
-        """Plot all parents on the current axes"""
+        """
+        Plot all parents on the current axes
+
+            spectra.plot_parents()
+
+        :param ax: Matplotlib axes object or None to use plt.gca()
+        :param args: args to pass to ax.plot()
+        :param kwargs: kwargs to pass to ax.plot()
+        :return: list of Line2D objects
+        """
         if ax is None:
             ax = plt.gca()
         pl = []
         label = kwargs.get('label', '')
         for parent in self.parents:
             if issubclass(type(parent), Spectra):
-                kwargs['label'] = parent.mode + label
+                kwargs['label'] = f"{label} {self.label} {self.mode} {self.process_label}".strip()
                 pl += ax.plot(parent.energy, parent.signal, *args, **kwargs)
         return pl
 
@@ -310,32 +361,86 @@ class SpectraSubtraction(Spectra):
             bkg_spectra = ((s.energy, s.background) for s in parents if s.background is not None)
             av_bkg = spa.average_energy_spectra(av_energy, *bkg_spectra)
         difference = signal1 - signal2
-        label = next((s.mode for s in parents))
+        label = f"{spectra1.label} - {spectra2.label}"
+        mode = next((s.mode for s in parents))
         process_label = 'subtraction'
         process = "Subtraction of spectra S1 - S2:\n" + "\n".join(
             f'  S{n + 1}: ' + repr(s) for n, s in enumerate(parents))
-        super().__init__(av_energy, difference, av_bkg, parents,
-                         process_label=process_label, mode=label, process=process)
+        super().__init__(av_energy, difference, av_bkg, parents, label=label,
+                         process_label=process_label, mode=mode, process=process)
 
     def __repr__(self):
         return (
-            f"SpectraSubtraction('{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}," +
+            f"SpectraSubtraction('{self.label}', '{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}," +
             f"process_label='{self.process_label}')"
         )
 
-    def average_subtracted_spectra(self):
+    def average_subtracted_spectra(self) -> Spectra:
         spectra1, spectra2 = self.parents
         average = spectra1 + spectra2
         return average
 
-    def calculate_sum_rules(self, n_holes: float) -> tuple[float, float]:
+    def get_split_energy(self, edges: dict[str, float] | None = None) -> float:
+        """return the energy half-way between two edges"""
+        if edges is None:
+            edges = self.edges()
+        if len(edges) != 2:
+            raise ValueError('edges must have length 2')
+        return sum(edges.values()) / len(edges)
+
+    def calculate_sum_rules(self, n_holes: float, split_energy: float | None = None,
+                            edges: dict[str, float] | None = None) -> tuple[float, float]:
+        """
+        Calculate sum rules of XMCD spectra from integration
+
+            orb, spin = spectra.calculate_sum_rules(n_holes)
+
+        Parameters
+        :param n_holes: number of holes in absorbing ion
+        :param split_energy: energy half-way between two edges
+        :param edges: dictionary of edges
+        :returns: (orbital, spin) sum rule values
+        """
+        energy = self.energy
         difference = self.signal
         average = self.average_subtracted_spectra().signal
-        orb = spa.orbital_angular_momentum(self.energy, average, difference, n_holes)
-        spin = spa.spin_angular_momentum(self.energy, average, difference, n_holes)
+        if len(average) != len(energy):
+            min_len = min(len(average), len(energy))
+            average = average[:min_len]
+            energy = energy[:min_len]
+            difference = difference[:min_len]
+        split = split_energy or self.get_split_energy(edges)
+        orb = spa.orbital_angular_momentum(energy, average, difference, n_holes)
+        spin = spa.spin_angular_momentum(energy, average, difference, n_holes, split_energy=split)
         return orb, spin
 
+    def plot_sum_rules(self, ax: Axes | None = None, *args, split_energy: float | None = None,
+                       edges: dict[str, float] | None = None, **kwargs) -> list[plt.Line2D]:
+        """
+        Create plots of spectra highlighting integration for sum rules
+        """
+        energy = self.energy
+        difference = self.signal
+        # average = self.average_subtracted_spectra().signal
+        split_energy = split_energy or self.get_split_energy(edges)
+        split_index = np.argmin(np.abs(energy - split_energy))
+
+        ax = ax or plt.subplots(1, 1)[1]
+        lines = self.plot(ax, *args, **kwargs)
+        ax.fill_between(energy[:split_index], 0, difference[:split_index], color='r')
+        ax.fill_between(energy[split_index:], 0, difference[split_index:], color='b')
+        return lines
+
     def sum_rules_report(self, n_holes: float, element: str = '') -> str:
+        """
+        Calculate sum rules of XMCD spectra and return report
+
+            print(spectra.sum_rules_report(n_holes))
+
+        Parameters
+        :param n_holes: number of holes in absorbing ion
+        :returns: str
+        """
         orb, spin = self.calculate_sum_rules(n_holes)
         report = f"{element} n_holes = {n_holes}\nL = {orb:.3f} μB\nS = {spin:.3f} μB"
         return report
@@ -345,7 +450,7 @@ class SpectraSubtraction(Spectra):
         note = nw.add_nxnote(
             root=parent,
             name=name,
-            description=f"{self.mode} {self.process_label} Sum Rules",
+            description=f"{self.label} {self.mode} {self.process_label} Sum Rules",
             data=self.sum_rules_report(n_holes, element),
             sequence_index=sequence_index
         )
@@ -372,14 +477,15 @@ class SpectraAverage(Spectra):
         else:
             bkg_spectra = ((s.energy, s.background) for s in parents if s.background is not None)
             av_bkg = spa.average_energy_spectra(av_energy, *bkg_spectra)
-        label = next((s.mode for s in parents))
+        mode = next((s.mode for s in parents))
+        label = '+'.join(s.label for s in spectra)
         process = "Average of spectra:\n" + "\n".join('  ' + repr(s) for s in parents)
-        super().__init__(av_energy, av_signal, av_bkg, parents, mode=label,
+        super().__init__(av_energy, av_signal, av_bkg, parents, mode=mode, label=label,
                          process_label=process_label, process=process)
 
     def __repr__(self):
         return (
-            f"SpectraAverage('{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}," +
+            f"SpectraAverage('{self.label}', '{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}," +
             f"process_label='{self.process_label}')"
         )
 

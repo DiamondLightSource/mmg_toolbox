@@ -11,7 +11,7 @@ from ..utils.env_functions import scan_number_mapping, last_folder_update, get_b
 from ..beamline_metadata.config import beamline_config, C
 from ..nexus.nexus_scan import NexusScan, NexusDataHolder
 from ..nexus.nexus_reader import find_scans
-from ..xas import load_xas_scans, SpectraContainer
+from ..xas import load_xas_scans, SpectraContainer, find_similar_measurements, average_polarised_scans
 
 
 class Experiment:
@@ -111,7 +111,10 @@ class Experiment:
                 scan_numbers = self._scan_numbers()
                 return self.scan_list[scan_numbers[scan_file]]
             self._update_scan_list()
-            return self.scan_list[scan_file]
+            if scan_file in self.scan_list:
+                return self.scan_list[scan_file]
+            scan_numbers = self._scan_numbers()
+            return self.scan_list[scan_numbers[scan_file]]
 
         if os.path.isfile(scan_file):
             return os.path.abspath(scan_file)
@@ -260,7 +263,7 @@ class Experiment:
 
     def scans_str(self, *scan_files: int | str, metadata_str: str | None = None,
                   hdf_map: hdfmap.NexusMap | None = None) -> list[str]:
-        """Return string description for multiple files"""
+        """Return list of string descriptions for multiple files"""
         if metadata_str is None:
             metadata_str = " : {str(start_time):30} : " + self.config[C.scan_description]
         filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
@@ -271,6 +274,11 @@ class Experiment:
             name + self.scan_str(file, metadata_str, hdf_map)
             for file, name in zip(filenames, folder_file)
         ]
+
+    def all_scans_str(self, metadata_str: str | None = None, hdf_map: hdfmap.NexusMap | None = None) -> str:
+        """Return string descriptions for all files"""
+        scan_files = self.all_scan_files()
+        return '\n'.join(self.scans_str(*scan_files, metadata_str=metadata_str, hdf_map=hdf_map))
 
     def _generate_scans_title(self, *scans: NexusScan, metadata_str: str | None = None) -> str:
         """Generate title from multiple scan files"""
@@ -289,8 +297,51 @@ class Experiment:
         scans = self.scans(*scan_files, hdf_map=hdf_map)
         return self._generate_scans_title(*scans, metadata_str=metadata_str)
 
-    def load_xas(self, *scan_files: int | str, sample_name: str | None = '') -> list[SpectraContainer]:
-        """Read XAS spectra containers"""
+    def load_xas(self, *scan_files: int | str, sample_name: str | None = '', element_edge: str | None = None,
+                 mode: str | list[str] = 'all', dls_loader: bool = False, match_metadata: bool = True,
+                 temp_tol: float = 1., field_tol: float = 0.1) -> list[SpectraContainer]:
+        """
+        Read XAS spectra - see xas.SpectraContainer
+
+            spectra_list = exp.load_xas(12345, 12346, mode='TEY', match_metadata=True)
+
+        :param scan_files: List of filenames or scan numbers in folder
+        :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+        :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+        :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+        :param dls_loader: bool, if True uses explicit loading of metadata from DLS MMG beamlines
+        :param match_metadata: bool, if True uses metadata to determine from sample name
+        :param temp_tol: Tolerance for temperature comparison (default: 0.1 K)
+        :param field_tol: Tolerance for field comparison (default: 0.1 T)
+        :return: List of SpectraContainer objects containing XAS spectra
+        """
         filenames = [self.get_scan_filename(file) for file in scan_files]
-        return load_xas_scans(*filenames, sample_name=sample_name)
+        kwargs = dict(sample_name=sample_name, element_edge=element_edge, mode=mode, dls_loader=dls_loader)
+        if match_metadata:
+            return find_similar_measurements(*filenames, temp_tol=temp_tol, field_tol=field_tol, **kwargs)
+        return load_xas_scans(*filenames, **kwargs)
+
+    def xas_polarised_spectra(self, *scan_files: int | str, sample_name: str | None = '',
+                              element_edge: str | None = None, mode: str | list[str] = 'all',
+                              dls_loader: bool = False, match_metadata: bool = True,
+                              temp_tol: float = 1., field_tol: float = 0.1) -> tuple[SpectraContainer, SpectraContainer]:
+        """
+        Read XAS spectra - see xas.SpectraContainer
+
+            pol1, pol2 = exp.xas_polarised_spectra(12345, 12346, mode='TEY', match_metadata=True)
+
+        :param scan_files: List of filenames or scan numbers in folder
+        :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+        :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+        :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+        :param dls_loader: bool, if True uses explicit loading of metadata from DLS MMG beamlines
+        :param match_metadata: bool, if True uses metadata to determine from sample name
+        :param temp_tol: Tolerance for temperature comparison (default: 0.1 K)
+        :param field_tol: Tolerance for field comparison (default: 0.1 T)
+        :return: pol1, pol2 SpectraContainer objects containing averaged XAS spectra
+        """
+        spectra = self.load_xas(*scan_files, sample_name=sample_name, element_edge=element_edge,
+                                mode=mode, dls_loader=dls_loader, match_metadata=match_metadata,
+                                temp_tol=temp_tol, field_tol=field_tol)
+        return average_polarised_scans(*spectra)
 
