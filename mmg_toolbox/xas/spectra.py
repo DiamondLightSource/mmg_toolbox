@@ -187,7 +187,8 @@ class Spectra:
         return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
 
-    def norm_to_peak(self) -> Spectra:
+    def divide_by_peak(self) -> Spectra:
+        """Divide by peak height [max(abs(signal))]"""
         peak = self.signal_peak()
         sig = self.signal / peak
         bkg = self.background / peak if self.background is not None else None
@@ -198,7 +199,8 @@ class Spectra:
         return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
 
-    def norm_to_jump(self, ev_from_start=5., ev_from_end=None) -> Spectra:
+    def divide_by_jump(self, ev_from_start=5., ev_from_end=None) -> Spectra:
+        """Divide by the jump between start and end of spectra"""
         jump = abs(self.signal_jump(ev_from_start, ev_from_end))
         sig = self.signal / jump
         bkg = self.background / jump if self.background is not None else None
@@ -210,6 +212,27 @@ class Spectra:
         process += f"Spectra.signal = signal / {jump:.3f}"
         return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode)
+
+    def divide_by_background(self, name='flat', *args, **kwargs) -> Spectra:
+        """
+        Return new Spectra object with signal divided by a particular background
+        """
+        bkg_fun = BACKGROUND_FUNCTIONS[name]
+        bkg_doc = BACKGROUND_DOCSTRINGS[name]
+        bkg, norm, fit = bkg_fun(self.energy, self.signal, *args, **kwargs)
+        sig = self.signal / bkg
+        proc_label = f"{name}"
+        process = f"Background normalisation '{name}', using function: \n {bkg_fun.__name__}: {bkg_doc}\n"
+        process += f"args: {str(args)}\n"
+        process += f"kwargs: {str(kwargs)}\n"
+        process += f"\nFit Report:\n{fit.fit_report() if fit is not None else 'None'}\n"
+        process += f"\nResults:\n <bkg> = {np.mean(bkg):.3f}{bkg.shape}\nsignal = signal / bkg\n"
+        return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
+                       process_label=proc_label, process=process, mode=self.mode)
+    divide_by_background.__doc__ += (
+            "available functions:\n" +
+            '\n'.join(f"'{name}': {doc}" for name, doc in BACKGROUND_DOCSTRINGS.items())
+    )
 
     def remove_background(self, name='flat', *args, **kwargs) -> Spectra:
         """
@@ -272,6 +295,15 @@ class Spectra:
         if default:
             parent.attrs['default'] = name
         return data
+
+    def write_csv(self, csv_filename: str, header: str = ''):
+        """Write spectra to csv file"""
+        header = header + "\n" if header else ""
+        header += f"{self.label} {self.mode} process='{self.process_label}'\nenergy [eV], signal"
+        array = self.energy, self.signal
+        np.savetxt(csv_filename, array, delimiter=',', header=header)
+        print(f"Saved {csv_filename}")
+
 
     """SPECTRA PLOT FUNCTIONS"""
 
