@@ -158,6 +158,12 @@ class SpectraContainer:
         spectra = self.spectra[mode]
         return spectra.energy, spectra.signal
 
+    def get_all_arrays(self) -> np.ndarray[tuple[int, int], np.dtype[np.float64]]:
+        """Return energy, signal arrays of all modes"""
+        energy = self.spectra[self.metadata.default_mode].energy
+        signals = np.array([spectra.signal for spectra in self.spectra.values()])
+        return np.array([energy, *signals])
+
     def analysis_steps(self) -> dict[str, dict[str, Spectra]]:
         """Return ordered dictionary of processing steps from parent objects"""
         return {sc.label(): sc.spectra for sc in list(reversed(self.parents)) + [self]}
@@ -171,16 +177,30 @@ class SpectraContainer:
         )
 
     def write_nexus(self, nexus_filename: str):
+        """Write all spectra to NeXus file (.nxs)"""
         from .nexus_writer import write_xas_nexus
         write_xas_nexus(self, nexus_filename)
 
-    def write_csv(self, file_title: str, mode: str | None = None) -> None:
-        """Write spectra to csv file"""
+    def write_csv(self, csv_filename: str, mode: str | None = None) -> None:
+        """
+        Write spectra to csv file
+
+            spectra.write_csv('xas_spectra.csv')  # spectra contains modes TEY and TFY
+            energy, tey, tfy = np.loadtxt('xas_spectra.csv', delimiter=',').T
+
+        :param csv_filename: filename to write
+        :param mode: mode to write, or None to write all mode spectra to single file
+        """
         header = f"{self.name} {self.process_label}"
-        file_title = file_title.removesuffix('.csv')
-        for spec_mode, spectra in self.spectra.items():
-            if mode is None or mode.lower() == spec_mode.lower():
-                spectra.write_csv(file_title + f"_{mode}.csv", header)
+        if mode is None:
+            array = self.get_all_arrays().T
+            header += '\nenergy, ' + ', '.join(self.spectra.keys())
+        else:
+            spectra = self.spectra[mode]
+            array = np.transpose([spectra.energy, spectra.signal])
+            header += f"\nenergy, {mode}"
+        np.savetxt(csv_filename, array, delimiter=', ', header=header)
+        print(f"Saved {csv_filename}")
 
     def create_figure(self, **kwargs) -> plt.Figure:
         """

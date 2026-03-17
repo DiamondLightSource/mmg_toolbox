@@ -297,13 +297,17 @@ class Spectra:
         return data
 
     def write_csv(self, csv_filename: str, header: str = ''):
-        """Write spectra to csv file"""
+        """
+        Write spectra to csv file
+
+        :param csv_filename: filename to write. _$mode.csv will be appended
+        :param header: header row
+        """
         header = header + "\n" if header else ""
         header += f"{self.label} {self.mode} process='{self.process_label}'\nenergy [eV], signal"
-        array = self.energy, self.signal
-        np.savetxt(csv_filename, array, delimiter=',', header=header)
+        array = np.transpose([self.energy, self.signal])
+        np.savetxt(csv_filename, array, delimiter=', ', header=header)
         print(f"Saved {csv_filename}")
-
 
     """SPECTRA PLOT FUNCTIONS"""
 

@@ -8,6 +8,7 @@ import re
 import subprocess
 import tempfile
 from datetime import datetime
+from typing import Iterator
 
 from mmg_toolbox.utils.file_functions import get_scan_number, list_files
 
@@ -102,7 +103,7 @@ def get_dls_visits(instrument: str | None = None, year: str | int | None = None)
         return {
             os.path.basename(path): path
             for path in sorted(
-                (file.path for file in os.scandir(os.path.join(DLS, instrument, 'data', YEAR))
+                (file.path for file in os.scandir(dls_dir)
                  if file.is_dir() and os.access(file.path, os.R_OK)),
                 key=lambda x: os.path.getmtime(x), reverse=True
             )
@@ -137,6 +138,36 @@ def scan_number_mapping(*folders: str, extension: str = '.nxs') -> dict[int, str
 def get_last_scan_number(folder: str) -> int:
     """Return latest scan number"""
     return get_scan_numbers(folder)[-1]
+
+
+def find_scan_files(scan_file: str | int, directory: str | None, instrument: str | None = None, extension: str = '.nxs') -> Iterator[str]:
+    """
+    Recursively search a directory for scan files, returns a generator
+
+        fn = find_scan_files(12345, '/dls/i16/data')
+        filepath = next(fn, None)  # returns first filepath with '12345' in the title
+        all_paths = list(fn)
+
+    :param scan_file: scan number or part of filename
+    :param directory: directory to search for scan files, or None to use instrument
+    :param instrument: if directory is None, use instrument to use DLS data directory (None to use current beamline)
+    :param extension: extension to search for scan files
+    :return: generator object for search
+    """
+    scan_file = str(scan_file)
+    if directory is None:
+        if instrument is None:
+            instrument = get_beamline()
+        directory = os.path.join(DLS, instrument.lower(), 'data')
+
+    def scantree(path: str):
+        for entry in os.scandir(path):
+            if os.access(entry.path, os.R_OK) and not entry.name.startswith('.'):
+                if entry.is_file() and entry.name.endswith(extension) and scan_file in entry.name:
+                    yield entry.path
+                elif entry.is_dir():
+                    yield from scantree(entry.path)
+    return scantree(directory)
 
 
 def last_folder_update(folder: str) -> datetime:
