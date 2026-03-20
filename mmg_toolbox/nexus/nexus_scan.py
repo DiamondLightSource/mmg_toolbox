@@ -184,6 +184,39 @@ class NexusScan(NexusLoader):
         """Return complete stack of images"""
         return self.image(index=())
 
+    def roi_total(self, name: str = 'roi1', cen_i: int | str | None = None, cen_j: int | str | None = None,
+                  wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE') -> np.ndarray:
+        """
+        Generate an array of the summed intensity of a ROI (region of interest)
+        Add an image ROI (region of interest) to the named expressions
+        The ROI operates on the default IMAGE dataset, loading only the required region from the file.
+        The following expressions will be added, for use in self.eval etc.
+            *name* -> returns the whole ROI array as a HDF5 dataset
+            *name*_total -> returns the sum of each image in the ROI array
+            *name*_max -> returns the max of each image in the ROI array
+            *name*_min -> returns the min of each image in the ROI array
+            *name*_mean -> returns the mean of each image in the ROI array
+            *name*_bkg -> returns the background ROI array (area around ROI)
+            *name*_rmbkg -> returns the total with background subtracted
+            *name*_box -> returns the pixel positions of the ROI
+            *name*_bkg_box -> returns the pixel positions of the background ROI
+
+        :param name: string name of the ROI
+        :param cen_i: central pixel index along first dimension, can be callable string
+        :param cen_j: central pixel index along second dimension, can be callable string
+        :param wid_i: full width along first dimension, in pixels
+        :param wid_j: full width along second dimension, in pixels
+        :param image_name: string name of the image
+        """
+        # TODO: correct docs
+        # TODO: decide on functionality
+        # TODO: add examples, docs and tests
+        namespace_name = f"{name}_total"
+        if cen_i is not None and cen_j is not None:
+            self.map.add_roi(name, cen_i, cen_j, wid_i, wid_j, image_name)
+        return self.arrays(namespace_name)[0]
+
+
     def table(self, delimiter=', ', string_spec='', format_spec='f', default_decimals=8) -> str:
         """Return data table"""
         with self.load_hdf() as hdf:
