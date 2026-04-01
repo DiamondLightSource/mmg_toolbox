@@ -55,6 +55,11 @@ def test_spectra_container():
     edges = container.get_edges()
     assert len(edges) == 2
 
+    en2, sig2 = container.get_arrays()
+    assert sig2.shape == signal.shape
+    en3, tey, tfy = container.get_all_arrays()
+    assert tfy.shape == energy.shape
+
     container2 = container.divide_by_preedge().remove_background('linear')
     assert container2.spectra['tey'].signal.max() == approx(0)
 
@@ -116,7 +121,7 @@ def test_average_polarised_scans():
     assert ' n_holes = 4\nL = -0.088 μB\nS = 0.008 μB' in report
 
 
-def test_write_nexus():
+def test_write_outputs():
     energy = np.arange(700, 730, 0.1)
     signal = 3 * np.ones(len(energy))
     spectra = {mode: Spectra(energy, signal, label='test', mode=mode) for mode in ['tey', 'tfy']}
@@ -131,3 +136,10 @@ def test_write_nexus():
 
     os.remove('test_xas.nxs')
 
+    container.write_csv('test_xas.csv')
+    assert os.path.isfile('test_xas.csv')
+
+    energy2, tey, tfy = np.loadtxt('test_xas.csv', delimiter=',').T
+    assert tey.shape == signal.shape
+
+    os.remove('test_xas.csv')

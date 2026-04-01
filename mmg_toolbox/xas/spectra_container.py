@@ -152,6 +152,18 @@ class SpectraContainer:
         """Return list of edges from metadata"""
         return spa.get_edge_energies(self.metadata.element + self.metadata.edge)
 
+    def get_arrays(self, mode: str | None = None) -> tuple[np.ndarray, np.ndarray]:
+        """Return energy, signal arrays of chosen mode"""
+        mode = mode or self.metadata.default_mode
+        spectra = self.spectra[mode]
+        return spectra.energy, spectra.signal
+
+    def get_all_arrays(self) -> np.ndarray[tuple[int, int], np.dtype[np.float64]]:
+        """Return energy, signal arrays of all modes"""
+        energy = self.spectra[self.metadata.default_mode].energy
+        signals = np.array([spectra.signal for spectra in self.spectra.values()])
+        return np.array([energy, *signals])
+
     def analysis_steps(self) -> dict[str, dict[str, Spectra]]:
         """Return ordered dictionary of processing steps from parent objects"""
         return {sc.label(): sc.spectra for sc in list(reversed(self.parents)) + [self]}
@@ -165,8 +177,30 @@ class SpectraContainer:
         )
 
     def write_nexus(self, nexus_filename: str):
+        """Write all spectra to NeXus file (.nxs)"""
         from .nexus_writer import write_xas_nexus
         write_xas_nexus(self, nexus_filename)
+
+    def write_csv(self, csv_filename: str, mode: str | None = None) -> None:
+        """
+        Write spectra to csv file
+
+            spectra.write_csv('xas_spectra.csv')  # spectra contains modes TEY and TFY
+            energy, tey, tfy = np.loadtxt('xas_spectra.csv', delimiter=',').T
+
+        :param csv_filename: filename to write
+        :param mode: mode to write, or None to write all mode spectra to single file
+        """
+        header = f"{self.name} {self.process_label}"
+        if mode is None:
+            array = self.get_all_arrays().T
+            header += '\nenergy, ' + ', '.join(self.spectra.keys())
+        else:
+            spectra = self.spectra[mode]
+            array = np.transpose([spectra.energy, spectra.signal])
+            header += f"\nenergy, {mode}"
+        np.savetxt(csv_filename, array, delimiter=', ', header=header)
+        print(f"Saved {csv_filename}")
 
     def create_figure(self, **kwargs) -> plt.Figure:
         """
@@ -244,13 +278,39 @@ class SpectraContainer:
         """Divide by average of raw_signals at end"""
         return self._process_spectra('divide_by_postedge', ev_from_end)
 
-    def norm_to_peak(self) -> SpectraContainer:
+    def divide_by_peak(self) -> SpectraContainer:
         """Normalise the spectra to the highest point"""
-        return self._process_spectra('norm_to_peak')
+        return self._process_spectra('divide_by_peak')
 
-    def norm_to_jump(self, ev_from_start: float = 5, ev_from_end: float | None = None) -> SpectraContainer:
+    def divide_by_jump(self, ev_from_start: float = 5, ev_from_end: float | None = None) -> SpectraContainer:
         """Normalise the spectra to the jump between edges"""
-        return self._process_spectra('norm_to_jump', ev_from_start, ev_from_end)
+        return self._process_spectra('divide_by_jump', ev_from_start, ev_from_end)
+
+    def divide_by_background(self, name='flat', *args, **kwargs) -> SpectraContainer:
+        """
+        Divide by background using various methods
+
+          spectra = spectra.divide_by_background('flat', ev_from_start=5)
+
+        Background options
+        | Option | parameters |
+        |  ---   | ---------- |
+        | 'flat' | ev_from_start |
+        | 'norm' | ev_from_start |
+        | 'linear' | ev_from_start |
+        | 'curve' | ev_from_start |
+        | 'exp' | ev_from_start, ev_from_end |
+        | 'step' | ev_from_start |
+        | 'double_edge_step' | l3_energy, l2_energy, peak_width_ev |
+        | 'poly_edges' | *step_energies, peak_width_ev |
+        | 'exp_edges' | *step_energies, peak_width_ev |
+
+        :param name: the name of the background to remove e.g. 'flat', 'linear', 'curve', 'exp', 'step', 'double_edge_step', 'poly_edges'
+        :param args: additional positional arguments
+        :param kwargs: additional keyword arguments
+        :return: processed SpectraContainer object
+        """
+        return self._process_spectra('remove_background', name, *args, **kwargs)
 
     def remove_background(self, name='flat', *args, **kwargs) -> SpectraContainer:
         """

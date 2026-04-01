@@ -36,6 +36,7 @@ NOTEBOOKS = {
     # name: (filename, description)
     'example': ('example_notebook.ipynb', 'An example notebook describing mmg_toolbox'),
     'xmcd': ('xmcd_notebook.ipynb', 'An example notebook describing XAS analysis'),
+    'msmapper': ('msmapper_notebook.ipynb', 'An example notebook describing MSMapper analysis'),
 }
 
 TEMPLATE = {
