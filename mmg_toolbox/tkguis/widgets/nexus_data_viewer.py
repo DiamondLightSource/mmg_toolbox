@@ -7,6 +7,7 @@ a tkinter frame with 4 sections:
 """
 import tkinter as tk
 from tkinter import ttk
+import time
 
 from hdfmap import create_nexus_map
 
@@ -83,8 +84,20 @@ class NexusDataViewer:
         self.config[C.current_dir] = folder
 
         logger.info(f"Updating widgets for file: {filename}")
-        # TODO: time and speed up this part
+        t0 = time.perf_counter()
         self.selector_widget.select_box.set(get_scan_number(filename))
+        t1 = time.perf_counter()
         self.map = create_nexus_map(filename)
+        t2 = time.perf_counter()
         self.detail_widget.update_data_from_file(filename, self.map)
+        t3 = time.perf_counter()
         self.plot_widget.update_data_from_files(*filenames, hdf_map=self.map)
+        t4 = time.perf_counter()
+        tot = t4 - t0
+        logger.info('\n'.join([
+            f"\n---time taken: {tot:.3} s---",
+            f"set selector widget time: {t1-t0:.3} s {(t1-t0)/tot:.2%}",
+            f"create nexus map time: {t2-t1:.3} s {(t2-t1)/tot:.2%}",
+            f"update detail widget time: {t3-t2:.3} s {(t3-t2)/tot:.2%}",
+            f"plot widget time: {t4-t3:.3} s {(t4-t3)/tot:.2%}"
+        ]))
