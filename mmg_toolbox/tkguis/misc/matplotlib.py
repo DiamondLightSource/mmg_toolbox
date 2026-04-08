@@ -10,6 +10,8 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
+from matplotlib.colorbar import Colorbar
+from matplotlib.collections import QuadMesh
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 from .styles import create_root, get_style_background
@@ -68,7 +70,19 @@ class CustomToolbar(NavigationToolbar2Tk):
 
 def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
              figure_dpi: int | None = None) -> tuple[Figure, Axes, list[Line2D], NavigationToolbar2Tk]:
-    """Create a lineplot on a tk canvas with toolbar"""
+    """
+    Create a lineplot on a tk canvas with toolbar
+
+        fig, ax, line_list, toolbar = ini_plot(frame, figure_size, figure_dpi)
+        line_list.extend(ax.plot(x, y))
+        fig.canvas.draw()
+        toolbar.update()
+
+    :param frame: parent frame within which the figure will be placed.
+    :param figure_size: size of the figure in inches [horiz, vert], passed to matplotlib.Figure()
+    :param figure_dpi: figure DPI, passed to matplotlib.Figure()
+    :returns: tuple[Figure, Axes, list[Line2D], Toolbar]
+    """
     if figure_size is None:
         figure_size = FIGURE_SIZE
     if figure_dpi is None:
@@ -94,7 +108,6 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     plot_list: list[plt.Line2D] = []
 
     frm = ttk.Frame(frame)
-    # TODO: provide pack options input to control packing options
     frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH, pady=2, padx=5)
     canvas = FigureCanvasTkAgg(fig, frm)
     canvas.get_tk_widget().configure(bg='black')
@@ -112,8 +125,23 @@ def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     return fig, ax1, plot_list, toolbar
 
 
-def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure_dpi: int | None = None):
-    """Create an image plot on a tk canvas with toolbar"""
+def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
+              figure_dpi: int | None = None) -> tuple[Figure, Axes, list[Line2D], QuadMesh, Colorbar, CustomToolbar]:
+    """
+    Create an empty image plot on a tk canvas with toolbar
+
+        fig, ax, plot_list, image, cbar, toolbar = ini_image(frame, figure_size, figure_dpi)
+        image.remove()
+        image = ax.pcolormesh(image_array, shading='auto')
+        colorbar.update_normal(image)
+        toolbar.update()
+        fig.canvas.draw()
+
+    :param frame: parent frame within which the figure will be placed.
+    :param figure_size: size of the figure in inches [horiz, vert], passed to matplotlib.Figure()
+    :param figure_dpi: figure DPI, passed to matplotlib.Figure()
+    :returns: tuple[Figure, Axes, list[Line2D], Toolbar]
+    """
     if figure_size is None:
         figure_size = IMAGE_SIZE
     if figure_dpi is None:
@@ -153,7 +181,7 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None, figure
 
     # Toolbar
     frm2 = ttk.Frame(frm)
-    frm2.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=5, pady=2)
+    frm2.pack(side=tk.TOP, expand=tk.NO, fill=tk.X, padx=5, pady=2)
     # toolbar = NavigationToolbar2Tk(canvas, frm)
     toolbar = CustomToolbar(canvas, frm2)
     toolbar.config(background=bg)
