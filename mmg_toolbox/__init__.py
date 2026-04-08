@@ -7,14 +7,14 @@ from mmg_toolbox.utils.file_reader import data_file_reader
 from mmg_toolbox.utils.experiment import Experiment
 from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 from mmg_toolbox.scripts.experiment_startup import create_notebooks
-
+from .diffraction.powder.data_reduction import PowderDataReduction, PowderData
 __version__ = '0.6.0'
 __date__ = '11/03/2026'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info',
            'data_file_reader', 'Experiment', 'metadata', 'xas_metadata', 'nexus_metadata',
-           'create_notebooks']
+           'create_notebooks', 'PowderDataReduction', 'PowderData']
 
 
 def start_gui(*args: str):
