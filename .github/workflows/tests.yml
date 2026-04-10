@@ -25,7 +25,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: python -m pip install .
+        run: python -m pip install .[full]
 
       - name: Install pytest
         run: python -m pip install pytest
