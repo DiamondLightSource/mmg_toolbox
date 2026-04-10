@@ -3,7 +3,7 @@ import numpy as np
 from mmg_toolbox import Experiment, metadata
 from mmg_toolbox.nexus.nexus_scan import NexusScan
 import pyFAI
-from pyFAI.detectors import Detector
+import numpy.typing as npt
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 from math import isclose
 import logging
@@ -105,7 +105,7 @@ class PowderDataReduction():
             image=final_image,
             scan_number=last_scan.scan_number()
         )
-    def reduces_images_to_1d(self, radial_range=(35, 155), detector_centre: tuple[int, int]|None = None, tth_off:float=0.0,mask : np.array | None = None, oversampling=1)-> tuple[np.array, np.array]:
+    def reduces_images_to_1d(self, radial_range=(35, 155), detector_centre: tuple[int, int]|None = None, tth_off:float=0.0, mask : npt.NDArray| None = None, oversampling=1)-> tuple[np.array, np.array]:
         if not self.data:
             raise ValueError("No data to reduce.")
         ais = []

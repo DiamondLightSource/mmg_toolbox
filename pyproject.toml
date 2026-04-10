@@ -50,6 +50,7 @@ base = [
   "lmfit",
 ]
 powder = [
+  "mmg_toolbox[base]",
   "pyFAI",
   "fabio",
   ]
