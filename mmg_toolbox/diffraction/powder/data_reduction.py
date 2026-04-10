@@ -47,9 +47,9 @@ class PowderDataReduction():
     @property
     def data_folder(self):
         if self._data_folder is None:
-            raise ValueError("Data folder path not set."+
-                            " Please provide a valid path by running load_data() with a data_folder argument."+
-                            " Or set it directly using the setter.")
+            raise ValueError("Data folder path not set. Please provide a valid path.")
+        return self._data_folder
+    @data_folder.setter
     def data_folder(self, value):
         if not os.path.exists(value):
             raise FileNotFoundError(f"Data folder not found: {value}")
@@ -105,12 +105,13 @@ class PowderDataReduction():
             image=final_image,
             scan_number=last_scan.scan_number()
         )
-    def reduces_images_to_1d(self, radial_range=(35, 155), tth_off:float=0.0,mask : np.array | None = None, oversampling=1)-> tuple[np.array, np.array]:
+    def reduces_images_to_1d(self, radial_range=(35, 155), detector_centre: tuple[int, int]|None = None, tth_off:float=0.0,mask : np.array | None = None, oversampling=1)-> tuple[np.array, np.array]:
         if not self.data:
             raise ValueError("No data to reduce.")
         ais = []
         images = []
-        
+        if detector_centre is not None:
+            self.set_beam_center_pixels(*detector_centre)        
         for entry in self.data:
             local_ai = AzimuthalIntegrator(
                 dist=self.base_ai.dist, 
@@ -119,27 +120,35 @@ class PowderDataReduction():
                 rot1=self.base_ai.rot1,
                 rot3=self.base_ai.rot3,
                 detector=self.base_ai.detector,
-                wavelength=0.123984193 / entry.energy
+                wavelength=1.23984193e-6 / entry.energy
             )
-            
-            local_ai.rot2 = np.radians(-entry.tth+tth_off)
+            sign = 1 if self.base_ai.rot2 >= 0 else -1 # Determine sign based on the original calibration's rot2
+            local_ai.rot2 = np.radians(sign*entry.tth+tth_off)
             
             ais.append(local_ai)
             images.append(entry.image)
 
         mg = MultiGeometry(ais, unit="2th_deg", radial_range=radial_range)
-        pixel_size = self.base_ai.poni1
+        pixel_size = self.base_ai.detector.pixel1
         dist = self.base_ai.dist
         
-        npt = int(oversampling * np.deg2rad(max(radial_range) - min(radial_range)) / 
-                  np.arctan2(pixel_size, dist))
-        
+        angular_range_rad = np.deg2rad(max(radial_range) - min(radial_range))
+        pixel_angular_width = np.arctan2(pixel_size, dist)
+        npt = int(oversampling * angular_range_rad / pixel_angular_width)
         logger.info(f"Integrating {len(images)} images into {npt} bins.")
 
         self.result = mg.integrate1d(images, npt,lst_mask=mask)
 
         return self.result
     
+    def set_beam_center_pixels(self, pixel1: int, pixel2: int):
+
+        p1_metres = pixel1 * self.base_ai.detector.pixel1
+        p2_metres = pixel2 * self.base_ai.detector.pixel2
+        self.base_ai.poni1 = p1_metres
+        self.base_ai.poni2 = p2_metres
+        logger.info(f"Updated beam center to pixels ({pixel1}, {pixel2}) -> ({p1_metres:.4f} m, {p2_metres:.4f} m)")
+
     def write_output(self, output_folder: str, sample_name: str| None = None):
         """
         Saves corrected 2D TIFFs and the stitched 1D result.
