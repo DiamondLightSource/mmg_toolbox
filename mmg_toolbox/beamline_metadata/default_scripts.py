@@ -35,7 +35,7 @@ BEAMLINE_SCRIPTS = {
     },
     'i16': {
         'scripts': ['peak fitting', 'plot multi-line'],
-        'notebooks': []
+        'notebooks': ['msmapper']
     },
     'i21': {
         'scripts': [],

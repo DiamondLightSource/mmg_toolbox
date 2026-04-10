@@ -470,7 +470,7 @@ def orbital_angular_momentum(energy: np.ndarray, average: np.ndarray,
 
 def spin_angular_momentum(energy: np.ndarray, average: np.ndarray,
                           difference: np.ndarray, nholes: float,
-                          split_energy: int | None = None, dipole_term: float = 0) -> float:
+                          split_energy: float | None = None, dipole_term: float = 0) -> float:
     """
     Calculate the sum rule for the spin angular momentum of the spectra
     using the formula:

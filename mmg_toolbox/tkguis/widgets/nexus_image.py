@@ -30,8 +30,8 @@ class NexusDetectorImage:
 
         self.detector_name = tk.StringVar(root, 'NXdetector')
         self.view_index = tk.IntVar(root, 0)
-        self.axis_name = tk.StringVar(root, 'axis = ')
-        self.axis_value = tk.DoubleVar(root, 0)
+        self.axis_name = tk.StringVar(root, 'axis')
+        self.axis_value = tk.StringVar(root, '')
         self.flip_y = tk.BooleanVar(root, self.config.get(C.image_flip_y, True))
         self.flip_x = tk.BooleanVar(root, self.config.get(C.image_flip_x, False))
         self.logplot = tk.BooleanVar(root, False)
@@ -80,7 +80,7 @@ class NexusDetectorImage:
 
     def ini_slider(self, root: tk.Misc):
         frm = ttk.Frame(root)
-        frm.pack(expand=tk.NO, pady=2, padx=5)
+        frm.pack(expand=tk.NO, fill=tk.X, pady=2, padx=5)
 
         def inc():
             new_val = self.view_index.get() + 1
@@ -96,23 +96,21 @@ class NexusDetectorImage:
 
         var = ttk.Label(frm, text='Index:', width=8)
         var.pack(side=tk.LEFT)
-        var = ttk.Button(frm, text='-', command=dec)
+        var = ttk.Button(frm, text='-', command=dec, width=2)
         var.pack(side=tk.LEFT)
         tkscale = ttk.Scale(frm, from_=0, to=100, variable=self.view_index, orient=tk.HORIZONTAL,
-                            command=self.update_image, length=300)
+                            command=self.update_image)
         # var.bind("<ButtonRelease-1>", callback)
-        tkscale.pack(side=tk.LEFT, expand=tk.YES)
-        var = ttk.Button(frm, text='+', command=inc)
+        tkscale.pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
+        var = ttk.Button(frm, text='+', command=inc, width=2)
         var.pack(side=tk.LEFT)
-        var = ttk.Entry(frm, textvariable=self.view_index, width=6)
+        var = ttk.Entry(frm, textvariable=self.view_index, width=3)
         var.pack(side=tk.LEFT)
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
         # axis mode
-        var = ttk.Label(frm, textvariable=self.axis_name)
-        var.pack(side=tk.LEFT)
-        var = ttk.Label(frm, textvariable=self.axis_value)
+        var = ttk.Label(frm, textvariable=self.axis_value, width=12)
         var.pack(side=tk.LEFT)
 
         # Options button
@@ -122,7 +120,7 @@ class NexusDetectorImage:
 
     def options_frame(self):
         """A hovering frame with options"""
-        window, fun_close = create_hover(self.parent)
+        window, fun_close = create_hover(self.parent, top_left=(0, 0.1))
 
         frm = ttk.LabelFrame(window, text='Options', relief=tk.RIDGE)
         frm.pack(expand=tk.NO, pady=2, padx=5)
@@ -224,7 +222,6 @@ class NexusDetectorImage:
         )
         if not detector_names:
             return
-        # TODO add axis_name and value
         self.add_config_rois()
         self.view_index.set(0)
         self.update_image_plot()
@@ -280,6 +277,9 @@ class NexusDetectorImage:
             raise Warning('Not implemented yet')
         return image, value
 
+    def update_value(self, value: float):
+        self.axis_value.set(f"{self.axis_name.get()} = {value:.3f}")
+
     def update_image_plot(self, event=None):
         """replace plot instance (e.g. on loading new file)"""
         self._clear_image_error()
@@ -305,7 +305,7 @@ class NexusDetectorImage:
         self.toolbar.update()
         self.im_fig.canvas.draw()
         # Load axis mode
-        self.axis_value.set(value)
+        self.update_value(value)
         # Run additional callbacks
         for function in self.extra_plot_callbacks:
             function()
@@ -318,7 +318,7 @@ class NexusDetectorImage:
         image, value = self._get_image()
 
         self.ax_image.set_array(image)
-        self.axis_value.set(value)
+        self.update_value(value)
         self.update_colormap_details()
         # Run additional callbacks
         for function in self.extra_plot_callbacks:
