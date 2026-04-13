@@ -24,16 +24,25 @@ class PowderReductionKeys():
     detector: str = "thpimte"
 
 class PowderDataReduction():
-    def __init__(self, calibration_file: str, keys: PowderReductionKeys|None=None):
+    def __init__(self, calibration:str | dict[float, str], keys: PowderReductionKeys|None=None):
         self._data: list[PowderData] = []
         self.keys = PowderReductionKeys() if keys is None else keys
         self._data_folder = None
         self.result: tuple[np.array, np.array] | None = None
-        if not os.path.exists(calibration_file):
-            raise FileNotFoundError(f"Calibration file not found: {calibration_file}")
-            
-        self.base_ai = pyFAI.load(calibration_file)
-        logger.info(f"Loaded calibration from {calibration_file} using {self.base_ai.detector.name}")
+        self.cali_map:dict[float, str] | None = None
+        if isinstance(calibration, dict):
+            for angle, path in calibration.items():
+                if not os.path.exists(path):
+                    raise FileNotFoundError(f"Calibration file for {angle} not found: {path}")
+                self.cali_map[angle] = pyFAI.load(path)
+            self.base_ai = list(self.cali_map.values())[0]
+            logger.info(f"Loaded {len(self.cali_map)} calibration files.")
+        else:
+            if not os.path.exists(calibration):
+                raise FileNotFoundError(f"Calibration file not found: {calibration}")
+            self.base_ai = pyFAI.load(calibration)
+            self.calib_map = None # Single calibration mode
+            logger.info(f"Loaded single calibration from {calibration}")
         
     @property
     def data(self):
@@ -55,6 +64,16 @@ class PowderDataReduction():
             raise FileNotFoundError(f"Data folder not found: {value}")
         self._data_folder = value
 
+
+    def _get_best_ai(self, target_tth: float) -> AzimuthalIntegrator:
+        """Helper to find the closest PONI file if multiple are provided."""
+        if self.cali_map is None:
+            return self.base_ai
+        best_angle = min(self.cali_map.keys(), key=lambda x: abs(x - target_tth))
+        if not isclose(best_angle, target_tth, abs_tol=1):
+            logger.warning(f"No exact PONI for {target_tth}deg. Using closest: {best_angle}deg")
+        return self.cali_map[best_angle]
+    
     def load_data(self, scan_number: list[int] | None = None, data_folder: str|None = None,  beamline: str | None = None):
         """
         Loads data from a specific folder.
@@ -113,15 +132,19 @@ class PowderDataReduction():
         if detector_centre is not None:
             self.set_beam_center_pixels(*detector_centre)        
         for entry in self.data:
+            source_ai = self._get_best_ai(entry.tth)
             local_ai = AzimuthalIntegrator(
-                dist=self.base_ai.dist, 
-                poni1=self.base_ai.poni1, 
-                poni2=self.base_ai.poni2,
-                rot1=self.base_ai.rot1,
-                rot3=self.base_ai.rot3,
-                detector=self.base_ai.detector,
+                dist=source_ai.dist, 
+                poni1=source_ai.poni1, 
+                poni2=source_ai.poni2,
+                rot1=source_ai.rot1,
+                rot3=source_ai.rot3,
+                detector=source_ai.detector,
                 wavelength=1.23984193e-6 / entry.energy
             )
+            if detector_centre is not None:
+                self.set_beam_center_pixels(*detector_centre) 
+
             sign = 1 if self.base_ai.rot2 >= 0 else -1 # Determine sign based on the original calibration's rot2
             local_ai.rot2 = np.radians(sign*entry.tth+tth_off)
             
