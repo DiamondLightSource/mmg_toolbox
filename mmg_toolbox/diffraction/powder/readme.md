@@ -40,7 +40,7 @@ tth, intensity = reducer.reduces_images_to_1d(
 # Save processed 2D TIFFs and the final 1D .dat file
 reducer.write_output(output_folder="./results", sample_name="Standard_Sample")
 ```
-### 2. Single Calibration Mode
+### 2. Multiple Calibration Mode(Multi-PONI)
 ```python
 # Map nominal motor angles to specific calibration files
 calibrations = {
