@@ -29,7 +29,7 @@ class PowderDataReduction():
         self.keys = PowderReductionKeys() if keys is None else keys
         self._data_folder = None
         self.result: tuple[np.array, np.array] | None = None
-        self.cali_map:dict[float, str] | None = None
+        self.cali_map:dict[float, AzimuthalIntegrator] | None = None
         if isinstance(calibration, dict):
             for angle, path in calibration.items():
                 if not os.path.exists(path):
@@ -41,7 +41,7 @@ class PowderDataReduction():
             if not os.path.exists(calibration):
                 raise FileNotFoundError(f"Calibration file not found: {calibration}")
             self.base_ai = pyFAI.load(calibration)
-            self.calib_map = None # Single calibration mode
+            self.cali_map = None # Single calibration mode
             logger.info(f"Loaded single calibration from {calibration}")
         
     @property
