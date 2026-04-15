@@ -124,7 +124,7 @@ def xray_edges_in_range(min_energy_ev: float, max_energy_ev: float | None = None
 
 
 def energy_range_edge_label(min_energy_ev: float, max_energy_ev: float | None = None,
-                            energy_range_ev: float = 10., search_edges: tuple[str] = SEARCH_EDGES) -> tuple[str, str]:
+                            energy_range_ev: float = 10., search_edges: list[str] | None = None) -> tuple[str, str]:
     """
     Return mode string for x-ray absorption edges in energy range
       raises ValueError is no edges are found or if multiple non-equivalent edges are found
@@ -135,7 +135,16 @@ def energy_range_edge_label(min_energy_ev: float, max_energy_ev: float | None = 
     :param search_edges: if not None, only return energies for these edges, e.g. ('L3', 'L2')
     :return: element, mode strings, e.g. 'Mn', 'L2, L3'
     """
-    edges = xray_edges_in_range(min_energy_ev, max_energy_ev, energy_range_ev, search_edges)
+    if search_edges:
+        edges = xray_edges_in_range(min_energy_ev, max_energy_ev, energy_range_ev, search_edges)
+    else:
+        # iterate through likely edges
+        likely_edges = (['L3', 'L2'], ['K'], ['M4', 'M5'])
+        for search_edges in likely_edges:
+            edges = xray_edges_in_range(min_energy_ev, max_energy_ev, energy_range_ev, search_edges)
+            if edges:
+                break
+
     if len(edges) == 1:
         label, = edges.keys()
         element, edge = label.split()

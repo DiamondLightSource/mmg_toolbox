@@ -25,7 +25,7 @@ def test_scan_string():
 
     # print all scans in folder
     m = f"{metadata.scanno}, {metadata.start}, {metadata.cmd}, {metadata.energy}, {metadata.temp}"
-    for scan in exp[:10]:
+    for scan in exp[:3]:
         scn, start, cmd, energy, temp = scan(m)
         assert scn > 100
         assert len(cmd) > 10

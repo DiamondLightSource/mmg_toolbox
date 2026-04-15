@@ -26,6 +26,15 @@ def test_edge_labels():
     element, edges = spa.energy_range_edge_label(720, energy_range_ev=30)
     assert element+edges == 'FeL3, L2'
 
+    element, edges = spa.energy_range_edge_label(850, 875)
+    assert element + edges == 'NiL3, L2'
+
+    element, edges = spa.energy_range_edge_label(523, 560)
+    assert element + edges == 'OK'
+
+    # element, edges = spa.energy_range_edge_label(1225, 1250)
+    # assert element + edges == 'TbM5'  # currently gives GeL2
+
 
 def test_n_holes():
     assert spa.d_electron_count('Ni2+') == 8

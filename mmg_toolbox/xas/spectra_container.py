@@ -502,9 +502,9 @@ def average_polarised_scans(*scans: SpectraContainer) -> tuple[SpectraContainer,
     ]
 
     # rename containers
-    for pol, scan, pol_scans in zip(pols, av_scans, pol_scans):
+    for pol, scan, pol_scan_list in zip(pols, av_scans, pol_scans):
         scan.name = pol
-        scan.parents = pol_scans
+        scan.parents = pol_scan_list
         for spectra in scan.spectra.values():
             spectra.process_label += f"_{pol}"
     if len(pol_scans) == 1:
