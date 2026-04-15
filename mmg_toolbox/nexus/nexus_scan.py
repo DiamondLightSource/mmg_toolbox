@@ -44,7 +44,7 @@ class NexusScan(NexusLoader):
         self.beamline = self.config.get('beamline', None)
 
         # add scan number to eval namespace
-        self.map.add_local(scan_number=self.scan_number())
+        self.add_local(scan_number=self.scan_number(), beamline=self.beamline)
 
         from mmg_toolbox.fitting import ScanFitManager, poisson_errors
         self.fit = ScanFitManager(self)

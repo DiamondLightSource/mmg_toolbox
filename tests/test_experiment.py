@@ -14,6 +14,9 @@ def test_file_loader():
     exp = Experiment(DIR + '/i16', DIR + '/i16/cm37262-1')
     scan = exp.scan(1109527)
     assert isinstance(scan, NexusDataHolder)
+    assert scan.beamline == 'i16'
+    # Check local data injection
+    assert scan('beamline, scan_number, filename') == ('i16', 1109527, '1109527.nxs')
     scan_range = range(1032120, 1032130)
     scans = exp.scans(*scan_range)
     assert len([scn for scn in scans if isinstance(scn, NexusScan)]) == len(scans)

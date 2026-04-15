@@ -81,13 +81,13 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
     def _update_image(self, filename: str, hdf_map: hdfmap.NexusMap):
         self.axis_name.set(self.axes_x.get())
         NexusDetectorImage.update_image_data_from_file(self, filename, hdf_map=hdf_map)
-        self.update_index_line()
 
     def update_data_from_files(self, *filenames: str, hdf_map: hdfmap.NexusMap | None = None):
         hdf_map = hdf_map or hdfmap.create_nexus_map(filenames[0])
         NexusMultiAxisPlot.update_data_from_files(self, *filenames, hdf_map=hdf_map)
         self.pack_frames(hdf_map)
         if hdf_map.image_data:
+            self.update_index_line()
             th = Thread(target=self._update_image, args=(filenames[0], hdf_map))
             th.daemon = True
             th.start()
@@ -95,7 +95,7 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
             self.index_line.set_data([], [])
 
     def update_image(self, event=None):
-        super().update_image(event)
+        NexusDetectorImage.update_image(self, event)
         self.update_index_line()
 
     def add_config_rois(self):

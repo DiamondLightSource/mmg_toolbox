@@ -138,7 +138,7 @@ class ScanFitManager:
             'fit': res.res.best_fit,
             f"fit_{yname}": res.res.best_fit,
         })
-        self.scan.map.add_local(**output)
+        self.scan.add_local(**output)
 
         if print_result:
             print(self.scan.title())
@@ -222,7 +222,7 @@ class ScanFitManager:
             'fit': res.res.best_fit,
             f"fit_{yname}": res.res.best_fit,
         })
-        self.scan.map.add_local(**output)
+        self.scan.add_local(**output)
 
         if print_result:
             print(self.scan.title())
@@ -291,7 +291,7 @@ class ScanFitManager:
         comps = res.eval_components(x=xdata)
         for component in comps.keys():
             fit_dict[f"{component}fit"] = comps[component]
-        self.scan.map.add_local(**fit_dict)
+        self.scan.add_local(**fit_dict)
 
         if print_result:
             print(self.scan.title())
