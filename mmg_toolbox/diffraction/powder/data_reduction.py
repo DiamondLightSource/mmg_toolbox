@@ -128,11 +128,15 @@ class PowderDataReduction():
         if not self.data:
             raise ValueError("No data to reduce.")
         ais = []
-        images = []
+        images = []     
         if detector_centre is not None:
-            self.set_beam_center_pixels(*detector_centre)        
+            self.set_beam_center_pixels(*detector_centre) 
+
         for entry in self.data:
             source_ai = self._get_best_ai(entry.tth)
+            if detector_centre is not None:
+                source_ai.poni1 = self.base_ai.poni1
+                source_ai.poni2 = self.base_ai.poni2
             local_ai = AzimuthalIntegrator(
                 dist=source_ai.dist, 
                 poni1=source_ai.poni1, 
@@ -142,8 +146,7 @@ class PowderDataReduction():
                 detector=source_ai.detector,
                 wavelength=1.23984193e-6 / entry.energy
             )
-            if detector_centre is not None:
-                self.set_beam_center_pixels(*detector_centre) 
+
 
             sign = 1 if self.base_ai.rot2 >= 0 else -1 # Determine sign based on the original calibration's rot2
             local_ai.rot2 = np.radians(sign*entry.tth+tth_off)
