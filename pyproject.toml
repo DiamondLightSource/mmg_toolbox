@@ -49,16 +49,17 @@ base = [
   "imageio",
   "lmfit",
 ]
+powder = [
+  "mmg_toolbox[base]",
+  "pyFAI",
+  "fabio",
+  ]
+
 # full install with additional packages
 full = [
-  "numpy",
-  "h5py",
-  "hdf5plugin",
-  "hdfmap>=1.1.0",
-  "matplotlib",
-  "imageio",
+  "mmg_toolbox[powder]",
+  "mmg_toolbox[base]",
   "scipy",
-  "lmfit",
   "diffcalc-core",
   "ipython",
   "jupyter",
