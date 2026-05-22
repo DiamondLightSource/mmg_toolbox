@@ -185,7 +185,8 @@ class NexusDetectorImage:
         return menu
 
     def new_window(self):
-        window = create_root(self.filename, self.parent)
+        title = self.map.format_hdf(self.map.load_hdf(), self.config.get(C.scan_title, '')) or self.filename
+        window = create_root(title, self.parent)
         widget = NexusDetectorImage(window, self.filename, self.config, self.map)
         return widget
 

@@ -13,7 +13,7 @@ from hdfmap.eval_functions import generate_identifier
 from mmg_toolbox.utils.env_functions import get_scan_number
 from mmg_toolbox.fitting import multipeakfit, FitResults, find_peaks_str
 from ..misc.logging import create_logger
-from ..misc.config import get_config
+from ..misc.config import get_config, C
 from .simple_plot import SimplePlot
 
 
@@ -185,6 +185,8 @@ class NexusDefaultPlot(SimplePlot):
         if not self.fix_y.get():
             self.axes_y.set(next(iter(signals), f'zeros({self.map.scannables_length()})'))
         self.update_axis_choice()
+        title = self.map.format_hdf(self.map.load_hdf(), self.config.get(C.scan_title, 'title'))
+        self.update_labels(title=title)
 
     def _label(self, name: str) -> str:
         path = self.map.combined.get(name, '')
@@ -268,8 +270,9 @@ class NexusDefaultPlot(SimplePlot):
             y_data=ydata,
             x_label=self._label(x_label),
             y_label=self._label(y_label),
-            title=os.path.basename(self.filenames[0]),
             legend=labels,
+            marker=self.config.get(C.plot_marker, None),
+            linestyle=self.config.get(C.plot_linestyle, None),
         )
         self.line = self.plot_list[0]
 
@@ -317,7 +320,7 @@ class NexusDefaultPlot(SimplePlot):
         xdata, ydata, labels = self.get_xy_data(x_axis, y_axis)
         peak_str = find_peaks_str(xdata[0], ydata[0])
 
-        title = os.path.basename(self.filenames[0])
+        title = self.map.format_hdf(self.map.load_hdf(), self.config.get(C.scan_title, 'title'))
         x_label, y_label = self.map.generate_ids(x_axis, y_axis)
         label = f"{x_label} vs {y_label}"
         out = f"{title}\n{label}\n\n"
@@ -408,8 +411,9 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
             y_data=ydata,
             x_label=self._label(x_label),
             y_label=self._label(y_labels[0]),
-            title=os.path.basename(self.filenames[0]),
             legend=labels,
+            marker=self.config.get(C.plot_marker, None),
+            linestyle=self.config.get(C.plot_linestyle, None),
         )
         self.line = self.plot_list[0]
         if self.do_fit.get():

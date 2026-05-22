@@ -7,6 +7,7 @@ from threading import Thread
 
 import hdfmap
 
+from ..misc.config import C
 from ..misc.styles import create_root
 from ..misc.logging import create_logger
 from .nexus_plot import NexusMultiAxisPlot
@@ -84,9 +85,13 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
 
     def update_data_from_files(self, *filenames: str, hdf_map: hdfmap.NexusMap | None = None):
         hdf_map = hdf_map or hdfmap.create_nexus_map(filenames[0])
+        # 2D line data
         NexusMultiAxisPlot.update_data_from_files(self, *filenames, hdf_map=hdf_map)
+        # pack/hide plots
         self.pack_frames(hdf_map)
+        # Image data
         if hdf_map.image_data:
+            self.view_index.set(0)
             self.update_index_line()
             th = Thread(target=self._update_image, args=(filenames[0], hdf_map))
             th.daemon = True
@@ -105,7 +110,8 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
             self.listbox.insert("", tk.END, text=item)
 
     def new_window(self):
-        window = create_root(self.filename, self.parent)
+        title = self.map.format_hdf(self.map.load_hdf(), self.config.get(C.scan_title, '')) or self.filename
+        window = create_root(title, self.parent)
         widget = NexusPlotAndImage(window, config=self.config, horizontal_alignment=True)
         widget.update_data_from_files(self.filename, hdf_map=self.map)
         return widget
