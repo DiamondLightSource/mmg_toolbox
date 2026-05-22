@@ -144,7 +144,7 @@ def get_polarisation(pol: h5py.Dataset | h5py.Group) -> str:
         if pol.size == 1:
             return polarisation_label_from_stokes(pol[...])
         return polarisation_label_from_stokes(*pol)
-    return check_polarisation(pol[()])
+    return check_polarisation(bytes2str(pol[()]))
 
 
 def pol_subtraction_label(label: str):
