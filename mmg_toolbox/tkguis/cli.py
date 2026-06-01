@@ -1,5 +1,16 @@
 """
-Command line interface for Dataviewer
+Command line interface for mmg_toolbox Dataviewer
+
+    $ dataviewer
+
+Open an experiment selection window for the default beamline by default,
+however other options are available.
+
+CLI Options:
+    -h, --help              show this help message and exit
+    experiment/directory    open a specific folder containing nexus files
+    scan/file.nxs           open a specific NeXus file to view the tree
+    beamline                open a experiment selection window for beamline
 """
 
 import sys
@@ -13,8 +24,8 @@ from .apps.nexus import create_nexus_viewer
 
 
 def doc():
-    from mmg_toolbox import tkguis
-    help(tkguis)
+    print(__doc__)
+    print(f"Available beamlines: {list(BEAMLINE_CONFIG.keys())}")
 
 
 def run(*args):
@@ -38,6 +49,8 @@ def run(*args):
             config = get_config(beamline=beamline)
             create_nexus_viewer(arg, config=config)
             return
+        elif arg in BEAMLINE_CONFIG:
+            beamline = arg
     create_title_window(beamline)
     return
 

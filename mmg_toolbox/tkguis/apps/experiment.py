@@ -25,7 +25,7 @@ def create_title_window(beamline: str | None = None):
     menu = {
         'File': {
             'File Browser': lambda: create_file_browser(root, config.get(C.default_directory, None)),
-            'NeXus File Browser': lambda: create_nexus_file_browser(root, config.get('default_directory')),
+            'NeXus File Browser': lambda: create_nexus_file_browser(root, config.get(C.default_directory, None)),
             'Jupyter Browser': lambda: create_jupyter_browser(root, widget.notebook_dir.get()),
             'Data Viewer': lambda: create_data_viewer(widget.data_dir.get(), root, config),
             'Range selector': lambda: create_range_selector(widget.data_dir.get(), root, config),

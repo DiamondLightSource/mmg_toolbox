@@ -53,10 +53,13 @@ class ConfigEditor:
         self.create_tuple_param(C.image_size, 'Image Size:', 'w x h inches')
         self.create_tuple_param(C.plot_max_percent, 'Max Plot Size:', 'w x h % of screen')
         self.create_param(C.plot_dpi, 'Figure DPI:')
+        self.create_param(C.plot_marker, 'Marker:')
+        self.create_param(C.plot_linestyle, 'LineStyle:')
         self.create_list_param(C.default_colormap, 'Default colormap:', *COLORMAPS)
         self.create_bool_params('Image:', ('image_log', 'log'),
                                 ('image_flip_y', 'flip y'), ('image_flip_x', 'flip x'))
         self.create_param(C.metadata_label, 'Metadata label', button=self.metadata_list_window)
+        self.create_param(C.scan_title, 'Plot Title')
         self.create_text_param(C.metadata_string, 'Metadata expression')
 
         # Buttons at bottom
@@ -70,8 +73,9 @@ class ConfigEditor:
         var.pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
 
     def create_param(self, config_name: str, label: str, button=None):
-        variable = tk.StringVar(self.root, self.config.get(config_name, ''))
-        get_type = type(self.config.get(config_name, ''))
+        value = self.config.get(config_name, '')
+        variable = tk.StringVar(self.root, value)
+        get_type = str if value is None else type(value)
         self.config_setters[config_name] = lambda name=config_name: str(self.config.get(name, ''))
         self.config_getters[config_name] = lambda: get_type(variable.get())
 

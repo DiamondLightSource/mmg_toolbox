@@ -48,8 +48,8 @@ def create_data_viewer(initial_folder: str | None = None,
         'File': {
             'New Data Viewer': lambda: create_data_viewer(parent=root, config=config),
             'Add Folder': widget.selector_widget.browse_folder,
-            'File Browser': lambda: create_file_browser(root, config.get(C.default_directory, None)),
-            'NeXus File Browser': lambda: create_nexus_file_browser(root, config.get(C.default_directory, None)),
+            'File Browser': lambda: create_file_browser(root, get_filepath()),
+            'NeXus File Browser': lambda: create_nexus_file_browser(root, get_filepath()),
             'Jupyter Browser': lambda: create_jupyter_browser(root, get_notebook_directory(get_filepath())),
             'Range selector': lambda: create_range_selector(initial_folder, root, config),
             'Log viewer': lambda: create_gda_terminal_log_viewer(get_filepath(), root)

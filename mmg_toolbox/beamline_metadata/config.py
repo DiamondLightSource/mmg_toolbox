@@ -19,9 +19,11 @@ class C:
     default_metadata = 'default_metadata'
     beamline = 'beamline'
     scan_description = 'scan_description'
+    scan_title = 'scan_title'
     roi = 'roi'
 
 DEFAULT_SCAN_DESCRIPTION = '{(cmd|user_input_command|user_command|scan_command)}'
+DEFAULT_SCAN_TITLE = "{entry_identifier?(filename)}: " + DEFAULT_SCAN_DESCRIPTION
 
 META_LIST = {
     # scan number and start_time included by default
@@ -48,6 +50,7 @@ CONFIG = {
     C.metadata_label: META_LABEL,
     C.default_metadata: Md.temp,
     C.scan_description: DEFAULT_SCAN_DESCRIPTION,
+    C.scan_title: DEFAULT_SCAN_TITLE,
 }
 
 BEAMLINE_CONFIG = {
