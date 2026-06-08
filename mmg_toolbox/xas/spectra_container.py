@@ -511,3 +511,20 @@ def average_polarised_scans(*scans: SpectraContainer) -> tuple[SpectraContainer,
         return av_scans[0], None
     return av_scans[0], av_scans[1]
 
+
+def polarised_pairs(*scans: SpectraContainer) -> list[tuple[SpectraContainer, SpectraContainer]]:
+    """
+    Find the polarisation pair of each spectra from the list of spectra
+
+        [(pol1, pol2), (pol3, pol4)] = average_polarised_scans(*scans)
+
+    :param scans: list of SpectraContainer objects
+    :return: list((pol1, pol2)) SpectraContainer objects for opposite polarisations
+    """
+    pol1, pol2 = opposite_polarisations(scans[0].metadata.pol, scans[0].metadata.pol_angle)
+    pol1_scans, pol2_scans = [
+        [scan for scan in scans if check_polarisation(scan.metadata.pol) == pol]
+        for pol in (pol1, pol2)
+    ]
+    return list((p1, p2) for p1, p2 in zip(pol1_scans, pol2_scans))
+

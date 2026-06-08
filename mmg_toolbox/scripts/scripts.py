@@ -24,6 +24,7 @@ class R:
     yaxis = 'y-axis'
     value = 'value'
 
+
 SCRIPTS = {
     # name: (filename, description)
     'example': ('example_script.py', 'a simple example script'),
@@ -36,6 +37,7 @@ NOTEBOOKS = {
     # name: (filename, description)
     'example': ('example_notebook.ipynb', 'An example notebook describing mmg_toolbox'),
     'xmcd': ('xmcd_notebook.ipynb', 'An example notebook describing XAS analysis'),
+    'xmcd_visualiser': ('xmcd_visualiser.ipynb', 'A notebook for selecting XMCD pairs'),
     'msmapper': ('msmapper_notebook.ipynb', 'An example notebook describing MSMapper analysis'),
 }
 
@@ -54,9 +56,33 @@ TEMPLATE = {
 }
 
 
-def find_replacements(string: str) -> list[str]:
+def find_all_replacements(string: str) -> list[str]:
     """find all replacements in string"""
     return re_replacement.findall(string)
+
+
+def check_replacements(template_file: str) -> list[str]:
+    """Return list of replacement names in file"""
+    template_string = open(template_file, 'r').read()
+    all_replacements = find_all_replacements(template_string)
+    allowed_replacements = [v for n, v in vars(R).items() if not n.startswith('_') and isinstance(v, str)]
+    bad_replacements = [r for r in all_replacements if r not in allowed_replacements]
+    if bad_replacements:
+        print(f"Warning: bad replacements in '{os.path.basename(template_file)}': {bad_replacements}")
+    return all_replacements
+
+
+def list_templates() -> str:
+    """list available templates"""
+    s = ""
+    for n, opt in [('Script', SCRIPTS), ('Notebook', NOTEBOOKS)]:
+        s += f"\n----{n} Templates----\n"
+        for name, (file, description) in opt.items():
+            template_file = os.path.join(os.path.dirname(__file__), file)
+            replacements = check_replacements(template_file)
+            r_str = ', '.join(replacements)
+            s += f"{name:30}: {description:100} : {r_str}\n"
+    return s
 
 
 def generate_script(template_name: str, **replacements) -> str:
