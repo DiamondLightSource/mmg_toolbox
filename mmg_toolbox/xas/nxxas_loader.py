@@ -15,7 +15,8 @@ from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
 from .spectra_analysis import energy_range_edge_label
 from .spectra import Spectra
-from .spectra_container import SpectraContainer, XasMetadata
+from .spectra_container import SpectraContainer
+from .metadata import XasMetadata
 
 
 def is_nxxas(filename: str) -> bool:

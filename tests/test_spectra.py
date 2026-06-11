@@ -8,7 +8,10 @@ import numpy as np
 import os
 import h5py
 
-from mmg_toolbox.xas import Spectra, SpectraContainer, load_xas_scans, average_polarised_scans
+from mmg_toolbox.xas import (
+    Spectra, SpectraContainer, load_xas_scans,
+    average_polarised_scans, polarised_pairs, pair_scans, average_scans
+)
 from . import only_dls_file_system
 from .example_files import FILES_DICT
 
@@ -79,6 +82,21 @@ def test_spectra_container():
     assert 'xmcd' in steps_string
 
 
+def test_average_spectra():
+    energy = np.arange(700, 730, 0.1)
+    signal = 3 * np.ones(len(energy))
+    spectra = {mode: Spectra(energy, signal, label='test', mode=mode) for mode in ['tey', 'tfy']}
+    container1 = SpectraContainer('scan1', spectra)
+    container2 = SpectraContainer('scan2', spectra)
+    container3 = SpectraContainer('scan3', spectra)
+
+    av_scan = average_scans(container1, container2, container3)
+    assert repr(av_scan) == "SpectraContainer('scan1+scan2+scan3', 'average', ['tey', 'tfy'])"
+    av_scan = average_scans(container1, container2, container3, container2)
+    assert repr(av_scan) == "SpectraContainer('scan1+..+scan2', 'average', ['tey', 'tfy'])"
+    assert repr(av_scan.spectra['tey']) == "SpectraAverage('test+test+test', 'tey', energy=array(300,), signal=array(300,), process_label='average')"
+
+
 @only_dls_file_system
 def test_load_xas_scans():
     spectra, = load_xas_scans(FILES_DICT['i06-1 zacscan'], dls_loader=True)
@@ -120,6 +138,26 @@ def test_average_polarised_scans():
     report = xmcd.sum_rules_report()
     assert ' n_holes = 4\nL = -0.088 μB\nS = 0.008 μB' in report
 
+
+@only_dls_file_system
+def test_find_pairs():
+    files = [
+        FILES_DICT['i10-1 Fe L3,2 +1T pc'],
+        FILES_DICT['i10-1 Fe L3,2 -1T pc'],
+        FILES_DICT['i10-1 Fe L3,2 +1T nc'],
+        FILES_DICT['i10-1 Fe L3,2 -1T nc'],
+    ]
+    all_spectra = load_xas_scans(*files, dls_loader=True)
+    pol_pairs = polarised_pairs(*all_spectra)
+    assert len(pol_pairs) == 2
+    scan1, scan2 = pol_pairs[0]
+    assert scan1.metadata.pol != scan2.metadata.pol
+
+    pairs = pair_scans(*all_spectra)
+    assert len(pairs) == 2
+    scan1, scan2 = pairs[0]
+    assert scan1.metadata.pol == scan2.metadata.pol
+    assert scan1.metadata.mag_field == approx(-scan2.metadata.mag_field)
 
 def test_write_outputs():
     energy = np.arange(700, 730, 0.1)

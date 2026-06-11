@@ -521,7 +521,7 @@ class SpectraAverage(Spectra):
 
     def __repr__(self):
         return (
-            f"SpectraAverage('{self.label}', '{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}," +
+            f"SpectraAverage('{self.label}', '{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}, " +
             f"process_label='{self.process_label}')"
         )
 

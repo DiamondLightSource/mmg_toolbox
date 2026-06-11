@@ -19,6 +19,7 @@ def test_cli_inputs():
 
     command = '.'
     out = run(command)
+    print('Result:', out)
     assert "{'directory': '.', 'beamline': None, 'start_jupyter': None, 'prefix': '', 'quiet': False}" in out
 
     command = '-v mm12345-1 -b i16 -j'

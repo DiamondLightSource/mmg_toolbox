@@ -21,7 +21,8 @@ from mmg_toolbox.nexus.instrument_model import NXInstrumentModel
 from mmg_toolbox.nexus.nexus_functions import get_dataset_value, nx_find, nx_find_all
 from mmg_toolbox.utils.file_functions import get_scan_number, read_tiff
 from mmg_toolbox.utils.misc_functions import shorten_string, DataHolder
-from mmg_toolbox.xas import SpectraContainer, load_xas_scans
+from mmg_toolbox.xas.spectra_container import SpectraContainer
+from mmg_toolbox.xas.nxxas_loader import load_xas_scans
 
 
 class NexusScan(NexusLoader):
