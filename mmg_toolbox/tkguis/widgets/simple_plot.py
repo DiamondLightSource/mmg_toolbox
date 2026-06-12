@@ -35,7 +35,8 @@ class SimplePlot:
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
         self.ax1.set_title(title)
-        self.plot(xdata, ydata)
+        if xdata:
+            self.plot(xdata, ydata)
 
     def plot(self, *args, **kwargs) -> list[plt.Line2D]:
         lines = self.ax1.plot(*args, **kwargs)

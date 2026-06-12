@@ -94,7 +94,7 @@ def test_average_spectra():
     assert repr(av_scan) == "SpectraContainer('scan1+scan2+scan3', 'average', ['tey', 'tfy'])"
     av_scan = average_scans(container1, container2, container3, container2)
     assert repr(av_scan) == "SpectraContainer('scan1+..+scan2', 'average', ['tey', 'tfy'])"
-    assert repr(av_scan.spectra['tey']) == "SpectraAverage('test+test+test', 'tey', energy=array(300,), signal=array(300,), process_label='average')"
+    assert repr(av_scan.spectra['tey']) == "SpectraAverage('test+test+test+test', 'tey', energy=array(300,), signal=array(300,), process_label='average')"
 
 
 @only_dls_file_system
