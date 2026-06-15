@@ -211,7 +211,7 @@ class PairSelector:
 
     def get_pair_numbers(self) -> list[tuple[int, int]]:
         return [
-            vals for v1, v2 in self.pair_numbers
+            vals for v1, v2, update in self.pair_numbers
             if all(vals := (v1.get(), v2.get()))
         ]
 
