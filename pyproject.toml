@@ -15,7 +15,6 @@ dependencies = [
     "scipy",
     "lmfit",
     "stomp.py",
-    "diffcalc-core",
 ]
 requires-python = ">=3.10"
 authors = [
