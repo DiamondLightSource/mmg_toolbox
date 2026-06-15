@@ -128,6 +128,55 @@ def check_new_file(parent, filename: str | None = None) -> str | None:
     return filename
 
 
+def create_scrollable_window(root: tk.Misc, scroll_x=True, scroll_y=True,
+                             width: int | None = None, height: int | None = None) -> ttk.Frame:
+    """
+    Create scrollable window
+
+    :param root: tk.Misc
+    :param scroll_x: bool
+    :param scroll_y: bool
+    :param width: int
+    :param height: int
+    :return: ttk.Frame
+    """
+
+    # --- Container ---
+    container = ttk.Frame(root)
+    container.pack(fill="both", expand=True)
+
+    # --- Canvas ---
+    canvas = tk.Canvas(container, width=width, height=height)
+    canvas.grid(row=0, column=0, sticky="nsew")
+
+    # --- Scrollbars ---
+    if scroll_y:
+        scroll_y = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scroll_y.grid(row=0, column=1, sticky="ns")
+        canvas.configure(yscrollcommand=scroll_y.set)
+    if scroll_x:
+        scroll_x = ttk.Scrollbar(container, orient="horizontal", command=canvas.xview)
+        scroll_x.grid(row=1, column=0, sticky="ew")
+        canvas.configure(xscrollcommand=scroll_x.set)
+
+    # --- Inner frame (THIS HOLDS YOUR PLOTS) ---
+    inner_frame = ttk.Frame(canvas)
+
+    # Add frame to canvas
+    canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+
+    # --- Resize logic ---
+    def on_configure(event):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    inner_frame.bind("<Configure>", on_configure)
+
+    # Optional: make canvas expand properly
+    container.rowconfigure(0, weight=1)
+    container.columnconfigure(0, weight=1)
+    return inner_frame
+
+
 def open_close_all_tree(treeview, branch="", openstate=True):
     """Open or close all items in ttk.treeview"""
     treeview.item(branch, open=openstate)

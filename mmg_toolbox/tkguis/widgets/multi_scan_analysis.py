@@ -11,6 +11,7 @@ import hdfmap
 from mmg_toolbox import Experiment
 from mmg_toolbox.scripts import NOTEBOOKS, SCRIPTS, R
 from mmg_toolbox.utils.env_functions import get_first_file, get_processing_directory
+from mmg_toolbox.utils.misc_functions import findranges
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
 from ..misc.functions import select_folder
@@ -102,6 +103,7 @@ class MultiScanAnalysis:
         line.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
         ttk.Button(line, text='Fits', command=self.fitting, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Convert to dat', command=self.convert2dat).pack(side=tk.LEFT)
+        ttk.Button(line, text='XMCD', command=self.xmcd_visualiser, width=10).pack(side=tk.LEFT)
 
         # Scripts
         script_names = ('Scripts:',) + tuple(SCRIPTS) + ('Notebooks:',) + tuple(NOTEBOOKS)
@@ -179,6 +181,16 @@ class MultiScanAnalysis:
                 message='Conversion complete!',
                 parent=self.root
             )
+
+    def xmcd_visualiser(self):
+        from ..apps.xmcd_visualiser import create_xmcd_visualiser
+        scan_files = self.range.generate_scan_files()
+        create_xmcd_visualiser(
+            parent=self.root,
+            config=self.config,
+            data_directory=self.exp_folder.get(),
+            scan_range_str=findranges(list(scan_files)) if scan_files else None
+        )
 
     def plot_legend(self):
         exp = self.get_experiment()

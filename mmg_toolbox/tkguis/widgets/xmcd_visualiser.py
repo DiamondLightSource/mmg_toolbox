@@ -4,21 +4,25 @@ a tkinter frame with 3 sections:
     2. Grid of pair-subtraction-plots with checkboxes
     3. average of selected pairs
 """
+from collections.abc import Callable
 import tkinter as tk
 from tkinter import ttk
 
-import numpy as np
-
-from ..misc.logging import create_logger
-from ..misc.config import get_config, C
-from .simple_plot import SimplePlot
 from mmg_toolbox.utils.misc_functions import string2numbers
 from mmg_toolbox.utils.experiment import Experiment
 from mmg_toolbox.xas import SpectraContainer, SpectraContainerSubtraction, average_scans, polarised_pairs
 from mmg_toolbox.xas.spectra import BACKGROUND_FUNCTIONS
 
+from ..misc.functions import create_scrollable_window
+from ..misc.logging import create_logger
+from ..misc.config import get_config, C
+from .simple_plot import SimplePlot
+
 logger = create_logger(__file__)
 BACKGROUNDS = ['None'] + list(BACKGROUND_FUNCTIONS)
+GRID_COLUMNS = 2
+GRID_FIG_SIZE = (4, 2)
+GRID_FIG_DPI = 70
 
 
 class XMCDVisualiser:
@@ -29,6 +33,7 @@ class XMCDVisualiser:
     """
 
     def __init__(self, root: tk.Misc, data_directory: str | None = None,
+                 scan_range_str: str = None, pairs: list[tuple[int, int]] = None,
                  config: dict | None = None):
         self.root = root
         self.config = config or get_config()
@@ -44,9 +49,10 @@ class XMCDVisualiser:
 
         window = ttk.Frame(self.root)
         window.grid(column=0, row=0, **grid_options)
-        window.columnconfigure(0, weight=0)
-        window.columnconfigure(1, weight=1)
+        window.columnconfigure(0, weight=0)  # set window resize properties
+        window.columnconfigure(1, weight=1)  # only resize middle panel
         window.columnconfigure(2, weight=0)
+        window.rowconfigure(0, weight=1)
 
         # LEFT
         frm = ttk.LabelFrame(window, text='Files')
@@ -63,11 +69,18 @@ class XMCDVisualiser:
         frm.grid(column=2, row=0, **grid_options)
         self.average_plot = AveragePlot(frm, self)
 
-    def load_scans(self, *scan_number: int) -> list[SpectraContainer]:
-        return self.exp.load_xas(*scan_number, dls_loader=self.use_dls_loader)
+        if scan_range_str:
+            self.pair_selector.scan_range.set(scan_range_str)
+        if pairs:
+            self.pair_selector.set_pair_numbers(pairs)
 
-    def load_pair(self, scan_number1: int, scan_number2: int) -> tuple[SpectraContainer, SpectraContainer]:
-        s1, s2 = self.exp.load_xas(scan_number1, scan_number2, dls_loader=self.use_dls_loader)
+
+    def load_scans(self, *scan_number: int, dls_loader: bool | None = None) -> list[SpectraContainer]:
+        return self.exp.load_xas(*scan_number, dls_loader=self.use_dls_loader if dls_loader is None else dls_loader)
+
+    def load_pair(self, scan_number1: int, scan_number2: int, dls_loader: bool | None = None) -> tuple[SpectraContainer, SpectraContainer]:
+        dls_loader = self.use_dls_loader if dls_loader is None else dls_loader
+        s1, s2 = self.exp.load_xas(scan_number1, scan_number2, dls_loader=dls_loader)
         return s1, s2
 
     def process_pair(self, scan_number1: int, scan_number2: int,
@@ -116,7 +129,7 @@ class XMCDVisualiser:
 
 
 class PairSelector:
-    def __init__(self, root: tk.Misc, base: XMCDVisualiser):
+    def __init__(self, root: tk.Misc, base: XMCDVisualiser, scan_range_str: str = '12345-12355'):
         self._base = base
         self.root = root
 
@@ -124,33 +137,41 @@ class PairSelector:
         modes = ['TEY', 'TFY']
         backgrounds = BACKGROUNDS
         self.scan_range = tk.StringVar(self.root, '')
+        self.dls_loader = tk.BooleanVar(self.root, False)
         self.mode_option = tk.StringVar(self.root, modes[0])
         self.bkg_option = tk.StringVar(self.root, backgrounds[0])
-        self.pair_numbers: list[tuple[tk.IntVar, tk.IntVar]] = []
+        self.pair_numbers: list[tuple[tk.IntVar, tk.IntVar, Callable]] = []
+
+        grid_options = dict(padx=5, pady=5, sticky='nsew')
+        # window = ttk.Frame(self.root)
+        # window.pack(side='top', fill='x')
+        self.root.rowconfigure(0, weight=0)  # scan numbers
+        self.root.rowconfigure(1, weight=1)  # pairs
+        self.root.rowconfigure(2, weight=0)  # options
 
         # Files
-        frm = ttk.LabelFrame(self.root, text='Files')
-        frm.pack(side='top', fill='x')
-        var = entry_with_placeholder(frm, self.scan_range, '12345-12360')
+        frm = ttk.LabelFrame(self.root, text='Scan Numbers')
+        # frm.pack(side='top', fill='x')
+        frm.grid(row=0, column=0, **grid_options)
+        var = entry_with_placeholder(frm, self.scan_range, scan_range_str)
         var.pack(side='left')
-        var = ttk.Button(frm, text='List', command=self.btn_list_scans)
-        var.pack(side='left')
-        var = ttk.Button(frm, text='Find Pairs', command=self.btn_find_pairs)
-        var.pack(side='left')
+        ttk.Checkbutton(frm, text='DLS Loader', variable=self.dls_loader).pack(side='left')
+        ttk.Button(frm, text='List', command=self.btn_list_scans).pack(side='left')
+        ttk.Button(frm, text='Find Pairs', command=self.btn_find_pairs).pack(side='left')
 
         # Pairs
-        frm = ttk.LabelFrame(self.root, text='Pairs', relief='groove', height=30)
-        frm.pack(side='top', fill='x')
-        self.pair_frm = ttk.Frame(frm)
-        self.pair_frm.pack(side='top', fill='x')
+        frm = ttk.LabelFrame(self.root, text='Pairs', relief='groove')
+        # frm.pack(side='top', fill='x')
+        frm.grid(row=1, column=0, **grid_options)
+        self.pair_frm = create_scrollable_window(frm, height=100, width=100)
+        # self.pair_frm.pack(side='top', fill='x')
         ttk.Button(frm, text='+', command=self.add_pair).pack(side='top', fill='x')
-        var = ttk.Scrollbar(frm, orient='vertical')
-        var.pack(side='right', fill='y')
         self.add_pair()
 
         # Options
         frm = ttk.LabelFrame(self.root, text='Options')
-        frm.pack(side='top', fill='x')
+        # frm.pack(side='top', fill='x')
+        frm.grid(row=2, column=0, **grid_options)
         self.ch_modes = ttk.OptionMenu(frm, self.mode_option, modes[0], *modes,
                                        command=self._base.update_plots)
         self.ch_modes.pack(side='top', fill='x', padx=4)
@@ -166,16 +187,16 @@ class PairSelector:
         frm = ttk.Frame(self.pair_frm)
         frm.pack(side='top', fill='x')
 
-        def remove():
-            self.pair_numbers.remove((var1, var2))
-            frm.destroy()
-
         def update_label(event=None):
             n1, n2 = var1.get(), var2.get()
             if n1 and n2:
                 s1, s2 = self._base.load_pair(n1, n2)
                 subtract = s1 - s2
                 label.set(subtract.label())
+
+        def remove():
+            self.pair_numbers.remove((var1, var2, update_label))
+            frm.destroy()
 
         en = ttk.Entry(frm, textvariable=var1, width=10)
         en.pack(side='left')
@@ -185,7 +206,7 @@ class PairSelector:
         en.bind('<Return>', update_label)
         ttk.Button(frm, text='X', command=remove, width=1).pack(side='left', padx=1)
         ttk.Label(frm, textvariable=label).pack(side='left')
-        self.pair_numbers.append((var1, var2))
+        self.pair_numbers.append((var1, var2, update_label))
         update_label()
 
     def get_pair_numbers(self) -> list[tuple[int, int]]:
@@ -194,24 +215,47 @@ class PairSelector:
             if all(vals := (v1.get(), v2.get()))
         ]
 
+    def set_pair_numbers(self, pair_numbers: list[tuple[int, int]]) -> None:
+        for n, (scan_no1, scan_no2) in enumerate(pair_numbers):
+            if n < len(self.pair_numbers):
+                v1, v2, update = self.pair_numbers[n]
+                v1.set(scan_no1)
+                v2.set(scan_no1)
+                update()
+            else:
+                self.add_pair(scan_no1, scan_no2)
+            if n == 0:
+                scan, = self._base.load_scans(scan_no1)
+                self.update_modes(scan)
+
     def update_modes(self, scan: SpectraContainer):
         modes = list(scan.spectra)
         self.ch_modes.set_menu(modes[0], *modes)
 
     def btn_list_scans(self):
-        pass
+        from ..apps.edit_text import EditText
+        scan_numbers = string2numbers(self.scan_range.get())
+        scans = self._base.load_scans(*scan_numbers, dls_loader=self.dls_loader.get())
+        out = '\n'.join(s.label() for s in scans)
+        EditText(
+            expression=out,
+            parent=self.root,
+            textwidth=50,
+            title=f'Spectra Scans in range: {scan_numbers}',
+        )
 
     def btn_find_pairs(self):
         scan_numbers = string2numbers(self.scan_range.get())
-        scans = self._base.load_scans(*scan_numbers)
+        scans = self._base.load_scans(*scan_numbers, dls_loader=self.dls_loader.get())
         if scans:
             self.update_modes(scans[0])
             pol_pairs = polarised_pairs(*scans)
             for n, (s1, s2) in enumerate(pol_pairs):
                 if n < len(self.pair_numbers):
-                    v1, v2 = self.pair_numbers[n]
+                    v1, v2, update = self.pair_numbers[n]
                     v1.set(s1.metadata.scan_no)
                     v2.set(s2.metadata.scan_no)
+                    update()
                 else:
                     self.add_pair(s1.metadata.scan_no, s2.metadata.scan_no)
 
@@ -222,21 +266,19 @@ class GridPlot:
         self.root = root
         self.figure_frames: list[ttk.Frame] = []
         self.figures: list[SimplePlot] = []
-        self.n_columns = 2
+        self.n_columns = GRID_COLUMNS
+        self.grid_fig_size = GRID_FIG_SIZE
+        self.grid_fig_dpi = GRID_FIG_DPI
 
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(0, weight=1)
         self.grid_options = dict(padx=5, pady=5, sticky='nsew')
 
-        self.window = tk.Canvas(self.root)
-        # self.window.grid(column=0, row=0, **self.grid_options)
-        self.window.pack(side='left', fill='both', expand=True)
-        y_scroll = ttk.Scrollbar(self.root, orient='vertical', command=self.window.yview)
-        x_scroll = ttk.Scrollbar(self.root, orient='horizontal', command=self.window.xview)
-        self.window.configure(yscrollcommand=y_scroll.set)
-        self.window.configure(xscrollcommand=x_scroll.set)
-        y_scroll.pack(side='right', fill='y')
-        x_scroll.pack(side='bottom', fill='x')
+        tk_scaling = root.tk.call('tk', 'scaling')
+        print(f"tk scaling: {tk_scaling}")
+        grid_width = tk_scaling * self.n_columns * self.grid_fig_size[0] * self.grid_fig_dpi + 10
+        grid_height = tk_scaling * 2 * self.grid_fig_size[1] * self.grid_fig_dpi + 10
+        self.window = create_scrollable_window(self.root, width=grid_width, height=grid_height)
 
 
     def create_plot(self, column: int, row: int,
@@ -258,8 +300,12 @@ class GridPlot:
             ylabel='',
             title=title,
             config=self._base.config,
+            fig_size=self.grid_fig_size,
+            fig_dpi=self.grid_fig_dpi,
         )
+        figure.toolbar.destroy()  # remove toolbar for small figures
         spectra.create_combined_axes(mode, figure.ax1)
+        figure.ax1.legend([spectra.spectra1.name, spectra.spectra2.name, spectra.name], frameon=False)
         figure.update_axes()
 
         self.figure_frames.append(frm)
@@ -282,6 +328,7 @@ class GridPlot:
         for fig, s in zip(self.figures, spectra):
             fig.ax1.clear()
             s.create_combined_axes(mode, fig.ax1)
+            fig.ax1.legend([s.spectra1.name, s.spectra2.name, s.name], frameon=False)
             fig.update_axes()
 
 
@@ -302,7 +349,7 @@ class AveragePlot:
             xlabel='Energy [eV]',
             ylabel='',
             title='Average',
-            config=self._base.config,
+            config=self._base.config
         )
 
         # Buttons
@@ -316,6 +363,7 @@ class AveragePlot:
         self.spectra = spectra
         self.mode = mode
         spectra.create_combined_axes(mode, self.figure.ax1)
+        self.figure.ax1.legend([spectra.spectra1.name, spectra.spectra2.name, spectra.name], frameon=False)
         self.figure.update_axes()
 
     def btn_nexus(self):

@@ -323,6 +323,8 @@ class SpectraContainer:
 class SpectraContainerSubtraction(SpectraContainer):
     """Special subclass for subtraction of SpectraContainers - XMCD and XMLD"""
     def __init__(self, spectra_container1: SpectraContainer, spectra_container2: SpectraContainer):
+        self.spectra1 = spectra_container1
+        self.spectra2 = spectra_container2
         # subtract each spectra in container
         spectra = {
             name: spectra - spectra_container2.spectra[name]

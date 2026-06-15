@@ -9,7 +9,8 @@ import datetime
 
 from mmg_toolbox.utils.file_functions import get_scan_number
 from mmg_toolbox.utils.file_reader import read_dat_file
-from mmg_toolbox.utils.polarisation import get_polarisation, check_polarisation, opposite_polarisations
+from mmg_toolbox.utils.polarisation import (get_polarisation, get_polarisation_angle,
+                                            check_polarisation, opposite_polarisations)
 from mmg_toolbox.nexus.nexus_functions import nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
@@ -211,7 +212,7 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None,
         end_date_iso = nx_find_data(hdf, 'end_time', default=start_date_iso)
         scan_no = nx_find_data(hdf, 'entry_identifier', default=get_scan_number(filename))
         pol = get_polarisation(hdf)
-        pol_angle = nx_find_data(hdf, 'linear_arbitrary_angle', default=0)
+        pol_angle = get_polarisation_angle(hdf)
     return create_xas_scan(
         name=str(scan_no),
         energy=energy,
@@ -219,16 +220,16 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None,
         monitor=monitor,
         filename=filename,
         beamline=beamline,
-        scan_no=scan_no,
-        start_date_iso=start_date_iso,
-        end_date_iso=end_date_iso,
+        scan_no=int(scan_no),
+        start_date_iso=str(start_date_iso),
+        end_date_iso=str(end_date_iso),
         cmd=cmd,
         default_mode=default_mode,
         pol=pol,
         pol_angle=pol_angle,
         sample_name=sample_name,
-        temp=temp,
-        mag_field=mag_field,
+        temp=float(temp),
+        mag_field=float(mag_field),
         element_edge=element_edge
     )
 

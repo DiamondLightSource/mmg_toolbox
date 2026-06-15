@@ -182,11 +182,15 @@ class TitleWindow:
         from ..apps.multi_scan_analysis import create_multi_scan_analysis
         folders = {
             C.default_directory: self.data_dir.get(),
+            C.current_dir: self.data_dir.get(),
             C.processing_directory: self.proc_dir.get(),
             C.notebook_directory: self.notebook_dir.get(),
         }
         self.config.update(folders)
-        create_multi_scan_analysis(self.root, self.config)
+        create_multi_scan_analysis(
+            parent=self.root,
+            config=self.config
+        )
 
 
 

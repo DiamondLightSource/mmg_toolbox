@@ -15,6 +15,7 @@ def create_title_window(beamline: str | None = None):
     from .data_viewer import create_data_viewer
     from .python_editor import create_python_editor
     from .visit_viewer import create_visit_viewer
+    from .xmcd_visualiser import create_xmcd_visualiser
 
 
     root = create_root(window_title='Beamline Data Viewer')
@@ -34,6 +35,7 @@ def create_title_window(beamline: str | None = None):
         },
         'Processing': {
             'Script Editor': lambda: create_python_editor(None, root, config),
+            'XMCD Visualiser': lambda: create_xmcd_visualiser(data_directory=widget.data_dir.get(), parent=root, config=config),
             'Open a terminal': lambda: open_terminal(f"cd {widget.data_dir.get()}"),
             'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', widget.proc_dir.get()),
             'Start Jupyter (notebooks)': lambda: launch_jupyter_notebook('notebook', widget.notebook_dir.get()),
