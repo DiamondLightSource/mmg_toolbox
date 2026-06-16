@@ -8,7 +8,8 @@ from mmg_toolbox.tkguis.misc.functions import topmenu, select_hdf_file
 from mmg_toolbox.tkguis.misc.styles import RootWithStyle, create_root
 
 
-def create_nexus_viewer(filename: str, parent: tk.Misc | None = None, config: dict | None = None) -> RootWithStyle:
+def create_nexus_viewer(filename: str | None = None, parent: tk.Misc | None = None,
+                        config: dict | None = None) -> RootWithStyle:
     """
     File Viewer of the NeXus structure
     """
@@ -20,6 +21,7 @@ def create_nexus_viewer(filename: str, parent: tk.Misc | None = None, config: di
 
     menu = {
         'File': {
+            'New': create_nexus_viewer,
             'Open': widget.select_file
         },
     }

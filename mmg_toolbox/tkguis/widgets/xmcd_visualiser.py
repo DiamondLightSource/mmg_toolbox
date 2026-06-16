@@ -4,12 +4,14 @@ a tkinter frame with 3 sections:
     2. Grid of pair-subtraction-plots with checkboxes
     3. average of selected pairs
 """
+import os
 from collections.abc import Callable
 import tkinter as tk
 from tkinter import ttk
 
 from mmg_toolbox.utils.misc_functions import string2numbers
 from mmg_toolbox.utils.experiment import Experiment
+from mmg_toolbox.utils.env_functions import get_processing_directory
 from mmg_toolbox.xas import SpectraContainer, SpectraContainerSubtraction, average_scans, polarised_pairs
 from mmg_toolbox.xas.spectra import BACKGROUND_FUNCTIONS
 
@@ -33,11 +35,19 @@ class XMCDVisualiser:
     """
 
     def __init__(self, root: tk.Misc, data_directory: str | None = None,
+                 proc_directory: str | None = None,
                  scan_range_str: str = None, pairs: list[tuple[int, int]] = None,
                  config: dict | None = None):
         self.root = root
         self.config = config or get_config()
         self.use_dls_loader = False
+
+        if data_directory is None:
+            data_directory = self.config.get(C.current_dir, '')
+        if proc_directory is None:
+            proc_directory = self.config.get(C.current_proc, get_processing_directory(data_directory))
+        logger.info(f"data_directory: {data_directory}\nproc_directory: {proc_directory}")
+        self.processing_directory = proc_directory
         self.exp = Experiment(data_directory, instrument=self.config.get(C.beamline, None))
         self.pair_numbers: list[tuple[int, int]] = []
         self.pairs: list[tuple[SpectraContainer, SpectraContainer]] = []
@@ -74,6 +84,11 @@ class XMCDVisualiser:
         if pairs:
             self.pair_selector.set_pair_numbers(pairs)
 
+    def generate_output_filename(self, name: str, extension: str = '.nxs'):
+        path, name = os.path.split(name)
+        name, ext = os.path.splitext(name)
+        path = path or self.processing_directory
+        return os.path.join(path, name + extension)
 
     def load_scans(self, *scan_number: int, dls_loader: bool | None = None) -> list[SpectraContainer]:
         return self.exp.load_xas(*scan_number, dls_loader=self.use_dls_loader if dls_loader is None else dls_loader)
@@ -355,6 +370,11 @@ class AveragePlot:
         # Buttons
         frm = ttk.Frame(self.root)
         frm.pack(side='top', fill='x')
+        ttk.Button(frm, text='Add Spectra to List', command=self.btn_add_spectra).pack(side='top', fill='x')
+        line = ttk.Frame(frm)
+        line.pack(side='top', fill='x')
+        ttk.Label(line, text='Filename').pack(side='left')
+        ttk.Entry(line, textvariable=self.output_name).pack(side='left')
         ttk.Button(frm, text='Save NeXus', command=self.btn_nexus).pack(side='top', fill='x')
         ttk.Button(frm, text='Save CSV', command=self.btn_csv).pack(side='top', fill='x')
 
@@ -366,15 +386,21 @@ class AveragePlot:
         self.figure.ax1.legend([spectra.spectra1.name, spectra.spectra2.name, spectra.name], frameon=False)
         self.figure.update_axes()
 
+    def btn_add_spectra(self):
+        """Add spectra to different panel"""
+        pass
+
     def btn_nexus(self):
         output_name = self.output_name.get()
+        filename = self._base.generate_output_filename(output_name, '.nxs')
         if self.spectra and output_name:
-            self.spectra.write_nexus(output_name + '.nxs')
+            self.spectra.write_nexus(filename)
 
     def btn_csv(self):
         output_name = self.output_name.get()
+        filename = self._base.generate_output_filename(output_name, '.csv')
         if self.spectra and output_name and self.mode:
-            self.spectra.write_csv(output_name + '.csv', self.mode)
+            self.spectra.write_csv(filename, self.mode)
 
 
 def entry_with_placeholder(root: tk.Misc, text: tk.Variable, placeholder_text: str, **kwargs) -> ttk.Entry:

@@ -35,6 +35,7 @@ class MultiScanAnalysis:
             exp_directory = self.config.get(C.current_dir, '')
         if proc_directory is None:
             proc_directory = self.config.get(C.current_proc, get_processing_directory(exp_directory))
+        logger.info(f"exp_directory: {exp_directory}\nproc_directory: {proc_directory}")
 
         self.exp_folder = tk.StringVar(root, exp_directory)
         self.proc_folder = tk.StringVar(root, proc_directory)
