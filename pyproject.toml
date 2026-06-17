@@ -15,7 +15,6 @@ dependencies = [
     "scipy",
     "lmfit",
     "stomp.py",
-    "diffcalc-core",
     "ipywidgets",
     "kaleido",
     "plotly",
