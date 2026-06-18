@@ -13,6 +13,7 @@ def test_cli_inputs():
     py_cmd = "python -c \"from mmg_toolbox.scripts.experiment_startup import cli; print(cli())\" "
 
     def run(cmd):
+        print(f"Current directory: {os.getcwd()}")
         print(f"Running: {py_cmd+cmd}")
         output = subprocess.run(py_cmd+cmd, shell=True, capture_output=True)
         return output.stdout.decode()
@@ -32,6 +33,7 @@ def test_cli_create_notebooks():
     directory = os.path.dirname(FILES_DICT['i10 scan'])
     command = f"python -c \"from mmg_toolbox.scripts.experiment_startup import cli_create_notebooks; cli_create_notebooks()\" -b i10-1 -q {directory}"
 
+    print(f"Current directory: {os.getcwd()}")
     print(f"Running: {command}")
     output = subprocess.run(command, shell=True, capture_output=True)
     print('Output:')

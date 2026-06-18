@@ -72,20 +72,20 @@ def test_autoprocess_xas_notebook():
     import papermill as pm
     pm.execute_notebook(
         NB_PATHS['xas_notebook.ipynb'],
-        'output.ipynb',
+        'output_xas.ipynb',
         parameters={
             'inpath': FILES_DICT['i06-1 zacscan'],
-            'outpath': 'output.nxs',
+            'outpath': 'output_xas.nxs',
         }
     )
-    assert os.path.isfile('output.ipynb')
-    assert os.path.isfile('output.nxs')
+    assert os.path.isfile('output_xas.ipynb')
+    assert os.path.isfile('output_xas.nxs')
 
-    with h5py.File('output.nxs', 'r') as hdf:
-        assert isinstance(hdf['/entry/divide_by_preedge/tey'], h5py.Dataset)
+    with h5py.File('output_xas.nxs', 'r') as hdf:
+        assert isinstance(hdf['/processed/tey/absorbed_beam'], h5py.Dataset)
 
-    # os.remove('output.ipynb')
-    os.remove('output.nxs')
+    os.remove('output_xas.ipynb')
+    os.remove('output_xas.nxs')
 
 
 @only_dls_file_system
@@ -132,7 +132,7 @@ def test_autoprocess_xmcd_processor():
     assert os.path.isfile('37436-37439_xmcd.nxs')
 
     with h5py.File('37436-37439_xmcd.nxs', 'r') as hdf:
-        assert isinstance(hdf['/processed/xmcd/tey'], h5py.Dataset)
+        assert isinstance(hdf['/xmcd/tey/absorbed_beam'], h5py.Dataset)
 
     os.remove('output.ipynb')
     os.remove('37436-37439_xmcd.nxs')

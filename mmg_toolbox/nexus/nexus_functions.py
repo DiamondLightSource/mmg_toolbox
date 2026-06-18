@@ -95,6 +95,10 @@ def nx_find(parent: h5py.Group, *field_or_class: str | list[str]) -> h5py.Datase
         # Get group axes & signal datasets
         axes = bytes2str(group.attrs.get(nn.NX_AXES, ''))
         signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
+        # search given group
+        args = update_args(group.name, group, axes, signal, *args)
+        if len(args) == 0:
+            return group
 
         items = reorder_group_items(group)  # @default first
         for name, obj in items.items():
@@ -147,6 +151,11 @@ def nx_find_all(parent: h5py.Group, *field_or_class: str | list[str]) -> list[h5
         # Get group axes & signal datasets
         axes = bytes2str(group.attrs.get(nn.NX_AXES, ''))
         signal = bytes2str(group.attrs.get(nn.NX_SIGNAL, ''))
+        # search given group
+        args = update_args(group.name, group, axes, signal, *args)
+        if len(args) == 0:
+            found.append(group)
+            return found
 
         for name, obj in group.items():
             new_args = update_args(name, obj, axes, signal, *args)

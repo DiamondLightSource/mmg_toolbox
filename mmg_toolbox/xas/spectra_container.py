@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from mmg_toolbox.utils.polarisation import pol_subtraction_label, PolLabels
 from mmg_toolbox.xas import spectra_analysis as spa
 from mmg_toolbox.xas.spectra import Spectra, SpectraSubtraction
-from mmg_toolbox.xas.metadata import XasMetadata
+from mmg_toolbox.xas.metadata import XasMetadata, merge_xas_metadata
 
 
 class SpectraContainer:
@@ -139,11 +139,18 @@ class SpectraContainer:
         signals = np.array([spectra.signal for spectra in self.spectra.values()])
         return np.array([energy, *signals])
 
+    def get_raw_filename(self):
+        """Recursively look through the parents for a raw filename"""
+        if self.parents:
+            return next(iter(self.parents)).get_raw_filename()
+        return self.metadata.filename
+
     def analysis_steps(self) -> dict[str, dict[str, Spectra]]:
         """Return ordered dictionary of processing steps from parent objects"""
         return {
-            f"{sc.process_label.replace('/', '').replace(' ', '')}": sc.spectra
-            for sc in list(reversed(self.parents)) + [self]
+            label: spectra for sc in self.parents for label, spectra in sc.analysis_steps().items()
+        } | {
+            f"{self.process_label.replace('/', '').replace(' ', '')}": self.spectra
         }
 
     def analysis_steps_str(self) -> str:
@@ -233,9 +240,8 @@ class SpectraContainer:
             mode: getattr(spec, method)(*args, **kwargs)
             for mode, spec in self.spectra.items()
         }
-        parents = (self.copy(), *self.parents)
         process_label = next(iter(spectra.values())).process_label
-        scan = SpectraContainer(self.name, spectra, *parents, metadata=self.metadata)
+        scan = SpectraContainer(self.name, spectra, self.copy(), metadata=self.metadata)
         scan.process_label = process_label
         return scan
 
@@ -323,8 +329,6 @@ class SpectraContainer:
 class SpectraContainerSubtraction(SpectraContainer):
     """Special subclass for subtraction of SpectraContainers - XMCD and XMLD"""
     def __init__(self, spectra_container1: SpectraContainer, spectra_container2: SpectraContainer):
-        self.spectra1 = spectra_container1
-        self.spectra2 = spectra_container2
         # subtract each spectra in container
         spectra = {
             name: spectra - spectra_container2.spectra[name]
@@ -338,33 +342,27 @@ class SpectraContainerSubtraction(SpectraContainer):
         if m1.pol != m2.pol:
             # Polarisation flip - XMCD or XMLD
             name = pol_subtraction_label(m1.pol)
-            # rename parents (for display)
-            spectra_container1 = spectra_container1.copy(m1.pol)
-            spectra_container2 = spectra_container2.copy(m2.pol)
-            for spectrum in spectra.values():
-                spectrum.process_label = name
+            name1, name2 = m1.pol, m2.pol
         elif abs(m1.mag_field + m2.mag_field) < 0.1:
             # magnetisation flip - XMCD
             name = 'field ' + pol_subtraction_label(m1.pol)
-            # rename parents (for display)
-            spectra_container1 = spectra_container1.copy(f"B={m1.mag_field:+.1g}")
-            spectra_container2 = spectra_container2.copy(f"B={m2.mag_field:+.1g}")
-            for spectrum in spectra.values():
-                spectrum.process_label = name
+            name1, name2 = f"B={m1.mag_field:+.1g}", f"B={m2.mag_field:+.1g}"
         elif m1.pol == PolLabels.linear_arbitrary and abs(m1.pol_angle - m2.pol_angle) > 89:
             # rotate linear polarisation - XMLD
             name = PolLabels.linear_dichroism
-            # rename parents (for display)
-            spectra_container1 = spectra_container1.copy(f"{m1.pol}({m1.pol_angle:+.1g})")
-            spectra_container2 = spectra_container2.copy(f"{m2.pol}({m2.pol_angle:+.1g})")
-            for spectrum in spectra.values():
-                spectrum.process_label = name
+            name1, name2 = f"{m1.pol}({m1.pol_angle:+.1g})", f"{m2.pol}({m2.pol_angle:+.1g})"
         else:
             name = 'subtraction'
+            name1 = name2 = None
+        # rename parents (for display)
+        self.spectra1 = spectra_container1.copy(name1)
+        self.spectra2 = spectra_container2.copy(name2)
+        # spectra process label
+        for spectrum in spectra.values():
+            spectrum.process_label = name
         # subtraction metadata (merge these?)
-        metadata = XasMetadata(**m1.__dict__)
-        metadata.filename = ''
-        super().__init__(name, spectra, spectra_container1, spectra_container2, metadata=metadata)
+        metadata = merge_xas_metadata(m1, m2)
+        super().__init__(name, spectra, self.spectra1, self.spectra2, metadata=metadata)
 
     def __str__(self):
         s = super().__str__()
@@ -502,3 +500,38 @@ class SpectraContainerSubtraction(SpectraContainer):
         axes.set_xlabel('E [eV]')
         axes.legend()
         return axes
+
+    def write_csv(self, csv_filename: str, mode: str | None = None) -> None:
+        """
+        Write spectra to csv file
+
+            spectra.write_csv('xmcd_spectra.csv', mode='tey')  # spectra contains modes TEY and TFY
+            energy, xas_tey1, xas_tey2, xmcd = np.loadtxt('xmcd_spectra.csv', delimiter=',').T
+
+        :param csv_filename: filename to write
+        :param mode: mode to write, or None to write all mode spectra to single file
+        """
+        header = f"{self.name} {self.process_label}"
+        if mode is None:
+            array = self.get_all_arrays()
+            energy = array[0]
+            xmcd = array[1:]
+            xas1 = self.spectra1.get_all_arrays()[1:]
+            xas2 = self.spectra2.get_all_arrays()[1:]
+            array = np.array([energy, *xas1, *xas2, *xmcd]).T
+            keys = self.spectra.keys()
+            header += '\n' + ', '.join(
+                ['energy'] +
+                [f'xas1_{self.spectra1.name}_{k}' for k in keys] +
+                [f'xas2_{self.spectra2.name}_{k}' for k in keys] +
+                [f'{self.name}_{k}' for k in keys]
+            )
+        else:
+            spectra = self.spectra[mode]
+            xas1 = self.spectra1.spectra[mode]
+            xas2 = self.spectra2.spectra[mode]
+            array = np.transpose([spectra.energy, xas1.signal, xas2.signal, spectra.signal])
+            header += f"\nenergy, {self.spectra1.name}, {self.spectra2.name}, {self.name}"
+        np.savetxt(csv_filename, array, delimiter=', ', header=header)
+        print(f"Saved {csv_filename}")
+

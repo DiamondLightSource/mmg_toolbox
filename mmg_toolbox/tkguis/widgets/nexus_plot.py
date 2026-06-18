@@ -409,7 +409,6 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
             title=os.path.basename(self.filenames[0]),
             legend=labels,
         )
-        self.line = self.plot_list[0]
         if self.do_fit.get():
             self.perform_fit()
 

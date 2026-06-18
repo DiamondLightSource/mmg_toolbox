@@ -21,6 +21,7 @@ def average_scans(*scans: SpectraContainer) -> SpectraContainer:
         if len(scans) > 3 else
         [s.name for s in scans]
     )
+    av_scan.parents = list(scans)
     return av_scan
 
 

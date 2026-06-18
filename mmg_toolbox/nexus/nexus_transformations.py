@@ -108,10 +108,10 @@ def nx_transformations(path: str, index: int, hdf_file: h5py.Group, print_output
     this_index = index if dataset.size > 1 else 0
     value = dataset[np.unravel_index(this_index, dataset.shape)]
 
-    transformation_type = dataset.attrs.get(nn.NX_TTYPE, b'').decode()
+    transformation_type = bytes2str(dataset.attrs.get(nn.NX_TTYPE, b''))
     vector = np.array(dataset.attrs.get(nn.NX_VECTOR, (1, 0, 0)))
     offset = dataset.attrs.get(nn.NX_OFFSET, (0, 0, 0))
-    units = dataset.attrs.get(nn.NX_UNITS, b'').decode()
+    units = bytes2str(dataset.attrs.get(nn.NX_UNITS, b''))
 
     if transformation_type == nn.NX_TROT:
         if print_output:
@@ -225,12 +225,12 @@ def load_transformation(path: str, index: int, hdf_file: h5py.Group, parent: str
     this_index = index if dataset.size > 1 else 0
     value = dataset[np.unravel_index(this_index, dataset.shape)]
 
-    transformation_type = dataset.attrs.get(nn.NX_TTYPE, b'').decode()
+    transformation_type = bytes2str(dataset.attrs.get(nn.NX_TTYPE, b''))
     vector = dataset.attrs.get(nn.NX_VECTOR, (1, 0, 0))
     offset = dataset.attrs.get(nn.NX_OFFSET, (0, 0, 0))
-    units = dataset.attrs.get(nn.NX_UNITS, b'').decode()
-    offset_units = dataset.attrs.get(nn.NX_OFFSET_UNITS, b'').decode()
-    depends_on = dataset.attrs.get(nn.NX_DEPON, b'').decode()
+    units = bytes2str(dataset.attrs.get(nn.NX_UNITS, b''))
+    offset_units = bytes2str(dataset.attrs.get(nn.NX_OFFSET_UNITS, b''))
+    depends_on = bytes2str(dataset.attrs.get(nn.NX_DEPON, b''))
     return NxTransformation(
         path=path,
         name=dataset.name.split('/')[-1],

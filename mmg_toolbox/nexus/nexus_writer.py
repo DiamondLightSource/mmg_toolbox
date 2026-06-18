@@ -174,7 +174,7 @@ def add_nxbeam(root: h5py.Group, name: str, incident_energy_ev: float, polarisat
 
 def add_nxsample(root: h5py.Group, name: str, sample_name: str = '', chemical_formula: str = '',
                  temperature_k: float = 300, magnetic_field_t: float = 0, electric_field_v: float = 0,
-                 mag_field_dir: str = 'z', electric_field_dir: str = 'z',
+                 mag_field_dir: str = 'z', electric_field_dir: str = 'z', rotation_angle: float = 0,
                  sample_type: str = 'sample', description: str = '') -> h5py.Group:
     """Create NXsample group"""
     sample = add_nxclass(root, name, nn.NX_SAMPLE)
@@ -186,6 +186,7 @@ def add_nxsample(root: h5py.Group, name: str, sample_name: str = '', chemical_fo
     add_nxfield(sample, 'temperature', temperature_k, units='K')
     add_nxfield(sample, 'magnetic_field', magnetic_field_t, units='T', direction=mag_field_dir)
     add_nxfield(sample, 'electric_field', electric_field_v, units='V', direction=electric_field_dir)
+    add_nxfield(sample, 'rotation_angle', rotation_angle, units='deg')
     return sample
 
 
@@ -249,11 +250,11 @@ def add_nxnote(root: h5py.Group, name: str, description: str, data: str | dict |
     return note
 
 
-def add_nxparameters(root: h5py.Group, name: str, **parameters) -> h5py.Group:
+def add_nxparameters(root: h5py.Group, group_name: str, **parameters) -> h5py.Group:
     """
     Add NXparameters to parent group
     """
-    group = add_nxclass(root, name, nn.NX_PARAM)
+    group = add_nxclass(root, group_name, nn.NX_PARAM)
     for key, value in parameters.items():
         attrs = {}
         if isinstance(value, tuple):
@@ -277,17 +278,12 @@ def add_nxprocess(root: h5py.Group, name: str, program: str | None = None,
     process = add_nxprocess(entry, 'process', program='Python', version='1.0')
     add_nxnote(process, 'step_1',
             description='First step',
-            data='details',
-            sequence_index=1
+            data='details'
     )
-    add_nxnote(process, 'step_2',
-            description='Second step',
-            data='details',
-            sequence_index=2
-    )
+    params = add_nxparameters(process, 'parameters', param1=5, param2=6)
     data = add_nxdata(process, 'result', axes=['x'], signal='y')
-    xdata = add_nxfield(group, 'x', xvals, units='mm')
-    ydata = add_nxfield(group, 'y' yvals, units='')
+    xdata = add_nxfield(data, 'x', xvals, units='mm')
+    ydata = add_nxfield(data, 'y' yvals, units='')
     """
     from mmg_toolbox import version_info
 

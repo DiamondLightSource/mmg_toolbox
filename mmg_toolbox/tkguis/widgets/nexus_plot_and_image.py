@@ -71,7 +71,7 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
 
     def update_index_line(self):
         """update image_widget update_image to add plot line"""
-        xvals, yvals = self.line.get_data()
+        xvals, yvals = self.plot_list[0].get_data()
         index = self.view_index.get()
         ylim = self.ax1.get_ylim()
         xval = xvals[index]

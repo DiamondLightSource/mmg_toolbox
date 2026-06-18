@@ -26,6 +26,11 @@ GRID_COLUMNS = 2
 GRID_FIG_SIZE = (4, 2)
 GRID_FIG_DPI = 70
 
+# TODO: refactor folders to make tkgui/xmcd_visualiser folder
+# TODO: add tabs
+# TODO: add tab for sum rule analysis
+# TODO: add tab for plotting multiple processed files
+# TODO: add all-xas plots
 
 class XMCDVisualiser:
     """
