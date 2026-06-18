@@ -20,7 +20,6 @@ logger = create_logger(__file__)
 # TODO: add tabs
 # TODO: add tab for sum rule analysis
 # TODO: add tab for plotting multiple processed files
-# TODO: add all-xas plots
 
 class XMCDVisualiser:
     """
