@@ -13,7 +13,7 @@ from .functions import check_new_file
 from .jupyter import launch_jupyter_notebook, terminate_notebooks
 from ..apps.multi_scan_analysis import create_multi_scan_analysis
 from ..apps.python_editor import create_python_editor
-from ..apps.xmcd_visualiser import create_xmcd_visualiser
+from ..xmcd_visualiser import create_xmcd_visualiser
 
 
 def create_script_from_template(root: tk.Misc, template: str = 'example', directory: str | None = None,

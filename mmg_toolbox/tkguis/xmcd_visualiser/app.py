@@ -11,7 +11,7 @@ def create_xmcd_visualiser(data_directory: str | None = None, scan_range_str: st
     """
     Create a Data Viewer showing all scans in an experiment folder
     """
-    from ..widgets.xmcd_visualiser import XMCDVisualiser
+    from .widget import XMCDVisualiser
 
     root = create_root(parent=parent, window_title='XMCD Visualiser')
     config = config or get_config()

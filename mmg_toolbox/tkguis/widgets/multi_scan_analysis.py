@@ -184,7 +184,7 @@ class MultiScanAnalysis:
             )
 
     def xmcd_visualiser(self):
-        from ..apps.xmcd_visualiser import create_xmcd_visualiser
+        from ..xmcd_visualiser import create_xmcd_visualiser
         scan_files = self.range.generate_scan_files()
         create_xmcd_visualiser(
             parent=self.root,

@@ -15,7 +15,7 @@ def create_title_window(beamline: str | None = None):
     from .data_viewer import create_data_viewer
     from .python_editor import create_python_editor
     from .visit_viewer import create_visit_viewer
-    from .xmcd_visualiser import create_xmcd_visualiser
+    from ..xmcd_visualiser import create_xmcd_visualiser
 
 
     root = create_root(window_title='Beamline Data Viewer')
