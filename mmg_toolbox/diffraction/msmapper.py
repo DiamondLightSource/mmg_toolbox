@@ -280,7 +280,7 @@ def plot_voxel_image(
         figsize: tuple[int, int] = (9, 6),
         isomin: float = 0.001,
         isomax: float = 1.0,
-) -> tuple[VBox, Callable[[str], None]] :
+):
     """
     Plots an interactive 3D volume using Plotly and ipywidgets.
 
