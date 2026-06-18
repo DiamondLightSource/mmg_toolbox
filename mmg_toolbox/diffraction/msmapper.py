@@ -3,8 +3,6 @@ msmapper utils
 """
 import numpy as np
 import h5py
-import plotly.graph_objects as go
-from ipywidgets import VBox, HBox, Dropdown, FloatText
 
 from mmg_toolbox import version_info
 from mmg_toolbox.nexus import nexus_writer as nw
@@ -319,6 +317,9 @@ def plot_voxel_image(
     :returns: fig.write_image. A function to save the figure to a given filepath
     :rtype fig.write_image: function (str) -> void
     """
+
+    import plotly.graph_objects as go
+    from ipywidgets import VBox, HBox, Dropdown, FloatText
 
     fig = go.FigureWidget(
         data=go.Volume(
