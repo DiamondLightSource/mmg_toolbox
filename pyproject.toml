@@ -17,60 +17,68 @@ dependencies = [
     "stomp.py",
 ]
 requires-python = ">=3.10"
-authors = [
-  {name = "Dan Porter", email = "dan.porter@diamond.ac.uk"},
-]
-maintainers = [
-  {name = "Dan Porter", email = "dan.porter@diamond.ac.uk"},
-]
+authors = [{ name = "Dan Porter", email = "dan.porter@diamond.ac.uk" }]
+maintainers = [{ name = "Dan Porter", email = "dan.porter@diamond.ac.uk" }]
 description = "Repository for useful python data analysis functions for the Diamond Magnetic Materials Group"
 readme = "README.md"
-license = {file = "LICENSE"}
-keywords = [
-  'nexus',
-]
+license = { file = "LICENSE" }
+keywords = ['nexus']
 classifiers = [
-  'Programming Language :: Python :: 3.10',
-  'Intended Audience :: Science/Research',
-  'Topic :: Scientific/Engineering :: Physics',
-  'License :: OSI Approved :: Apache Software License',
-  'Development Status :: 3 - Alpha',
+    'Programming Language :: Python :: 3.10',
+    'Intended Audience :: Science/Research',
+    'Topic :: Scientific/Engineering :: Physics',
+    'License :: OSI Approved :: Apache Software License',
+    'Development Status :: 3 - Alpha',
 ]
 
 [project.optional-dependencies]
 # minimal install
 base = [
-  "numpy",
-  "h5py",
-  "hdf5plugin",
-  "hdfmap>=1.1.0",
-  "matplotlib",
-  "imageio",
-  "lmfit",
+    "numpy",
+    "h5py",
+    "hdf5plugin",
+    "hdfmap>=1.1.0",
+    "matplotlib",
+    "imageio",
+    "lmfit",
 ]
 # full install with additional packages
 full = [
-  "numpy",
-  "h5py",
-  "hdf5plugin",
-  "hdfmap>=1.1.0",
-  "matplotlib",
-  "imageio",
-  "scipy",
-  "lmfit",
-  "diffcalc-core",
-  "ipython",
-  "jupyter",
-  "nbconvert",
-  "nbformat",
-  "nexpy"
+    "numpy",
+    "h5py",
+    "hdf5plugin",
+    "hdfmap>=1.1.0",
+    "matplotlib",
+    "imageio",
+    "scipy",
+    "lmfit",
+    "diffcalc-core",
+    "ipython",
+    "jupyter",
+    "nbconvert",
+    "nbformat",
+    "nexpy",
+    "ipywidgets",
+    "kaleido",
+    "plotly",
 ]
 
 [tool.setuptools]
 packages = [
-  'mmg_toolbox', 'mmg_toolbox.beamline_metadata', 'mmg_toolbox.data', 'mmg_toolbox.scripts',
-  'mmg_toolbox.diffraction', 'mmg_toolbox.plotting', 'mmg_toolbox.nexus', 'mmg_toolbox.utils', 'mmg_toolbox.xas', 'mmg_toolbox.fitting',
-  'mmg_toolbox.tkguis', 'mmg_toolbox.tkguis.misc', 'mmg_toolbox.tkguis.widgets', 'mmg_toolbox.tkguis.apps'
+    'mmg_toolbox',
+    'mmg_toolbox.beamline_metadata',
+    'mmg_toolbox.data',
+    'mmg_toolbox.scripts',
+    'mmg_toolbox.diffraction',
+    'mmg_toolbox.plotting',
+    'mmg_toolbox.nexus',
+    'mmg_toolbox.utils',
+    'mmg_toolbox.xas',
+    'mmg_toolbox.fitting',
+    'mmg_toolbox.tkguis',
+    'mmg_toolbox.tkguis.misc',
+    'mmg_toolbox.tkguis.widgets',
+    'mmg_toolbox.tkguis.apps',
 ]
 
 [tool.setuptools.package-data]
@@ -78,7 +86,7 @@ packages = [
 "mmg_toolbox.scripts" = ["*.ipynb"]
 
 [tool.setuptools.dynamic]
-version = {attr = "mmg_toolbox.__version__"}
+version = { attr = "mmg_toolbox.__version__" }
 
 [project.scripts]
 dataviewer = "mmg_toolbox.tkguis:cli_run"
