@@ -15,9 +15,6 @@ dependencies = [
     "scipy",
     "lmfit",
     "stomp.py",
-    "ipywidgets",
-    "kaleido",
-    "plotly",
 ]
 requires-python = ">=3.10"
 authors = [{ name = "Dan Porter", email = "dan.porter@diamond.ac.uk" }]
@@ -61,6 +58,9 @@ full = [
     "nbconvert",
     "nbformat",
     "nexpy",
+    "ipywidgets",
+    "kaleido",
+    "plotly",
 ]
 
 [tool.setuptools]

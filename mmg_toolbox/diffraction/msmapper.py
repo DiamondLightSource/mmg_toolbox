@@ -4,12 +4,14 @@ msmapper utils
 import numpy as np
 import h5py
 import plotly.graph_objects as go
-from ipywidgets import VBox, Dropdown, FloatText
+from ipywidgets import VBox, HBox, Dropdown, FloatText
 
 from mmg_toolbox import version_info
 from mmg_toolbox.nexus import nexus_writer as nw
 from mmg_toolbox.fitting import FitResults
-from plotly_colourmaps import PLOTLY_CMAPS
+from .plotly_colourmaps import PLOTLY_CMAPS
+
+from collections.abc import Callable
 
 
 MSMAPPER_VERSION = '1.9'
@@ -219,8 +221,7 @@ def update_msmapper_nexus(filename: str, hkl_slice: tuple[np.ndarray, np.ndarray
         nw.add_nxfield(l_axis, 'intensity', l_slice)
 
         # Q
-        orthog = nw.add_nxdata(entry, 'orthogonal_axes', [
-                               'Qx', 'Qy', 'Qz'], 'volume', 'weight')
+        orthog = nw.add_nxdata(entry, 'orthogonal_axes', ['Qx', 'Qy', 'Qz'], 'volume', 'weight')
         nw.add_nxfield(orthog, 'Qx', qx, units='1/angstrom')
         nw.add_nxfield(orthog, 'Qy', qy, units='1/angstrom')
         nw.add_nxfield(orthog, 'Qz', qz, units='1/angstrom')
@@ -281,7 +282,7 @@ def plot_voxel_image(
         figsize: tuple[int, int] = (9, 6),
         isomin: float = 0.001,
         isomax: float = 1.0,
-):
+) -> tuple[VBox, Callable[[str], None]] :
     """
     Plots an interactive 3D volume using Plotly and ipywidgets.
 
@@ -316,7 +317,6 @@ def plot_voxel_image(
     :rtype ipywidgets.Box:
 
     :returns: fig.write_image. A function to save the figure to a given filepath
-    :rtype fig.write_image:
     :rtype fig.write_image: function (str) -> void
     """
 
@@ -388,5 +388,7 @@ def plot_voxel_image(
     isomin_input.observe(update_plot, names='value')
     isomax_input.observe(update_plot, names='value')
 
-    widget = VBox(colourmap_dropdown, fig)
+    iso_controls = HBox([isomin_input, isomax_input])
+
+    widget = VBox([colourmap_dropdown, iso_controls, fig])
     return widget, fig.write_image
