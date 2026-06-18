@@ -30,6 +30,7 @@ result.plot()
 
 # Evaluate results
 print(f"\n\nNumber of peaks fit: {len(result)}")
+print(f"Total amplitude: {result.amplitude: .2f} +/- {result.stderr_amplitude: .2f}")
 for peak in result:
     print(f"Peak {peak.model_name} has amplitude: {peak.amplitude:.1f}, and width: {peak.fwhm:.3}")
 
