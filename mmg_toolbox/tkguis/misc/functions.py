@@ -128,6 +128,55 @@ def check_new_file(parent, filename: str | None = None) -> str | None:
     return filename
 
 
+def create_scrollable_window(root: tk.Misc, scroll_x=True, scroll_y=True,
+                             width: int | None = None, height: int | None = None) -> ttk.Frame:
+    """
+    Create scrollable window
+
+    :param root: tk.Misc
+    :param scroll_x: bool
+    :param scroll_y: bool
+    :param width: int
+    :param height: int
+    :return: ttk.Frame
+    """
+
+    # --- Container ---
+    container = ttk.Frame(root)
+    container.pack(fill="both", expand=True)
+
+    # --- Canvas ---
+    canvas = tk.Canvas(container, width=width, height=height)
+    canvas.grid(row=0, column=0, sticky="nsew")
+
+    # --- Scrollbars ---
+    if scroll_y:
+        scroll_y = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scroll_y.grid(row=0, column=1, sticky="ns")
+        canvas.configure(yscrollcommand=scroll_y.set)
+    if scroll_x:
+        scroll_x = ttk.Scrollbar(container, orient="horizontal", command=canvas.xview)
+        scroll_x.grid(row=1, column=0, sticky="ew")
+        canvas.configure(xscrollcommand=scroll_x.set)
+
+    # --- Inner frame (THIS HOLDS YOUR PLOTS) ---
+    inner_frame = ttk.Frame(canvas)
+
+    # Add frame to canvas
+    canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+
+    # --- Resize logic ---
+    def on_configure(event):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    inner_frame.bind("<Configure>", on_configure)
+
+    # Optional: make canvas expand properly
+    container.rowconfigure(0, weight=1)
+    container.columnconfigure(0, weight=1)
+    return inner_frame
+
+
 def open_close_all_tree(treeview, branch="", openstate=True):
     """Open or close all items in ttk.treeview"""
     treeview.item(branch, open=openstate)
@@ -214,52 +263,6 @@ def post_right_click_menu(menu: tkinter.Menu, xpos: int, ypos: int):
         menu.tk_popup(xpos, ypos)
     finally:
         menu.grab_release()
-
-
-def folder_treeview(parent: tk.Misc, columns: list[tuple[str, str, int, bool, str | None]],
-                    width: int | None = None, height: int | None = None) -> ttk.Treeview:
-    """
-    Creates a ttk.TreeView object inside a frame with columns for folders
-    """
-    canvas = tk.Canvas(parent)
-    # fixed size of grid in canvas
-    canvas.grid_rowconfigure(0, weight=1)
-    canvas.grid_columnconfigure(0, weight=1)
-    if width and height:
-        canvas.configure(width=width, height=height)
-        canvas.pack()
-    else:
-        canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-    canvas.grid_propagate(False)
-
-    frm = ttk.Frame(canvas)
-    frm.grid_rowconfigure(0, weight=1)
-    frm.grid_columnconfigure(0, weight=1)
-
-    tree = ttk.Treeview(frm, columns=[c[0] for c in columns[1:]])
-    for c in columns:
-        tree.column(c[0], stretch=False)
-
-    var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
-    # var.pack(side=tk.RIGHT, fill=tk.Y)
-    var.grid(column=1, row=0, sticky='nsew')
-    tree.configure(yscrollcommand=var.set)
-
-    var = ttk.Scrollbar(frm, orient="horizontal", command=tree.xview)
-    # var.pack(side=tk.BOTTOM, fill=tk.X)
-    var.grid(column=0, row=1, sticky='ew')
-    tree.configure(xscrollcommand=var.set)
-    # tree.pack(side=tk.TOP)
-    tree.grid(column=0, row=0, sticky='nsew')
-    frm.grid(column=0, row=0)
-
-    def tree_sort(col, reverse, sort_col=None):
-        return lambda: treeview_sort_column(tree, col, reverse=reverse, sort_col=sort_col)
-
-    for name, text, width, _reverse, _sort_col in columns:
-        tree.heading(name, text=text, command=tree_sort(_sort_col or name, _reverse, name if _sort_col else None))
-        tree.column(name, width=width, stretch=False)  # stretch stops columns from stretching when resized
-    return tree
 
 
 def capture(root: tk.Misc, filename='img.png'):

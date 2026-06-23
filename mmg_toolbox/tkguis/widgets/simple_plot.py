@@ -21,21 +21,24 @@ class SimplePlot:
     """
 
     def __init__(self, root: tk.Misc, xdata: list[float], ydata: list[float],
-                 xlabel: str = '', ylabel: str = '', title: str = '', config: dict | None = None):
+                 xlabel: str = '', ylabel: str = '', title: str = '',
+                 config: dict | None = None, fig_size: tuple[int, int] | None = None, fig_dpi: int = None,):
         self.root = root
         self.config = config or {}
         self._y_axis_expansion_factor = 0.1
 
-        fig_size = get_figure_size(root, self.config, C.plot_size)
+        fig_size = fig_size or get_figure_size(root, self.config, C.plot_size)
+        fig_dpi = fig_dpi or self.config.get(C.plot_dpi, None)
         self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(
             frame=self.root,
             figure_size=fig_size,
-            figure_dpi=self.config.get(C.plot_dpi, None),
+            figure_dpi=fig_dpi
         )
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
         self.ax1.set_title(title)
-        self.plot(xdata, ydata)
+        if xdata:
+            self.plot(xdata, ydata)
 
     def plot(self, *args, **kwargs) -> list[plt.Line2D]:
         lines = self.ax1.plot(*args, **kwargs)
@@ -118,7 +121,8 @@ class SimplePlot:
         # self.ax1.autoscale_view()
         self._relim()
         self.fig.canvas.draw()
-        self.toolbar.update()
+        if self.toolbar.winfo_exists():
+            self.toolbar.update()
 
 
 class MultiAxisPlot(SimplePlot):

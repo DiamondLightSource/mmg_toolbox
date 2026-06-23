@@ -48,7 +48,9 @@ class TitleWindow:
         frm = ttk.Frame(self.root)
         frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
         ttk.Label(frm, text='Data Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        ttk.Entry(frm, textvariable=self.data_dir, width=60).pack(side=tk.LEFT)
+        var = ttk.Entry(frm, textvariable=self.data_dir, width=60)
+        var.pack(side=tk.LEFT)
+        var.bind('<Return>', lambda e: self.dls_directories(self.data_dir.get()))
         ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side=tk.LEFT)
 
         frm = ttk.Frame(self.root)
@@ -176,17 +178,16 @@ class TitleWindow:
 
     def open_notebook_browser(self):
         from ..apps.file_browser import create_jupyter_browser
+        self.set_current_directories()
         create_jupyter_browser(self.root, self.notebook_dir.get())
 
     def open_script_runner(self):
         from ..apps.multi_scan_analysis import create_multi_scan_analysis
-        folders = {
-            C.default_directory: self.data_dir.get(),
-            C.processing_directory: self.proc_dir.get(),
-            C.notebook_directory: self.notebook_dir.get(),
-        }
-        self.config.update(folders)
-        create_multi_scan_analysis(self.root, self.config)
+        self.set_current_directories()
+        create_multi_scan_analysis(
+            parent=self.root,
+            config=self.config
+        )
 
 
 

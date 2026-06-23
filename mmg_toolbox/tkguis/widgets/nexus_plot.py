@@ -60,7 +60,6 @@ class NexusDefaultPlot(SimplePlot):
             title='',
             config=config
         )
-        self.line = self.plot_list[0]
         if hdf_filenames:
             self.update_data_from_files(*hdf_filenames)
 
@@ -274,7 +273,6 @@ class NexusDefaultPlot(SimplePlot):
             marker=self.config.get(C.plot_marker, None),
             linestyle=self.config.get(C.plot_linestyle, None),
         )
-        self.line = self.plot_list[0]
 
     def _perform_fit(self) -> tuple[FitResults | None, str]:
         """Returns (FitResults, label)"""
@@ -415,7 +413,6 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
             marker=self.config.get(C.plot_marker, None),
             linestyle=self.config.get(C.plot_linestyle, None),
         )
-        self.line = self.plot_list[0]
         if self.do_fit.get():
             self.perform_fit()
 

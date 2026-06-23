@@ -19,7 +19,7 @@ def test_xas_imports():
         from mmg_toolbox import xas
         from mmg_toolbox.utils.file_functions import replace_scan_number
         from mmg_toolbox.xas.nxxas_loader import is_nxxas
-        from mmg_toolbox.xas.spectra_container import average_polarised_scans
+        from mmg_toolbox.xas import average_polarised_scans, load_xas_scans
         from mmg_toolbox.utils.gda_functions import gda_datavis_file_message
     except ImportError as e:
         errors = e

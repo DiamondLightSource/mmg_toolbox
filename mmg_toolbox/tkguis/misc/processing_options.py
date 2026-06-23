@@ -8,11 +8,12 @@ from mmg_toolbox.utils.env_functions import (get_notebook_directory, open_termin
                                              get_processing_directory)
 from mmg_toolbox.scripts.scripts import (generate_script, create_notebook,
                                          SCRIPTS, NOTEBOOKS, R)
-from .config import get_config, C
+from .config import C
 from .functions import check_new_file
 from .jupyter import launch_jupyter_notebook, terminate_notebooks
 from ..apps.multi_scan_analysis import create_multi_scan_analysis
 from ..apps.python_editor import create_python_editor
+from ..xmcd_visualiser import create_xmcd_visualiser
 
 
 def create_script_from_template(root: tk.Misc, template: str = 'example', directory: str | None = None,
@@ -91,6 +92,7 @@ def generate_processing_menu(parent, config: dict, directory: str | None = None,
     }
     menu = {
         'Multi-Scan': start_multi_scan_plot,
+        'XMCD Visualiser': lambda: create_xmcd_visualiser(parent=parent, config=config, data_directory=directory),
         'Script Editor': lambda: create_python_editor(None, parent, config),
         'Open a terminal': lambda: open_terminal(f"cd {directory}"),
         'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', proc_dir),

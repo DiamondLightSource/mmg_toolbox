@@ -6,8 +6,10 @@ from mmg_toolbox import start_gui
 
 # start_gui('/dls/science/groups/das/ExampleData/i16/azimuths/1108750.nxs')
 # start_gui('/dls/science/groups/das/ExampleData/i16/azimuths')
+# start_gui('/dls/science/groups/das/ExampleData/i10-1/nt42193-1')
 # start_gui('/dls/b07/data/2025/cm40617-5')
 start_gui()
+#start_gui('/scratch/grp66007/python/mmg_toolbox/test_xmcd.nxs')
 
 # from mmg_toolbox.tkguis.apps.nexus import create_nexus_plot_and_image
 # create_nexus_plot_and_image('/dls/science/groups/das/ExampleData/i16/azimuths/1108750.nxs')

@@ -11,6 +11,7 @@ import hdfmap
 from mmg_toolbox import Experiment
 from mmg_toolbox.scripts import NOTEBOOKS, SCRIPTS, R
 from mmg_toolbox.utils.env_functions import get_first_file, get_processing_directory
+from mmg_toolbox.utils.misc_functions import findranges
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
 from ..misc.functions import select_folder
@@ -34,6 +35,7 @@ class MultiScanAnalysis:
             exp_directory = self.config.get(C.current_dir, '')
         if proc_directory is None:
             proc_directory = self.config.get(C.current_proc, get_processing_directory(exp_directory))
+        logger.info(f"exp_directory: {exp_directory}\nproc_directory: {proc_directory}")
 
         self.exp_folder = tk.StringVar(root, exp_directory)
         self.proc_folder = tk.StringVar(root, proc_directory)
@@ -102,6 +104,7 @@ class MultiScanAnalysis:
         line.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
         ttk.Button(line, text='Fits', command=self.fitting, width=10).pack(side=tk.LEFT)
         ttk.Button(line, text='Convert to dat', command=self.convert2dat).pack(side=tk.LEFT)
+        ttk.Button(line, text='XMCD', command=self.xmcd_visualiser, width=10).pack(side=tk.LEFT)
 
         # Scripts
         script_names = ('Scripts:',) + tuple(SCRIPTS) + ('Notebooks:',) + tuple(NOTEBOOKS)
@@ -180,6 +183,16 @@ class MultiScanAnalysis:
                 parent=self.root
             )
 
+    def xmcd_visualiser(self):
+        from ..xmcd_visualiser import create_xmcd_visualiser
+        scan_files = self.range.generate_scan_files()
+        create_xmcd_visualiser(
+            parent=self.root,
+            config=self.config,
+            data_directory=self.exp_folder.get(),
+            scan_range_str=findranges(list(scan_files)) if scan_files else None
+        )
+
     def plot_legend(self):
         exp = self.get_experiment()
         scan_numbers = self.range.generate_scan_numbers()
@@ -234,7 +247,7 @@ class MultiScanAnalysis:
         yaxis = self.y_axis.get()
         values = self.metadata_name.get()
         values = values if values else None
-        exp.plot.multi_plot(*scan_numbers, xaxis=xaxis, yaxis=yaxis, value=values)
+        exp.plot._multi_plot(*scan_numbers, xaxis=xaxis, yaxis=yaxis, value=values)
         plt.show()
 
     def plot_metadata(self):

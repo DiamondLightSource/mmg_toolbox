@@ -13,40 +13,10 @@ from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mmg_toolbox.utils.polarisation import pol_subtraction_label, check_polarisation, opposite_polarisations, PolLabels
-from .spectra import Spectra, SpectraSubtraction, spa
-
-
-class Metadata:
-    filename: str = ''
-    beamline: str = ''
-    scan_no: int = 0
-    start_date_iso: str = ''
-    end_date_iso: str = ''
-    cmd: str = ''
-    pol: str = 'pc'
-    pol_angle: float = 0.0
-    sample_name: str = ''
-    temp: float = 300
-    mag_field: float = 0
-    pitch: float = 0  # 0 == sample surface normal to beam
-
-    def __init__(self, **kwargs):
-        for name, value in kwargs.items():
-            if hasattr(self, name):
-                setattr(self, name, value)
-
-    def __str__(self):
-        return str(self.__dict__)
-
-
-class XasMetadata(Metadata):
-    default_mode: str = 'tey'
-    element: str = ''
-    edge: str = ''
-    energy: np.ndarray = np.arange(10)
-    monitor: np.ndarray = np.ones(10)
-    raw_signals: dict[str, np.ndarray] = {'tey': np.zeros(10)}
+from mmg_toolbox.utils.polarisation import pol_subtraction_label, PolLabels
+from mmg_toolbox.xas import spectra_analysis as spa
+from mmg_toolbox.xas.spectra import Spectra, SpectraSubtraction
+from mmg_toolbox.xas.metadata import XasMetadata, merge_xas_metadata
 
 
 class SpectraContainer:
@@ -81,7 +51,7 @@ class SpectraContainer:
         if metadata is None:
             m, s = next(iter(spectra.items()))
             element, edge = spa.energy_range_edge_label(s.energy.min(), s.energy.max())
-            metadata = XasMetadata(energy=s.energy, signal=s.signal, monitor=np.ones_like(s.signal),
+            metadata = XasMetadata(energy=s.energy, raw_signals={'tey': s.signal}, monitor=np.ones_like(s.signal),
                                    default_mode=m, element=element, edge=edge)
         self.metadata = metadata
 
@@ -141,8 +111,13 @@ class SpectraContainer:
         return SpectraContainer(name, self.spectra.copy(), *self.parents, metadata=self.metadata)
 
     def label(self):
-        # return f"{self.name} {self.process_label}"
-        return self.process_label.replace('/', '').replace(' ', '')
+        return (
+            f"{self.name} " +
+            f"{self.metadata.element}{self.metadata.edge} " +
+            f"T={round(self.metadata.temp, 1):.3g}K " +
+            f"'{self.metadata.pol}' " +
+            f"B={round(self.metadata.mag_field, 5):+.3g}T"
+        )
 
     def find_edges(self, search_edges: list[str] | None = spa.SEARCH_EDGES) -> dict[str, float]:
         """Return list of edges within the energy range"""
@@ -158,15 +133,29 @@ class SpectraContainer:
         spectra = self.spectra[mode]
         return spectra.energy, spectra.signal
 
-    def get_all_arrays(self) -> np.ndarray[tuple[int, int], np.dtype[np.float64]]:
+    def get_all_arrays(self) -> np.ndarray[tuple[int, ...], np.dtype[np.float64]]:
         """Return energy, signal arrays of all modes"""
         energy = self.spectra[self.metadata.default_mode].energy
         signals = np.array([spectra.signal for spectra in self.spectra.values()])
         return np.array([energy, *signals])
 
+    def get_raw_metadata(self, field: str):
+        """Recursively get raw metadata from top level parent"""
+        if self.parents:
+            return next(iter(self.parents)).get_raw_metadata(field)
+        return getattr(self.metadata, field)
+
+    def get_raw_filename(self) -> str:
+        """Recursively look through the parents for a raw filename"""
+        return self.get_raw_metadata('filename')
+
     def analysis_steps(self) -> dict[str, dict[str, Spectra]]:
         """Return ordered dictionary of processing steps from parent objects"""
-        return {sc.label(): sc.spectra for sc in list(reversed(self.parents)) + [self]}
+        return {
+            label: spectra for sc in self.parents for label, spectra in sc.analysis_steps().items()
+        } | {
+            f"{self.process_label.replace('/', '').replace(' ', '')}": self.spectra
+        }
 
     def analysis_steps_str(self) -> str:
         """Return string of analysis steps"""
@@ -225,8 +214,6 @@ class SpectraContainer:
         :param kwargs: kwargs to pass to plt.figure
         :return: matplotlib Figure
         """
-        fig: plt.Figure
-        axes: np.ndarray[plt.Axes, np.object_]
         fig, axes = plt.subplots(2, len(self.spectra), squeeze=False, **kwargs)
         fig.tight_layout()
 
@@ -244,6 +231,7 @@ class SpectraContainer:
             axes[1, n].set_ylabel(mode)
 
         for ax in axes.flat:
+            ax: plt.Axes
             ax.set_xlabel('E [eV]')
             ax.legend()
         return fig
@@ -256,9 +244,8 @@ class SpectraContainer:
             mode: getattr(spec, method)(*args, **kwargs)
             for mode, spec in self.spectra.items()
         }
-        parents = (self.copy(), *self.parents)
         process_label = next(iter(spectra.values())).process_label
-        scan = SpectraContainer(self.name, spectra, *parents, metadata=self.metadata)
+        scan = SpectraContainer(self.name, spectra, self.copy(), metadata=self.metadata)
         scan.process_label = process_label
         return scan
 
@@ -359,37 +346,43 @@ class SpectraContainerSubtraction(SpectraContainer):
         if m1.pol != m2.pol:
             # Polarisation flip - XMCD or XMLD
             name = pol_subtraction_label(m1.pol)
-            # rename parents (for display)
-            spectra_container1 = spectra_container1.copy(m1.pol)
-            spectra_container2 = spectra_container2.copy(m2.pol)
-            for spectrum in spectra.values():
-                spectrum.process_label = name
+            name1, name2 = m1.pol, m2.pol
         elif abs(m1.mag_field + m2.mag_field) < 0.1:
             # magnetisation flip - XMCD
             name = 'field ' + pol_subtraction_label(m1.pol)
-            # rename parents (for display)
-            spectra_container1 = spectra_container1.copy(f"B={m1.mag_field:+.1g}")
-            spectra_container2 = spectra_container2.copy(f"B={m2.mag_field:+.1g}")
-            for spectrum in spectra.values():
-                spectrum.process_label = name
+            name1, name2 = f"B={m1.mag_field:+.1g}", f"B={m2.mag_field:+.1g}"
         elif m1.pol == PolLabels.linear_arbitrary and abs(m1.pol_angle - m2.pol_angle) > 89:
             # rotate linear polarisation - XMLD
             name = PolLabels.linear_dichroism
-            # rename parents (for display)
-            spectra_container1 = spectra_container1.copy(f"{m1.pol}({m1.pol_angle:+.1g})")
-            spectra_container2 = spectra_container2.copy(f"{m2.pol}({m2.pol_angle:+.1g})")
-            for spectrum in spectra.values():
-                spectrum.process_label = name
+            name1, name2 = f"{m1.pol}({m1.pol_angle:+.1g})", f"{m2.pol}({m2.pol_angle:+.1g})"
         else:
             name = 'subtraction'
+            name1 = name2 = None
+        # rename parents (for display)
+        self.spectra1 = spectra_container1.copy(name1)
+        self.spectra2 = spectra_container2.copy(name2)
+        # spectra process label
+        for spectrum in spectra.values():
+            spectrum.process_label = name
         # subtraction metadata (merge these?)
-        metadata = XasMetadata(**m1.__dict__)
-        metadata.filename = ''
-        super().__init__(name, spectra, spectra_container1, spectra_container2, metadata=metadata)
+        metadata = merge_xas_metadata(m1, m2)
+        super().__init__(name, spectra, self.spectra1, self.spectra2, metadata=metadata)
 
     def __str__(self):
         s = super().__str__()
         return s + '\n' + self.sum_rules_report()
+
+    def label(self):
+        p1, p2 = self.parents
+        if 'field' in self.process_label:
+            static = f"'{self.metadata.pol}'"
+        else:
+            static = f"B={round(self.metadata.mag_field, 5):+.3g}T"
+        return (
+            f"{p1.metadata.scan_no}-{p2.metadata.scan_no} {self.process_label} " +
+            f"{self.metadata.element}{self.metadata.edge} " +
+            f"T={round(self.metadata.temp, 1):.3g}K " + static
+        )
 
     def calculate_signal_ratio(self) -> dict[str, float]:
         """Return the maximum signal as a ratio of the average parent spectra"""
@@ -447,8 +440,6 @@ class SpectraContainerSubtraction(SpectraContainer):
         :param kwargs: kwargs to pass to plt.figure
         :return: matplotlib Figure
         """
-        fig: plt.Figure
-        axes: np.ndarray[plt.Axes, np.object_]
         fig, axes = plt.subplots(2, len(self.spectra), squeeze=False, **kwargs)
         fig.tight_layout(h_pad=0.1, w_pad=0.1)
         signal_ratio = self.calculate_signal_ratio()
@@ -476,41 +467,78 @@ class SpectraContainerSubtraction(SpectraContainer):
             axes[1, n].text(x, y, f"max signal = {signal_ratio[mode]:.2%}")
 
         for ax in axes.flat:
+            ax: plt.Axes
             ax.set_xlabel('E [eV]')
             ax.legend()
         return fig
 
+    def create_combined_axes(self, mode: str | None = None, axes: plt.Axes | None = None) -> plt.Axes:
+        """
+        Create matplotlib axes of subtraction plot and XAS in same axes
 
-def average_polarised_scans(*scans: SpectraContainer) -> tuple[SpectraContainer, SpectraContainer | None]:
-    """
-    Find unique polarisations and average each scan at that polarisation
-    Spectra are only separated by polarisation, all spectra with the same polarisation
-    are averaged together.
+        :param mode: select which detection mode to use (None for default)
+        :param axes: axes to plot on
+        :return: matplotlib Axes
+        """
+        selected_mode = mode or self.metadata.default_mode
+        axes = axes or plt.subplot()
+        signal_ratio = self.calculate_signal_ratio()
 
-        pol1, pol2 = average_polarised_scans(*scans)
+        for parent in self.parents:
+            for n, (mode, spectra) in enumerate(parent.spectra.items()):
+                if mode != selected_mode:
+                    continue
+                spectra.plot(ax=axes, label=parent.name)
 
-    :param scans: list of SpectraContainer objects
-    :return: pol1, (pol2|None) SpectraContainer objects for opposite polarisations
-    """
-    pols = opposite_polarisations(scans[0].metadata.pol, scans[0].metadata.pol_angle)
-    pol_scans = [
-        [scan for scan in scans if check_polarisation(scan.metadata.pol) == pol]
-        for pol in pols
-    ]
+        for n, (mode, spectra) in enumerate(self.spectra.items()):
+            if mode != selected_mode:
+                continue
+            spectra.plot_sum_rules(ax=axes)
+            axes.set_ylabel(self.name)
+            idx = abs(spectra.signal).argmax()
+            x, y = spectra.energy[idx], spectra.signal[idx]
+            axes.text(x, y, f"max signal = {signal_ratio[mode]:.2%}")
 
-    # average spectra containers
-    av_scans = [
-        sum(_scans[1:], _scans[0]) if len(_scans) > 1 else _scans[0]
-        for _scans in pol_scans
-    ]
+        for edge_label, energy in self.get_edges().items():
+            axes.axvline(energy, color='k', alpha=0.3)
+            axes.text(energy, 0.9, edge_label, color='k', alpha=0.3,
+                            ha='right', va='top',
+                            transform=axes.get_xaxis_transform())
+        axes.set_xlabel('E [eV]')
+        axes.legend()
+        return axes
 
-    # rename containers
-    for pol, scan, pol_scan_list in zip(pols, av_scans, pol_scans):
-        scan.name = pol
-        scan.parents = pol_scan_list
-        for spectra in scan.spectra.values():
-            spectra.process_label += f"_{pol}"
-    if len(pol_scans) == 1:
-        return av_scans[0], None
-    return av_scans[0], av_scans[1]
+    def write_csv(self, csv_filename: str, mode: str | None = None) -> None:
+        """
+        Write spectra to csv file
+
+            spectra.write_csv('xmcd_spectra.csv', mode='tey')  # spectra contains modes TEY and TFY
+            energy, xas_tey1, xas_tey2, xmcd = np.loadtxt('xmcd_spectra.csv', delimiter=',').T
+
+        :param csv_filename: filename to write
+        :param mode: mode to write, or None to write all mode spectra to single file
+        """
+        header = f"{self.name} {self.process_label}"
+        if mode is None:
+            array = self.get_all_arrays()
+            energy = array[0]
+            xmcd = array[1:]
+            xas1 = self.spectra1.get_all_arrays()[1:]
+            xas2 = self.spectra2.get_all_arrays()[1:]
+            array = np.array([energy, *xas1, *xas2, *xmcd]).T
+            keys = self.spectra.keys()
+            header += '\n' + ', '.join(
+                ['energy'] +
+                [f'xas1_{self.spectra1.name}_{k}' for k in keys] +
+                [f'xas2_{self.spectra2.name}_{k}' for k in keys] +
+                [f'{self.name}_{k}' for k in keys]
+            )
+        else:
+            spectra = self.spectra[mode]
+            xas1 = self.spectra1.spectra[mode]
+            xas2 = self.spectra2.spectra[mode]
+            array = np.transpose([spectra.energy, xas1.signal, xas2.signal, spectra.signal])
+            header += f"\nenergy, {self.spectra1.name}, {self.spectra2.name}, {self.name}"
+        np.savetxt(csv_filename, array, delimiter=', ', header=header)
+        print(f"Saved {csv_filename}")
 

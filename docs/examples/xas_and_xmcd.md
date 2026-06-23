@@ -107,6 +107,7 @@ plt.show()
 ```
 
 ## Example Script - Loading Spectra from an experiment
+
 ```python
 from mmg_toolbox import Experiment, xas
 import matplotlib.pyplot as plt
@@ -122,7 +123,8 @@ print(exp.all_scans_str())
 # Load scan data and plot raw spectra
 scan_numbers = [12345, 12346, 12347, 12348]
 scans = exp.scans(*scan_numbers)  # loads Scan objects that can access NeXus data file
-spectras = exp.load_xas(*scan_numbers, sample_name='mysample', mode='tey', dls_loader=True)  # only loads NXxas spectra (energy scans) and creates a Spectra object
+spectras = exp.load_xas(*scan_numbers, sample_name='mysample', mode='tey',
+                        dls_loader=True)  # only loads NXxas spectra (energy scans) and creates a Spectra object
 
 for scan in spectras:
     print(scan)
@@ -156,12 +158,12 @@ fig.tight_layout()
 # Average polarised scans
 for xas_scan in spectras:
     print(f"{xas_scan.name}: {xas_scan.metadata.pol}")
-pol1, pol2 = xas.average_polarised_scans(*spectras)
+pol1, pol2 = container_functions.average_polarised_scans(*spectras)
 print(pol1)
 print(pol2)
 
 if pol2 is None:
-    raise  ValueError(f"No opposite polarisations found: {[s.metadata.pol for s in spectras]}")
+    raise ValueError(f"No opposite polarisations found: {[s.metadata.pol for s in spectras]}")
 
 # Plot averaged scans
 fig, axes = plt.subplots(1, n_spectra, figsize=[6 * n_spectra, 6], dpi=100, squeeze=False)

@@ -113,7 +113,8 @@ with h5py.File(f"i16_{scan_number}.nxs", 'w') as hdf:
         electric_field_v=0,
         magnetic_field_t=0,
         mag_field_dir='z',
-        electric_field_dir='z'
+        electric_field_dir='z',
+        rotation_angle=0,
     )
     nw.add_nxfield(sample, 'unit_cell', ub.lp())
     nw.add_nxfield(sample, 'ub_matrix', ub.ub_matrix())

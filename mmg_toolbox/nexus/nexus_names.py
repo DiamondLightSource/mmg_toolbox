@@ -63,3 +63,4 @@ NX_POLARISATION_FIELDS = [
     'polarisation',  # DLS specific in NXinsertion_device
     'linear_arbitrary_angle',  # DLS specific in NXinsertion_device
 ]
+NX_POLARISATION_ANGLE = 'linear_arbitrary_angle'
