@@ -16,7 +16,7 @@ jobs:
         run: pipx run build
 
       - name: Upload sdist and wheel as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist
@@ -35,8 +35,8 @@ jobs:
 
     steps:
       # download sdist and wheel from dist job
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
 
       # publish to PyPI using trusted publishing
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI (v1.14.0)
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
