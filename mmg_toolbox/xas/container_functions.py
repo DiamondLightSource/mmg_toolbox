@@ -15,7 +15,7 @@ def average_scans(*scans: SpectraContainer) -> SpectraContainer:
     :param scans: list of SpectraContainer objects
     :return: SpectraContainer object containing averaged spectra
     """
-    av_scan = sum(scans[1:], scans[0])
+    av_scan = sum(scans[1:], scans[0].copy())
     av_scan.name = '+'.join(
         [scans[0].name, '..', scans[-1].name]
         if len(scans) > 3 else

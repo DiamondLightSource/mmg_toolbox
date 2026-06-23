@@ -152,7 +152,6 @@ class Comparison:
         return figure
 
     def select(self, event=None):
-        print(self.treeview.tree.set(self.treeview.tree.selection()))
         spectra_check = self.treeview.get_selected_objects()
         self.grid_plots.create_grid(*spectra_check, command=self.update_plot)
         self.update_plot()

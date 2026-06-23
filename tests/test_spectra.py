@@ -70,6 +70,7 @@ def test_spectra_container():
 
     container3 = container + container + container
     assert container3.spectra['tey'].signal.max() == approx(3)
+    assert len(container3.parents) == 2  # TODO: find a way to flatten identical processes as parents
 
     pol1 = container3.copy('pc')
     pol1.metadata.pol = 'pc'
@@ -97,6 +98,7 @@ def test_average_spectra():
     assert repr(av_scan) == "SpectraContainer('scan1+scan2+scan3', 'average', ['tey', 'tfy'])"
     av_scan = average_scans(container1, container2, container3, container2)
     assert len(av_scan.parents) == 4
+    assert av_scan.parents[0].parents == ()
     assert repr(av_scan) == "SpectraContainer('scan1+..+scan2', 'average', ['tey', 'tfy'])"
     assert repr(av_scan.spectra['tey']) == "SpectraAverage('test+test+test+test', 'tey', energy=array(300,), signal=array(300,), process_label='average')"
 
@@ -151,6 +153,7 @@ def test_average_polarised_scans():
     assert xmcd.spectra['tey'].signal.max() == approx(0.145, abs=0.001)
     assert 'xmcd' == xmcd.name
     assert 'xmcd' in xmcd.analysis_steps_str()
+    assert xmcd.parents[0].parents[0].parents[0].parents[0].parents == ()
     assert xmcd.get_raw_filename() == FILES_DICT['i10-1 Fe L3,2 +1T pc']
     orbital, spin = xmcd.calculate_sum_rules()
     assert orbital == approx(-0.088, abs=0.001)
@@ -168,6 +171,7 @@ def test_average_polarised_scans():
     check, = load_xas_scans('test_xmcd.nxs')
     assert len(check.spectra) == 2
     assert len(check.parents) == 2
+    assert check.parents[0].parents == ()  # TODO: read full history
     assert isinstance(check, SpectraContainerSubtraction)
     scan = data_file_reader('test_xmcd.nxs')
     assert all(scan('signal') == xmcd.spectra['tey'].signal)
