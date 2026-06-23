@@ -1,3 +1,7 @@
+"""
+mmg_toolbox tkinter dataviewer
+"""
+
 from .apps.experiment import create_title_window
 from .apps.data_viewer import create_data_viewer
 from .apps.nexus import create_nexus_viewer

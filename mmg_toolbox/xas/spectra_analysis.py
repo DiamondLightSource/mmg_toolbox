@@ -139,7 +139,7 @@ def energy_range_edge_label(min_energy_ev: float, max_energy_ev: float | None = 
         edges = xray_edges_in_range(min_energy_ev, max_energy_ev, energy_range_ev, search_edges)
     else:
         # iterate through likely edges
-        likely_edges = (['L3', 'L2'], ['K'], ['M4', 'M5'])
+        likely_edges = (['L3', 'L2'], ['K'], ['M4', 'M5'], None)
         for search_edges in likely_edges:
             edges = xray_edges_in_range(min_energy_ev, max_energy_ev, energy_range_ev, search_edges)
             if edges:
