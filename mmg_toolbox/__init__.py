@@ -8,8 +8,8 @@ from mmg_toolbox.utils.experiment import Experiment
 from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 from mmg_toolbox.scripts.experiment_startup import create_notebooks
 
-__version__ = '0.6.2'
-__date__ = '15/04/2026'
+__version__ = '0.6.3'
+__date__ = '23/06/2026'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info',
