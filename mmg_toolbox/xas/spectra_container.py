@@ -431,7 +431,10 @@ class SpectraContainerSubtraction(SpectraContainer):
         :returns: str
         """
         spectra = self.spectra[mode or  self.metadata.default_mode]
-        n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
+        try:
+            n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
+        except ValueError:
+            return f"=== Sum Rules not available for element {self.metadata.element} ===\n"
         report = "=== Sum Rules === \n"
         report += f"{self.metadata.default_mode} signal = {self.calculate_signal_ratio()[self.metadata.default_mode]:.2%}\n"
         report += spectra.sum_rules_report(n_holes, self.metadata.element)
