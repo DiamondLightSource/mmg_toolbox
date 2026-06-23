@@ -138,14 +138,16 @@ def string2numbers(string: str) -> list[int]:
     values = string.split(',')
     numbers = []
     for value in values:
-        if value.isdigit():
+        if value.lstrip('-+').isdigit():
             numbers.append(int(value))
-        elif '-' in value:
-            st, nd = value.split('-')
-            numbers.extend(range(int(st), int(nd) + 1))
         elif ':' in value:
             range_values = [int(n) for n in value.split(':')]
             numbers.extend(range(*range_values))
+        elif '-' in value:
+            st, nd = value.split('-')
+            numbers.extend(range(int(st), int(nd) + 1))
+        else:
+            raise Exception(f"Unknown string separator: {value}")
     return numbers
 
 

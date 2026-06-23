@@ -50,17 +50,23 @@ class CanvasTreeview:
     Treeview wrapper comprising a ttk.Treeview inside a canvas with scrollbars
 
         columns = [
+            # name, title, width, reverse, sort_col
             ('#0', "Number", 100, False, None),
             ('file', "Filename", 400, False, None),
         ]
         tv = CanvasTreeview(parent, *columns)
 
-    *Note: the *name* parameter of the first column must be '#0'.
+    ### Notes:
+     - the *name* parameter of the first column must be '#0'.
+     - Columns with *width* 0 will be hidden.
+     - Columns with *reverse* = True will sort in reverse order.
+     - The *sort_col* field can be a *name* of another column which will be used to sort this one.
 
     :param root: parent tk Frame object
     :param columns: list of tuples where each tuple is ('name', 'Title', width, reverse, sort_col)
-    :param width: width of widget, or None to fill and expand
+    :param width: width of widget, or None to fill and expand.
     :param height: heigh of widget, or None to fill and expand
+    :param pack: if True, packs the canvas in the parent frame
     """
     def __init__(self, root: tk.Misc, *columns: TreeViewColumn,
                  width: int | None = None, height: int | None = None,
@@ -179,6 +185,8 @@ class CanvasTreeview:
         header_getter = lambda iid: self.tree.item(iid)['text']
         m.add_command(label="Copy " + header_name, command=copy_fun(header_getter))
         for name, title, width, reverse, sort_col in self.columns:
+            if title == header_name:
+                continue
             getter = lambda iid: self.tree.set(iid, name)
             m.add_command(label="Copy " + title, command=copy_fun(getter))
 

@@ -6,14 +6,14 @@ from mmg_toolbox.utils.misc_functions import string2numbers
 from mmg_toolbox.xas import SpectraContainer, polarised_pairs
 from mmg_toolbox.xas.spectra import BACKGROUND_FUNCTIONS
 from ..misc.functions import create_scrollable_window
-from .widget import XMCDVisualiser
+from .average_tab import Average
 
 
 BACKGROUNDS = ['None'] + list(BACKGROUND_FUNCTIONS)
 
 
 class PairSelector:
-    def __init__(self, root: tk.Misc, base: XMCDVisualiser, scan_range_str: str = '12345-12355'):
+    def __init__(self, root: tk.Misc, base: Average, scan_range_str: str = '12345-12355'):
         self._base = base
         self.root = root
 
@@ -27,8 +27,6 @@ class PairSelector:
         self.pair_numbers: list[tuple[tk.IntVar, tk.IntVar, Callable]] = []
 
         grid_options = dict(padx=5, pady=5, sticky='nsew')
-        # window = ttk.Frame(self.root)
-        # window.pack(side='top', fill='x')
         self.root.rowconfigure(0, weight=0)  # scan numbers
         self.root.rowconfigure(1, weight=1)  # pairs
         self.root.rowconfigure(2, weight=0)  # options
@@ -38,6 +36,7 @@ class PairSelector:
         # frm.pack(side='top', fill='x')
         frm.grid(row=0, column=0, **grid_options)
         var = entry_with_placeholder(frm, self.scan_range, scan_range_str)
+        var.bind('<Return>', self.btn_find_pairs)
         var.pack(side='left')
         ttk.Checkbutton(frm, text='DLS Loader', variable=self.dls_loader).pack(side='left')
         ttk.Button(frm, text='List', command=self.btn_list_scans).pack(side='left')
@@ -128,7 +127,7 @@ class PairSelector:
             title=f'Spectra Scans in range: {scan_numbers}',
         )
 
-    def btn_find_pairs(self):
+    def btn_find_pairs(self, event=None):
         scan_numbers = string2numbers(self.scan_range.get())
         scans = self._base.load_scans(*scan_numbers, dls_loader=self.dls_loader.get())
         if scans:
@@ -142,6 +141,7 @@ class PairSelector:
                     update()
                 else:
                     self.add_pair(s1.metadata.scan_no, s2.metadata.scan_no)
+            self._base.plot_pairs()
 
 
 def entry_with_placeholder(root: tk.Misc, text: tk.Variable, placeholder_text: str, **kwargs) -> ttk.Entry:

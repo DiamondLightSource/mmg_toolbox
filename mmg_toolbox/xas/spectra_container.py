@@ -139,11 +139,15 @@ class SpectraContainer:
         signals = np.array([spectra.signal for spectra in self.spectra.values()])
         return np.array([energy, *signals])
 
-    def get_raw_filename(self):
-        """Recursively look through the parents for a raw filename"""
+    def get_raw_metadata(self, field: str):
+        """Recursively get raw metadata from top level parent"""
         if self.parents:
-            return next(iter(self.parents)).get_raw_filename()
-        return self.metadata.filename
+            return next(iter(self.parents)).get_raw_metadata(field)
+        return getattr(self.metadata, field)
+
+    def get_raw_filename(self) -> str:
+        """Recursively look through the parents for a raw filename"""
+        return self.get_raw_metadata('filename')
 
     def analysis_steps(self) -> dict[str, dict[str, Spectra]]:
         """Return ordered dictionary of processing steps from parent objects"""

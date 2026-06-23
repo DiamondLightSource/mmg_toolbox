@@ -30,6 +30,11 @@ def is_processed(filename: str) -> bool:
     return bool(nx_find_data(hdfmap.load_hdf(filename), 'NXentry', 'NXprocess', 'program') == 'mmg_toolbox.xas')
 
 
+def is_subtraction(filename: str) -> bool:
+    """Return True if the NeXus file contains Spectra Subtraction like XMCD or XMLD"""
+    return bool(nx_find(hdfmap.load_hdf(filename), 'NXxas', ['subtract', 'xmcd', 'xmld']))
+
+
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
                     filename: str = '', beamline: str = '', scan_no: int = 0, start_date_iso: str = '',
                     end_date_iso: str = '', cmd: str = '', count_time: float = 1., default_mode: str = 'tey',

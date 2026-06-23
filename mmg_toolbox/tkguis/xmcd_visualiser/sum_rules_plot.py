@@ -1,17 +1,14 @@
-import os
 import tkinter as tk
 from tkinter import ttk
 
 from mmg_toolbox.xas import SpectraContainerSubtraction
-from ..misc.config import C
 from ..widgets.simple_plot import SimplePlot
-from .average_tab import Average
+from .widget import XMCDVisualiser
 
 
-class AveragePlot:
-    def __init__(self, root: tk.Misc, base: Average, config: dict | None = None):
+class SumRulesPlot:
+    def __init__(self, root: tk.Misc, base: XMCDVisualiser):
         self._base = base
-        self.config = config
         self.root = root
         self.spectra: SpectraContainerSubtraction | None = None
         self.mode: str = ''
@@ -27,7 +24,7 @@ class AveragePlot:
             xlabel='Energy [eV]',
             ylabel='',
             title='Pol 1',
-            config=self.config
+            config=self._base.config
         )
 
         # Pol 2
@@ -40,7 +37,7 @@ class AveragePlot:
             xlabel='Energy [eV]',
             ylabel='',
             title='Pol 2',
-            config=self.config
+            config=self._base.config
         )
 
         # Average
@@ -53,7 +50,7 @@ class AveragePlot:
             xlabel='Energy [eV]',
             ylabel='',
             title='Average',
-            config=self.config
+            config=self._base.config
         )
 
         # Buttons
@@ -62,8 +59,8 @@ class AveragePlot:
         ttk.Button(frm, text='Add Spectra to List', command=self.btn_add_spectra).pack(side='top', fill='x')
         line = ttk.Frame(frm)
         line.pack(side='top', fill='x')
-        ttk.Label(line, text='Filename:').pack(side='left', padx=5)
-        ttk.Entry(line, textvariable=self.output_name).pack(side='left', fill='x', expand=True)
+        ttk.Label(line, text='Filename').pack(side='left')
+        ttk.Entry(line, textvariable=self.output_name).pack(side='left')
         ttk.Button(frm, text='Save NeXus', command=self.btn_nexus).pack(side='top', fill='x')
         ttk.Button(frm, text='Save CSV', command=self.btn_csv).pack(side='top', fill='x')
 
@@ -96,27 +93,19 @@ class AveragePlot:
         self.figure.ax1.legend([spectra.spectra1.name, spectra.spectra2.name, spectra.name], frameon=False)
         self.figure.fig.tight_layout()
         self.figure.update_axes()
-        self.output_name.set(spectra.label())
-
-    def generate_output_filename(self, name: str, extension: str = '.nxs'):
-        path, name = os.path.split(name)
-        name, ext = os.path.splitext(name)
-        path = path or self.config.get(C.current_proc, '')
-        return os.path.join(path, name + extension)
 
     def btn_add_spectra(self):
         """Add spectra to different panel"""
-        if self.spectra:
-            self._base.add_comparison_spectra(self.spectra)
+        pass
 
     def btn_nexus(self):
         output_name = self.output_name.get()
-        filename = self.generate_output_filename(output_name, '.nxs')
+        filename = self._base.generate_output_filename(output_name, '.nxs')
         if self.spectra and output_name:
             self.spectra.write_nexus(filename)
 
     def btn_csv(self):
         output_name = self.output_name.get()
-        filename = self.generate_output_filename(output_name, '.csv')
+        filename = self._base.generate_output_filename(output_name, '.csv')
         if self.spectra and output_name and self.mode:
             self.spectra.write_csv(filename, self.mode)

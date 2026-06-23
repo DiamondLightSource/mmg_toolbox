@@ -15,8 +15,10 @@ def create_xmcd_visualiser(data_directory: str | None = None, scan_range_str: st
 
     root = create_root(parent=parent, window_title='XMCD Visualiser')
     config = config or get_config()
+    if data_directory:
+        config[C.current_dir] = data_directory
 
-    widget = XMCDVisualiser(root, data_directory=data_directory, scan_range_str=scan_range_str,
+    widget = XMCDVisualiser(root, scan_range_str=scan_range_str,
                             pairs=pairs, config=config)
 
     menu = {

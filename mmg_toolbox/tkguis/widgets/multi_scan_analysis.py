@@ -247,7 +247,7 @@ class MultiScanAnalysis:
         yaxis = self.y_axis.get()
         values = self.metadata_name.get()
         values = values if values else None
-        exp.plot.multi_plot(*scan_numbers, xaxis=xaxis, yaxis=yaxis, value=values)
+        exp.plot._multi_plot(*scan_numbers, xaxis=xaxis, yaxis=yaxis, value=values)
         plt.show()
 
     def plot_metadata(self):
