@@ -79,6 +79,7 @@ packages = [
     'mmg_toolbox.tkguis.misc',
     'mmg_toolbox.tkguis.widgets',
     'mmg_toolbox.tkguis.apps',
+    'mmg_toolbox.tkguis.xmcd_visualiser',
 ]
 
 [tool.setuptools.package-data]

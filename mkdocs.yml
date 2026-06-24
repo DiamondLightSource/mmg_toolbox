@@ -134,5 +134,9 @@ nav:
       - description\xas_spectra.md
       - description\xas_spectra_analysis.md
       - description\xas_spectra_container.md
-
+  - Development:
+    - development/index.md
+    - development/suggest_a_change.md
+    - development/make_a_change.md
+    - development/release.md
 
