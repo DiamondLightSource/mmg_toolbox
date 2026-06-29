@@ -326,7 +326,7 @@ def plot_voxel_image(
             x=h.flatten(),
             y=k.flatten(),
             z=l.flatten(),
-            value=values,
+            value=values.flatten(),
             colorscale=cmap,
             isomin=isomin,
             isomax=isomax,
