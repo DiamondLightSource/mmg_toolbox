@@ -5,15 +5,18 @@ Magnetic Materials Group Toolbox
 import sys
 from mmg_toolbox.utils.file_reader import data_file_reader
 from mmg_toolbox.utils.experiment import Experiment
+from mmg_toolbox.utils.env_functions import get_dls_visits, get_dls_visits_str, find_scan_files, scan_number_mapping
 from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 from mmg_toolbox.scripts.experiment_startup import create_notebooks
 
 __version__ = '0.6.3'
-__date__ = '23/06/2026'
+__date__ = '29/06/2026'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info',
-           'data_file_reader', 'Experiment', 'metadata', 'xas_metadata', 'nexus_metadata',
+           'data_file_reader', 'Experiment',
+           'get_dls_visits', 'get_dls_visits_str', 'find_scan_files', 'scan_number_mapping',
+           'metadata', 'xas_metadata', 'nexus_metadata',
            'create_notebooks']
 
 
