@@ -22,7 +22,8 @@ class GridPlot:
         self.grid_fig_dpi = GRID_FIG_DPI
 
         self.root.rowconfigure(0, weight=1)
-        self.root.columnconfigure(0, weight=1)
+        for n in range(self.n_columns):
+            self.root.columnconfigure(n, weight=1)
         self.grid_options = dict(padx=5, pady=5, sticky='nsew')
 
         tk_scaling = root.tk.call('tk', 'scaling')

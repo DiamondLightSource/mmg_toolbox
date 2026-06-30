@@ -85,29 +85,30 @@ class Comparison:
         self.selection: list[tk.BooleanVar] = []
         self.metadata_option = tk.StringVar(self.root, 'Temperature')
 
+        # Comparison Tab
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(0, weight=1)
         grid_options = dict(padx=5, pady=5, sticky='nsew')
 
-        window = ttk.Frame(self.root)
-        window.grid(column=0, row=0, **grid_options)
-        window.columnconfigure(0, weight=0)  # set window resize properties
-        window.columnconfigure(1, weight=1)  # only resize middle panel
-        window.columnconfigure(2, weight=0)
-        window.rowconfigure(0, weight=1)
+        tab = ttk.Frame(self.root)
+        tab.grid(column=0, row=0, **grid_options)
+        tab.columnconfigure(0, weight=0)  # set window resize properties
+        tab.columnconfigure(1, weight=1)  # only resize middle panel
+        tab.columnconfigure(2, weight=0)
+        tab.rowconfigure(0, weight=1)
 
         # LEFT
-        frm = ttk.LabelFrame(window, text='Files')
+        frm = ttk.LabelFrame(tab, text='Files')
         frm.grid(column=0, row=0, **grid_options)
         self.treeview = self._data_selection(frm)
 
         # MIDDLE
-        frm = ttk.LabelFrame(window, text='Select Plots')
+        frm = ttk.LabelFrame(tab, text='Select Plots')
         frm.grid(column=1, row=0, **grid_options)
         self.grid_plots = GridPlot(frm, self._base.config)
 
         # RIGHT
-        frm = ttk.LabelFrame(window, text='Combined Data')
+        frm = ttk.LabelFrame(tab, text='Combined Data')
         frm.grid(column=2, row=0, **grid_options)
         self.multiplot = self._comparison_plot(frm)
 

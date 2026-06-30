@@ -32,14 +32,16 @@ class Average:
         self.use_dls_loader = False
         instrument = self._base.config.get(C.beamline, None)
         data_directory = self._base.config.get(C.current_dir, '')
-        print(f"data_directory: {data_directory}")
         self.exp = Experiment(data_directory, instrument=instrument)
         self.pair_numbers: list[tuple[int, int]] = []
         self.pairs: list[tuple[SpectraContainer, SpectraContainer]] = []
         self.selection: list[tk.BooleanVar] = []
 
         # Average Tab
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(0, weight=1)
         grid_options = dict(padx=5, pady=5, sticky='nsew')
+        
         tab = ttk.Frame(self.root)
         tab.grid(column=0, row=0, **grid_options)
         tab.columnconfigure(0, weight=0)  # set window resize properties
