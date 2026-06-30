@@ -7,7 +7,7 @@ import os
 import re
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Iterator
 
 from mmg_toolbox.utils.file_functions import get_scan_number, list_files
@@ -111,6 +111,43 @@ def get_dls_visits(instrument: str | None = None, year: str | int | None = None)
     return {}
 
 
+def get_dls_visits_str(instrument: str | None = None, year: str | int | None = None,
+                       max_visits: int | None = 3, omit_empty: bool = True) -> str:
+    """
+    Return str of visits for each visible visit int he beamline directory
+
+        print(get_dls_visits_str('i16', 2025))
+
+    :param instrument: displays visits for this instrument, or None for current beamline.
+    :param year: displays visits in this year, or None for current year.
+    :param max_visits: maximum number of visits to display, nor None for all visits
+    :param omit_empty: if True, omits visits containing no scans
+    :return: multiline string
+    """
+    instrument = instrument or get_beamline()
+    year = year or datetime.now().year
+    visits = get_dls_visits(instrument, year)
+    if not visits:
+        return f"No visits for instrument '{instrument}'"
+
+    strings = []
+    for visit, path in visits.items():
+        scans = scan_number_mapping(path)
+        if len(scans) > 0:
+            last_scan_number = list(scans)[-1]
+            last_scan_path = list(scans.values())[-1]
+            last_scan_time = datetime.fromtimestamp(os.path.getmtime(last_scan_path), tz=timezone.utc)
+            last_scan = f", #{last_scan_number:<8} ({last_scan_time:%Y-%m-%d %H:%M})"
+        else:
+            last_scan = ""
+            if omit_empty:
+                continue
+        strings.append(f"{visit:10} Scans: {len(scans):4}{last_scan}")
+        if len(strings) == max_visits:
+            break
+    return f"{instrument} visits in {year}\n" + '\n'.join(strings)
+
+
 def get_first_file(folder: str, extension='.nxs') -> str:
     """Return first scan in folder"""
     return next(iter(list_files(folder, extension=extension)))
@@ -140,7 +177,8 @@ def get_last_scan_number(folder: str) -> int:
     return get_scan_numbers(folder)[-1]
 
 
-def find_scan_files(scan_file: str | int, directory: str | None, instrument: str | None = None, extension: str = '.nxs') -> Iterator[str]:
+def find_scan_files(scan_file: str | int, directory: str | None = None,
+                    instrument: str | None = None, extension: str = '.nxs') -> Iterator[str]:
     """
     Recursively search a directory for scan files, returns a generator
 

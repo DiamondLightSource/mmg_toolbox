@@ -15,8 +15,8 @@ class PolLabels:
     linear_arbitrary = 'la'
     circular_left = 'cl'
     circular_right = 'cr'
-    circular_positive = 'pc'  # == circular_right
     circular_negative = 'nc'  # == circular_left
+    circular_positive = 'pc'  # == circular_right
     linear_dichroism = 'xmld'
     circular_dichroism = 'xmcd'
 
@@ -56,9 +56,9 @@ def polarisation_label_from_stokes(*stokes_parameters: float) -> str:
     if not circular and np.sqrt(p1**2 + p2**2) > 0.9:
         return PolLabels.linear_arbitrary
     if circular and p3 > 0:
-        return PolLabels.circular_right
+        return PolLabels.circular_positive  # Note: This defines the XASSpectra polarisation name
     if circular and p3 < 0:
-        return PolLabels.circular_left
+        return PolLabels.circular_negative
     raise ValueError(f"Stokes parameters not recognized: {stokes_parameters}")
 
 
@@ -110,6 +110,10 @@ def opposite_polarisations(label: str | np.ndarray | None, arbitrary_angle: floa
             opposite = PolLabels.circular_left
         case PolLabels.circular_left:
             opposite = PolLabels.circular_right
+        case PolLabels.circular_positive:
+            opposite = PolLabels.circular_negative
+        case PolLabels.circular_negative:
+            opposite = PolLabels.circular_positive
         case PolLabels.linear_arbitrary:
             opposite = PolLabels.linear_arbitrary
         case _:
@@ -180,7 +184,8 @@ def pol_subtraction_label(label: str):
     label = check_polarisation(label)
     if label in [PolLabels.linear_horizontal, PolLabels.linear_vertical, PolLabels.linear_arbitrary]:
         return PolLabels.linear_dichroism
-    elif label in [PolLabels.circular_left, PolLabels.circular_right]:
+    elif label in [PolLabels.circular_left, PolLabels.circular_right,
+                   PolLabels.circular_negative, PolLabels.circular_positive]:
         return PolLabels.circular_dichroism
     else:
         raise ValueError(f"Polarisation label not recognized: {label}")
