@@ -35,10 +35,13 @@ def title():
 
 def module_info():
     out = 'Python version %s' % sys.version
-    out += '\n%s' % version_info()
+    out += '\n at: %s' % sys.executable
+    out += '\n %s: %s' % (version_info(), __file__)
     # Modules
     import numpy
     out += '\n     numpy version: %s' % numpy.__version__
+    import h5py
+    out += '\n      h5py version: %s' % h5py.__version__
     try:
         import matplotlib
         out += '\nmatplotlib version: %s' % matplotlib.__version__
@@ -46,9 +49,9 @@ def module_info():
         out += '\nmatplotlib version: None'
     try:
         import hdfmap
-        out += '\nhdfmap version: %s (%s)' % (hdfmap.__version__, hdfmap.__date__)
+        out += '\n    hdfmap version: %s (%s)' % (hdfmap.__version__, hdfmap.__date__)
     except ImportError:
-        out += '\nhdfmap version: Not available'
+        out += '\n    hdfmap version: Not available'
     try:
         import tkinter
         out += '\n   tkinter version: %s' % tkinter.TkVersion

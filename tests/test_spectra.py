@@ -107,7 +107,7 @@ def test_average_spectra():
 def test_load_xas_scans():
     assert is_nxxas(FILES_DICT['i06-1 zacscan'])
     spectra, = load_xas_scans(FILES_DICT['i06-1 zacscan'], dls_loader=True)
-    assert spectra.metadata.pol == 'cr'
+    assert spectra.metadata.pol == 'pc'
     assert spectra.metadata.mag_field == approx(0)
 
     spectra = spectra.trim(ev_from_start=2., ev_from_end=None)
@@ -140,7 +140,7 @@ def test_average_polarised_scans():
         FILES_DICT['i10-1 Fe L3,2 -1T nc'],
     ]
     all_spectra = load_xas_scans(*files, dls_loader=True)
-    assert all_spectra[0].metadata.pol == 'cr'
+    assert all_spectra[0].metadata.pol == 'pc'
     assert all_spectra[0].metadata.mag_field == approx(1)
 
     all_spectra = [
