@@ -424,6 +424,8 @@ class SpectraContainerSubtraction(SpectraContainer):
         :returns: str
         """
         spectra = self.spectra[mode or  self.metadata.default_mode]
+        # if len(spectra.edges()) != 2:
+        #     return f"=== Sum Rules not available for edge {' '.join(spectra.edge_label())} ===\n"
         try:
             n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
         except ValueError:

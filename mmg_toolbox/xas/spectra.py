@@ -442,7 +442,11 @@ class SpectraSubtraction(Spectra):
         if edges is None:
             edges = self.edges()
         if len(edges) != 2:
-            raise ValueError('edges must have length 2')
+            # expand L/M edges
+            expand_edges = spa.get_edge_energies(next(iter(edges), '')[:-1])
+            if len(expand_edges) != 2:
+                raise ValueError(f'2 Edges are required: {list(edges)}')
+            edges = expand_edges
         return sum(edges.values()) / len(edges)
 
     def calculate_sum_rules(self, n_holes: float, split_energy: float | None = None,
@@ -479,6 +483,9 @@ class SpectraSubtraction(Spectra):
         energy = self.energy
         difference = self.signal
         # average = self.average_subtracted_spectra().signal
+        edges = self.edges()
+        if split_energy is None and len(edges) == 1:
+            split_energy = energy.max()
         split_energy = split_energy or self.get_split_energy(edges)
         split_index = np.argmin(np.abs(energy - split_energy))
 
@@ -496,6 +503,7 @@ class SpectraSubtraction(Spectra):
 
         Parameters
         :param n_holes: number of holes in absorbing ion
+        :param element: element of ion
         :returns: str
         """
         orb, spin = self.calculate_sum_rules(n_holes)
