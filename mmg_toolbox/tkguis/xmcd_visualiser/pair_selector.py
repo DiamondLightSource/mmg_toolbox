@@ -31,6 +31,8 @@ class PairSelector:
         self.root.rowconfigure(1, weight=1)  # pairs
         self.root.rowconfigure(2, weight=0)  # options
 
+        #TODO: add button to load processed file
+
         # Files
         frm = ttk.LabelFrame(self.root, text='Scan Numbers')
         # frm.pack(side='top', fill='x')
@@ -73,9 +75,13 @@ class PairSelector:
         def update_label(event=None):
             n1, n2 = var1.get(), var2.get()
             if n1 and n2:
-                s1, s2 = self._base.load_pair(n1, n2)
-                subtract = s1 - s2
-                label.set(subtract.label())
+                try:
+                    s1, s2 = self._base.load_pair(n1, n2)
+                    subtract = s1 - s2
+                    label.set(subtract.label())
+                    self.update_modes(s1)
+                except ValueError:
+                    label.set("Scans don't match")
 
         def remove():
             self.pair_numbers.remove((var1, var2, update_label))
