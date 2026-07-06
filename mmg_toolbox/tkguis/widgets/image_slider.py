@@ -1,12 +1,15 @@
 """
 a tkinter frame with an image with slider
+
+NOT CURRENTLY USED!!!
 """
 
 import tkinter as tk
 from tkinter import ttk
 
 from ..misc.styles import create_root
-from ..misc.matplotlib import ini_image, DEFAULT_COLORMAP, COLORMAPS
+from ..misc.matplotlib import ini_image
+from ..misc.config import COLORMAPS, DEFAULT_COLORMAP
 from ..misc.logging import create_logger
 
 logger = create_logger(__file__)

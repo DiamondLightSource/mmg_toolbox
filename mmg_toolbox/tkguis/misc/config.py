@@ -8,7 +8,6 @@ import json
 
 from mmg_toolbox.utils.env_functions import TMPDIR, get_beamline, get_user, check_file_access
 import mmg_toolbox.beamline_metadata.config as config
-from .matplotlib import FIGURE_SIZE, FIGURE_DPI, IMAGE_SIZE, DEFAULT_COLORMAP
 
 
 class C(config.C):
@@ -46,6 +45,14 @@ TEXT_HEIGHT_SMALL = 10  # TEXT_HEIGHT when screen is small
 MAX_PLOT_SCREEN_PERCENTAGE = (75, 25)  # (wid, height) max plot size as % of screen
 BEAMLINE_CONFIG = config.BEAMLINE_CONFIG
 
+# Matplotlib parameters
+FIGURE_SIZE = (8, 3)
+IMAGE_SIZE = (8, 3)
+FIGURE_DPI = 60
+DEFAULT_COLORMAP = 'twilight'
+SMALL_FIGURE_DPI = 40
+COLORMAPS = ['viridis', 'Spectral', 'plasma', 'inferno', 'Greys', 'Blues', 'winter', 'autumn',
+             'hot', 'hot_r', 'hsv', 'rainbow', 'jet', 'twilight', 'hsv']
 
 CONFIG = {
     **config.CONFIG,

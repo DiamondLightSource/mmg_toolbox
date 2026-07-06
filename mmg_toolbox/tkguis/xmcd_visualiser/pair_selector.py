@@ -109,7 +109,7 @@ class PairSelector:
             if n < len(self.pair_numbers):
                 v1, v2, update = self.pair_numbers[n]
                 v1.set(scan_no1)
-                v2.set(scan_no1)
+                v2.set(scan_no2)
                 update()
             else:
                 self.add_pair(scan_no1, scan_no2)

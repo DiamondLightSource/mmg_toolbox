@@ -4,7 +4,9 @@ from tkinter import ttk
 
 from mmg_toolbox.xas import SpectraContainerSubtraction
 from ..misc.config import C
+from ..misc.matplotlib import TkFigure
 from ..widgets.simple_plot import SimplePlot
+from .spectra_plot import SpectraPlot
 from .average_tab import Average
 
 
@@ -29,6 +31,8 @@ class AveragePlot:
             title='Pol 1',
             config=self.config
         )
+        self.pol1_figure.ax1.set_xlabel('Energy [eV]')
+        self.pol1_figure.fig.tight_layout()
 
         # Pol 2
         frm = ttk.Frame(self.root)
@@ -42,19 +46,13 @@ class AveragePlot:
             title='Pol 2',
             config=self.config
         )
+        self.pol2_figure.ax1.set_xlabel('Energy [eV]')
+        self.pol2_figure.fig.tight_layout()
 
         # Average
         frm = ttk.Frame(self.root)
         frm.pack(side='top', fill='x')
-        self.figure = SimplePlot(
-            root=frm,
-            xdata=[],
-            ydata=[],
-            xlabel='Energy [eV]',
-            ylabel='',
-            title='Average',
-            config=self.config
-        )
+        self.figure = SpectraPlot(frm, config=self.config)
 
         # Buttons
         frm = ttk.Frame(self.root)
@@ -71,31 +69,25 @@ class AveragePlot:
         self.spectra = spectra
         self.mode = mode
 
-        self.pol1_figure.ax1.clear()
+        self.pol1_figure.remove_lines()
+        self.pol1_figure.reset_plot()
         for spec in spectra.spectra1.parents:
             spectrum = spec.spectra[self.mode]
-            spectrum.plot(self.pol1_figure.ax1, label=spec.name)
+            self.pol1_figure.plot(spectrum.energy, spectrum.signal, label=spec.name)
         self.pol1_figure.ax1.legend(frameon=False)
-        self.pol1_figure.ax1.set_xlabel('Energy [eV]')
         self.pol1_figure.ax1.set_title(spectra.spectra1.name)
-        self.pol1_figure.fig.tight_layout()
         self.pol1_figure.update_axes()
 
-        self.pol2_figure.ax1.clear()
+        self.pol2_figure.remove_lines()
+        self.pol2_figure.reset_plot()
         for spec in spectra.spectra2.parents:
             spectrum = spec.spectra[self.mode]
-            spectrum.plot(self.pol2_figure.ax1, label=spec.name)
+            self.pol2_figure.plot(spectrum.energy, spectrum.signal, label=spec.name)
         self.pol2_figure.ax1.legend(frameon=False)
-        self.pol2_figure.ax1.set_xlabel('Energy [eV]')
         self.pol2_figure.ax1.set_title(spectra.spectra2.name)
-        self.pol2_figure.fig.tight_layout()
         self.pol2_figure.update_axes()
 
-        self.figure.ax1.clear()
-        spectra.create_combined_axes(mode, self.figure.ax1)
-        self.figure.ax1.legend([spectra.spectra1.name, spectra.spectra2.name, spectra.name], frameon=False)
-        self.figure.fig.tight_layout()
-        self.figure.update_axes()
+        self.figure.update_spectra(spectra, self.mode)
         self.output_name.set(spectra.label())
 
     def generate_output_filename(self, name: str, extension: str = '.nxs'):

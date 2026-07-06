@@ -3,6 +3,7 @@ Useful tkinter functions that use matplotlib
 """
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 import tkinter as tk
 from tkinter import ttk
 
@@ -12,19 +13,11 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.colorbar import Colorbar
 from matplotlib.collections import QuadMesh
-from matplotlib.widgets import TextBox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 from .styles import create_root, get_style_background
-
-# parameters
-FIGURE_SIZE = (8, 3)
-IMAGE_SIZE = (8, 3)
-FIGURE_DPI = 60
-SMALL_FIGURE_DPI = 40
-COLORMAPS = ['viridis', 'Spectral', 'plasma', 'inferno', 'Greys', 'Blues', 'winter', 'autumn',
-             'hot', 'hot_r', 'hsv', 'rainbow', 'jet', 'twilight', 'hsv']
-DEFAULT_COLORMAP = 'twilight'
+from .config import C, FIGURE_SIZE, IMAGE_SIZE, FIGURE_DPI, DEFAULT_COLORMAP
+from .screen_size import get_figure_size
 
 
 class CustomToolbar(NavigationToolbar2Tk):
@@ -45,15 +38,9 @@ class CustomToolbar(NavigationToolbar2Tk):
 
     def popout_figure(self):
         """Create a new tk window and display figure"""
+        fig: Figure = pickle.loads(pickle.dumps(self.canvas.figure))
         root = create_root('Figure', parent=self.master)
-        fig, ax1, plot_list, toolbar = ini_plot(root, FIGURE_SIZE, FIGURE_DPI)
-
-        for old_ax in self.canvas.figure.get_axes():
-            ax1.set_title(old_ax.title.get_text())
-            ax1.set_xlabel(old_ax.get_xlabel())
-            ax1.set_ylabel(old_ax.get_ylabel())
-            for line in old_ax.lines:
-                ax1.plot(line.get_xdata(), line.get_ydata())
+        TkFigure(root, None, fig, FIGURE_SIZE, FIGURE_DPI)
 
     def __init__(self, canvas_, parent_):
         # Add additional functions
@@ -69,61 +56,54 @@ class CustomToolbar(NavigationToolbar2Tk):
         self.config(background=bg)
 
 
-def ini_plot(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
-             figure_dpi: int | None = None) -> tuple[Figure, Axes, list[Line2D], NavigationToolbar2Tk]:
+class TkFigure:
     """
-    Create a lineplot on a tk canvas with toolbar
-
-        fig, ax, line_list, toolbar = ini_plot(frame, figure_size, figure_dpi)
-        line_list.extend(ax.plot(x, y))
-        fig.canvas.draw()
-        toolbar.update()
-
-    :param frame: parent frame within which the figure will be placed.
-    :param figure_size: size of the figure in inches [horiz, vert], passed to matplotlib.Figure()
-    :param figure_dpi: figure DPI, passed to matplotlib.Figure()
-    :returns: tuple[Figure, Axes, list[Line2D], Toolbar]
+    Create a tkinter frame with a single figure
     """
-    if figure_size is None:
-        figure_size = FIGURE_SIZE
-    if figure_dpi is None:
-        figure_dpi = FIGURE_DPI
+    def __init__(self, root: tk.Misc, config: dict | None = None, fig: plt.Figure | None = None,
+                 fig_size: tuple[int, int] | None = None, fig_dpi: int = None):
+        self.root = root
+        self.config = config or {}
+        self.fig = fig or plt.Figure()
+        # Set fig size
+        fig_size = fig_size or get_figure_size(root, self.config, C.plot_size)
+        fig_dpi = fig_dpi or self.config.get(C.plot_dpi, None)
+        self.fig.set_dpi(fig_dpi)
+        self.fig.set_size_inches(fig_size[0], fig_size[1])
 
-    # get the current background
-    bg = get_style_background(frame)
+        # get the current background
+        bg = get_style_background(root)
 
-    fig = Figure(figsize=figure_size, dpi=figure_dpi)
-    try:
-        fig.patch.set_facecolor(bg)
-    except ValueError:
-        print(f"Cannot set background color of {bg}")
-        bg = '#dcdad5'
-    # fig.subplots_adjust(left=0.2, bottom=0.2)
-    # Amplitude
-    ax1 = fig.add_subplot(111)
-    ax1.set_autoscaley_on(True)
-    ax1.set_autoscalex_on(True)
-    ax1.set_xlabel(u'Axis 0')
-    ax1.set_ylabel(u'Axis 1')
-    ax1.set_title('filename')
-    plot_list: list[plt.Line2D] = []
+        try:
+            self.fig.patch.set_facecolor(bg)
+        except ValueError:
+            print(f"Cannot set background color of {bg}")
+            bg = '#dcdad5'
 
-    frm = ttk.Frame(frame)
-    frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH, pady=2, padx=5)
-    canvas = FigureCanvasTkAgg(fig, frm)
-    canvas.get_tk_widget().configure(bg='black')
-    canvas.draw()
-    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=5, pady=2)
+        frm = ttk.Frame(root)
+        frm.pack(side='left', expand=True, fill='both', pady=2, padx=5)
+        self.canvas = FigureCanvasTkAgg(self.fig, frm)
+        self.canvas.get_tk_widget().configure(bg='black')
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(side='top', fill='both', expand=True, padx=5, pady=2)
 
-    # Toolbar
-    frm2 = ttk.Frame(frm)
-    frm2.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=5, pady=2)
-    # toolbar = NavigationToolbar2Tk(canvas, frm)
-    toolbar = CustomToolbar(canvas, frm2)
-    toolbar.config(background=bg)
-    toolbar.update()
-    toolbar.pack(fill=tk.X)#, expand=tk.YES)
-    return fig, ax1, plot_list, toolbar
+        # Toolbar
+        frm2 = ttk.Frame(frm)
+        frm2.pack(side='top', expand=True, fill='both', padx=5, pady=2)
+        # toolbar = NavigationToolbar2Tk(canvas, frm)
+        self.toolbar = CustomToolbar(self.canvas, frm2)
+        self.toolbar.config(background=bg)
+        self.toolbar.update()
+        self.toolbar.pack(fill='x')  # , expand=tk.YES)
+
+    def _update(self):
+        self.fig.canvas.draw()
+        if self.toolbar.winfo_exists():
+            self.toolbar.update()
+
+    def duplicate(self, root: tk.Misc, fig_size: tuple[int, int] | None = None, fig_dpi: int = None) -> 'TkFigure':
+        fig: Figure = pickle.loads(pickle.dumps(self.fig))
+        return TkFigure(root, self.config, fig, fig_size, fig_dpi)
 
 
 def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
