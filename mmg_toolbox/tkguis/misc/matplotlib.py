@@ -105,7 +105,7 @@ class TkFigure:
         fig: Figure = pickle.loads(pickle.dumps(self.fig))
         return TkFigure(root, self.config, fig, fig_size, fig_dpi)
 
-
+# TODO: replace ini_image with TkFigure type thing
 def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
               figure_dpi: int | None = None) -> tuple[Figure, Axes, list[Line2D], QuadMesh, Colorbar, CustomToolbar]:
     """

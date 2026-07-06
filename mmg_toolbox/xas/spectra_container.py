@@ -191,6 +191,15 @@ class SpectraContainer:
         np.savetxt(csv_filename, array, delimiter=', ', header=header)
         print(f"Saved {csv_filename}")
 
+    ### Plots ###
+
+    def add_edge_lines(self, ax: plt.Axes):
+        """Add absorption edge lines to a plot"""
+        for edge_label, energy in self.get_edges().items():
+            ax.axvline(energy, color='k', alpha=0.3)
+            ax.text(energy, 0.9, edge_label, color='k', alpha=0.3,
+                    ha='right', va='top', transform=ax.get_xaxis_transform())
+
     def create_figure(self, **kwargs) -> plt.Figure:
         """
         Create matplotlib figure showing each spectra in a separate axes
@@ -201,6 +210,7 @@ class SpectraContainer:
         fig, axs = plt.subplots(1, len(self.spectra), squeeze=False, **kwargs)
 
         for ax, s in zip(axs.flat, self.spectra.values()):
+            self.add_edge_lines(ax=ax)
             s.plot(ax)
             ax.set_xlabel('E [eV]')
             ax.set_ylabel('signal')
@@ -221,12 +231,7 @@ class SpectraContainer:
             spectra.plot_parents(ax=axes[0, n])
             spectra.plot_bkg(ax=axes[0, n])
             axes[0, n].set_ylabel(mode)
-            for edge_label, energy in self.get_edges().items():
-                axes[0, n].axvline(energy, color='k', alpha=0.3)
-                axes[0, n].text(energy, 0.9, edge_label, color='k', alpha=0.3,
-                                ha='right', va='top',
-                                transform=axes[0, n].get_xaxis_transform())
-
+            self.add_edge_lines(axes[0, n])
             spectra.plot(ax=axes[1, n], label=self.name)
             axes[1, n].set_ylabel(mode)
 
@@ -440,26 +445,18 @@ class SpectraContainerSubtraction(SpectraContainer):
         :param kwargs: kwargs to pass to plt.figure
         :return: matplotlib Figure
         """
-        fig, axes = plt.subplots(2, len(self.spectra), squeeze=False, **kwargs)
-        fig.tight_layout(h_pad=0.1, w_pad=0.1)
+        fig, axes = plt.subplots(2, len(self.spectra), squeeze=False, sharex=True, **kwargs)
+        fig.tight_layout(h_pad=0, w_pad=0.1)
         signal_ratio = self.calculate_signal_ratio()
 
         for parent in self.parents:
             for n, (mode, spectra) in enumerate(parent.spectra.items()):
-                for edge_label, energy in self.get_edges().items():
-                    axes[0, n].axvline(energy, color='k', alpha=0.3)
-                    axes[0, n].text(energy, 0.9, edge_label, color='k', alpha=0.3,
-                                    ha='right', va='top',
-                                    transform=axes[0, n].get_xaxis_transform())
+                self.add_edge_lines(axes[0, n])
                 spectra.plot(ax=axes[0, n], label=parent.name)
                 axes[0, n].set_ylabel(mode)
 
         for n, (mode, spectra) in enumerate(self.spectra.items()):
-            for edge_label, energy in self.get_edges().items():
-                axes[1, n].axvline(energy, color='k', alpha=0.3)
-                axes[1, n].text(energy, 0.9, edge_label, color='k', alpha=0.3,
-                                ha='right', va='top',
-                                transform=axes[1, n].get_xaxis_transform())
+            self.add_edge_lines(axes[1, n])
             spectra.plot_sum_rules(ax=axes[1, n])
             axes[1, n].set_ylabel(self.name)
             idx = abs(spectra.signal).argmax()
@@ -499,11 +496,7 @@ class SpectraContainerSubtraction(SpectraContainer):
             x, y = spectra.energy[idx], spectra.signal[idx]
             axes.text(x, y, f"max signal = {signal_ratio[mode]:.2%}")
 
-        for edge_label, energy in self.get_edges().items():
-            axes.axvline(energy, color='k', alpha=0.3)
-            axes.text(energy, 0.9, edge_label, color='k', alpha=0.3,
-                            ha='right', va='top',
-                            transform=axes.get_xaxis_transform())
+        self.add_edge_lines(axes)
         axes.set_xlabel('E [eV]')
         axes.legend()
         return axes

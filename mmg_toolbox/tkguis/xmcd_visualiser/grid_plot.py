@@ -8,7 +8,7 @@ from .spectra_plot import SpectraPlot
 
 
 GRID_COLUMNS = 2
-GRID_FIG_SIZE = (4, 3)
+GRID_FIG_SIZE = (4, 4)
 GRID_FIG_DPI = 60
 
 

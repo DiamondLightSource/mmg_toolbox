@@ -4,7 +4,6 @@ from tkinter import ttk
 
 from mmg_toolbox.xas import SpectraContainerSubtraction
 from ..misc.config import C
-from ..misc.matplotlib import TkFigure
 from ..widgets.simple_plot import SimplePlot
 from .spectra_plot import SpectraPlot
 from .average_tab import Average
@@ -71,6 +70,8 @@ class AveragePlot:
 
         self.pol1_figure.remove_lines()
         self.pol1_figure.reset_plot()
+        spectra.add_edge_lines(self.pol1_figure.ax1)
+        self.pol2_figure.remove_lines()
         for spec in spectra.spectra1.parents:
             spectrum = spec.spectra[self.mode]
             self.pol1_figure.plot(spectrum.energy, spectrum.signal, label=spec.name)
@@ -80,6 +81,7 @@ class AveragePlot:
 
         self.pol2_figure.remove_lines()
         self.pol2_figure.reset_plot()
+        spectra.add_edge_lines(self.pol2_figure.ax1)
         for spec in spectra.spectra2.parents:
             spectrum = spec.spectra[self.mode]
             self.pol2_figure.plot(spectrum.energy, spectrum.signal, label=spec.name)
