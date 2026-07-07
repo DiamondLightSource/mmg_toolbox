@@ -35,9 +35,8 @@ class XasNexusWriter:
         nw.add_nxfield(entry, 'end_time', self.metadata.end_date_iso)
         nw.add_nxfield(entry, 'scan_command', self.metadata.cmd)
         nw.add_nxfield(entry, 'mode', self.metadata.default_mode)
-        nw.add_nxfield(entry, 'element', self.metadata.element)
-        nw.add_nxfield(entry, 'edge', self.metadata.edge)
         nw.add_nxfield(entry, 'polarization_label', self.metadata.pol)
+        nw.add_nxelement(entry, self.metadata.element, self.metadata.edge)
         if default:
             nexus.attrs['default'] = name
         return entry

@@ -4,6 +4,7 @@ a tkinter frame with 3 sections:
     2. Grid of pair-subtraction-plots with checkboxes
     3. average of selected pairs
 """
+import os
 import tkinter as tk
 from tkinter import ttk
 
@@ -64,6 +65,11 @@ class Average:
         frm.grid(column=2, row=0, **grid_options)
         self.average_plot = AveragePlot(frm, self, self._base.config)
 
+    def add_exp_path(self, filename: str):
+        if os.path.isfile(filename):
+            filename = os.path.dirname(filename)
+        self.exp.add_data_paths(filename)
+
     def load_scans(self, *scan_number: int, dls_loader: bool | None = None) -> list[SpectraContainer]:
         return self.exp.load_xas(*scan_number, dls_loader=self.use_dls_loader if dls_loader is None else dls_loader)
 
@@ -118,6 +124,3 @@ class Average:
 
     def add_comparison_spectra(self, spectra: SpectraContainerSubtraction):
         self._base.comparison.treeview.add_scan(spectra)
-
-
-

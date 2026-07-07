@@ -53,4 +53,4 @@ class XMCDVisualiser:
             self.average.pair_selector.scan_range.set(scan_range_str)
         if pairs:
             self.average.pair_selector.set_pair_numbers(pairs)
-
+            self.average.plot_pairs()

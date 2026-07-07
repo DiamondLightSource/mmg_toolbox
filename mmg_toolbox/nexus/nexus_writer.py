@@ -305,6 +305,16 @@ def add_nxprocess(root: h5py.Group, name: str, program: str | None = None,
     return group
 
 
+def add_nxelement(root: h5py.Group, element: str, edge: str):
+    """
+    Add NXelement and NXedge groups to parent group
+    """
+    group = add_nxclass(root, 'element', nn.NX_ELEMENT)
+    add_nxfield(group, 'name', element)
+    group = add_nxclass(root, 'edge', nn.NX_EDGE)
+    add_nxfield(group, 'name', edge)
+
+
 def add_entry_links(root: h5py.File, *filenames: str):
     """
     Add entry links to nexus file

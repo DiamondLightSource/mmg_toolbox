@@ -11,7 +11,7 @@ from mmg_toolbox.xas.nxxas_loader import load_xas_scans, is_subtraction
 from mmg_toolbox.plotting.matplotlib import plot_lines, plot_3d_lines
 
 from ..misc.logging import create_logger
-from ..misc.functions import show_error
+from ..misc.functions import show_error, select_hdf_file
 from ..widgets.treeview import CanvasTreeview
 from ..widgets.simple_plot import SimplePlot
 from .widget import XMCDVisualiser
@@ -23,6 +23,18 @@ METADATA_OPTIONS = {
     'Field': 'mag_field',
     'Pitch': 'pitch'
 }
+
+
+def load_subtraction_file(root: tk.Misc, initial_directory: str | None = None) -> str | None:
+    filename = select_hdf_file(root, initial_directory)
+    if filename and not is_subtraction(filename):
+        messagebox.showwarning(
+            title='File must be a processed XMCD file',
+            message=f"File: \n{filename}\n is not an XAS Subtraction file.",
+            parent=root
+        )
+        filename = None
+    return filename
 
 
 class ProcessedTreeView(CanvasTreeview):
@@ -166,6 +178,7 @@ class Comparison:
         self.treeview.add_scan(scan)
 
     def browse_data(self):
+        # TODO: replace with load_subtraciton_file
         filenames = filedialog.askopenfilenames(
             title='Select file to open',
             filetypes=[('NXS file', '.nxs'),

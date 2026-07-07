@@ -5,8 +5,10 @@ from typing import Callable
 from mmg_toolbox.utils.misc_functions import string2numbers
 from mmg_toolbox.xas import SpectraContainer, polarised_pairs
 from mmg_toolbox.xas.spectra import BACKGROUND_FUNCTIONS
+from mmg_toolbox.xas.nxxas_loader import load_xmcd_from_processed_nxs
 from ..misc.functions import create_scrollable_window
 from .average_tab import Average
+from .processed_data_plot import load_subtraction_file
 
 
 BACKGROUNDS = ['None'] + list(BACKGROUND_FUNCTIONS)
@@ -31,12 +33,11 @@ class PairSelector:
         self.root.rowconfigure(1, weight=1)  # pairs
         self.root.rowconfigure(2, weight=0)  # options
 
-        #TODO: add button to load processed file
-
         # Files
         frm = ttk.LabelFrame(self.root, text='Scan Numbers')
         # frm.pack(side='top', fill='x')
         frm.grid(row=0, column=0, **grid_options)
+        # ttk.Button(frm, text='Load', command=self.btn_load_file).pack(side='top', fill='x', padx=10, pady=3)
         var = entry_with_placeholder(frm, self.scan_range, scan_range_str)
         var.bind('<Return>', self.btn_find_pairs)
         var.pack(side='left')
@@ -148,6 +149,19 @@ class PairSelector:
                 else:
                     self.add_pair(s1.metadata.scan_no, s2.metadata.scan_no)
             self._base.plot_pairs()
+
+    def btn_load_file(self):
+        filename = load_subtraction_file(self.root, self._base.exp.folder_paths[0])
+        if filename:
+            # scan, = load_xas_scans(filename)
+            scan = load_xmcd_from_processed_nxs(filename)
+            self._base.add_exp_path(scan.get_raw_filename())
+            parents1 = scan.spectra1.parents
+            parents2 = scan.spectra2.parents
+            pairs = [(s1.metadata.scan_no, s2.metadata.scan_no) for s1, s2 in zip(parents1, parents2)]
+            print(f"Loaded {len(pairs)} pairs in folder: {scan.get_raw_filename()}")
+            print(pairs)
+            self.set_pair_numbers(pairs)
 
 
 def entry_with_placeholder(root: tk.Misc, text: tk.Variable, placeholder_text: str, **kwargs) -> ttk.Entry:

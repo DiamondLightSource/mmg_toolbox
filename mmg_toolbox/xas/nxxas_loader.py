@@ -180,13 +180,25 @@ def requested_modes(hdf: h5py.File, mode: str | list[str] = 'all') -> list[str]:
     if isinstance(mode, str):
         mode = [mode]
     # Get default mode
-    default_mode = mode[0]
     if mode[0].lower() == 'default':
         default_mode = str(nx_find_data(hdf, 'NXxas', 'NXdata', 'mode'))
         if default_mode is None:
             raise ValueError(f"NXxas:NXdata:mode not found in {hdf.file.filename}")
         mode[0] = default_mode
     return [_mode.lower() for _mode in mode]
+
+
+def get_absorption_edge(hdf: h5py.File) -> tuple[str, str]:
+    """Return absorption element and edge"""
+    element = str(
+          nx_find_data(hdf, 'NXelement', 'name', default=None) or
+          nx_find_data(hdf, 'NXxas', 'element', default='None')
+    )
+    edge = str(
+        nx_find_data(hdf, 'NXedge', 'name', default=None) or
+        nx_find_data(hdf, 'NXxas', 'edge', default='None')
+    )
+    return element, edge
 
 
 def _load_from_nxxas(hdf: h5py.File | h5py.Group, sample_name=None, element_edge=None,
@@ -216,8 +228,7 @@ def _load_from_nxxas(hdf: h5py.File | h5py.Group, sample_name=None, element_edge
     temp = nx_find_data(hdf, 'NXsample', 'temperature', default=300)
     mag_field = nx_find_data(hdf, 'NXsample', 'magnetic_field', default=0)
     monitor_preset = nx_find_data(hdf, 'NXmonitor', 'preset', default=1.)
-    element = nx_find_data(hdf, 'NXxas', 'NXelement', default=None)
-    edge = nx_find_data(hdf, 'NXxas', 'NXedge', default=None)
+    element, edge = get_absorption_edge(hdf)
     # DLS specific metadata
     cmd = nx_find_data(hdf, 'scan_command', default='')
     start_date_iso = nx_find_data(hdf, 'start_time', default='')
@@ -291,7 +302,7 @@ def _load_from_nxxas(hdf: h5py.File | h5py.Group, sample_name=None, element_edge
 
 
 def load_from_nxs(filename: str, sample_name=None, element_edge=None,
-                  mode: str | list[str] = 'all') -> SpectraContainer:
+                  mode: str | list[str] = 'all') -> SpectraContainer | SpectraContainerSubtraction:
     """
     Load XAS Spectra from NeXus file with NXxas application Definition
 
@@ -391,20 +402,11 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
     )
 
 
-def load_from_processed_nxs(filename: str, mode: str | list[str] = 'all') -> SpectraContainer:
+def load_xmcd_from_processed_nxs(filename: str, mode: str | list[str] = 'all') -> SpectraContainerSubtraction:
     """
-    Load XAS Spectra from NeXus file saved by SpectraContainer
+    Load XMCD/XMLD Spectra from NeXus file saved by SpectraContainerSubtraction
     """
-    # read file
-    with h5py.File(filename, 'r') as hdf:
-        spectra = _load_from_nxxas(hdf, mode=mode)
-        groups = nx_find_all(hdf, 'NXxas')
-        if len(groups) > 1:
-            parents = [
-                _load_from_nxxas(group, mode=mode) for group in groups[1:]
-            ]
-            spectra.parents = parents
-    return spectra
+    return load_from_nxs(filename, mode=mode)
 
 
 def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge: str | None = None,
