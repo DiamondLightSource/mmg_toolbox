@@ -508,7 +508,7 @@ class SpectraSubtraction(Spectra):
         ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=ratio))
         return lines
 
-    def sum_rules_report(self, n_holes: float, element: str = '') -> str:
+    def sum_rules_report(self, n_holes: float, element: str = '', split_energy: float | None = None) -> str:
         """
         Calculate sum rules of XMCD spectra and return report
 
@@ -517,19 +517,22 @@ class SpectraSubtraction(Spectra):
         Parameters
         :param n_holes: number of holes in absorbing ion
         :param element: element symbol
+        :param split_energy: energy half-way between two edges
         :returns: str
         """
-        orb, spin = self.calculate_sum_rules(n_holes)
-        report = f"{element} n_holes = {n_holes}\nL = {orb:.3f} μB\nS = {spin:.3f} μB"
+        orb, spin = self.calculate_sum_rules(n_holes, split_energy=split_energy)
+        report = (f"{element} n_holes = {n_holes}, energy split = {split_energy: .2f} eV\n" +
+                  f"L = {orb:.3f} μB\nS = {spin:.3f} μB")
         return report
 
     def create_sum_rules_nxnote(self, n_holes: float, parent: h5py.Group,
-                                name: str, sequence_index: int | None = None, element: str = '') -> h5py.Group:
+                                name: str, sequence_index: int | None = None, element: str = '',
+                                split_energy: float | None = None) -> h5py.Group:
         note = nw.add_nxnote(
             root=parent,
             name=name,
             description=f"{self.label} {self.mode} {self.process_label} Sum Rules",
-            data=self.sum_rules_report(n_holes, element),
+            data=self.sum_rules_report(n_holes, element, split_energy),
             sequence_index=sequence_index
         )
         return note

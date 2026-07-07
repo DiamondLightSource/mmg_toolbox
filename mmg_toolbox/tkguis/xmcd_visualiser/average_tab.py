@@ -113,6 +113,7 @@ class Average:
             s2 = average_scans(*[s2 for (s1, s2), check in zip(self.pairs, self.selection) if check.get()])
             spectra = s1 - s2
             self.average_plot.update_plot(spectra, mode=mode)
+            self._base.sum_rules.update_plot(spectra, mode=mode)
 
     def update_plots(self, event=None):
         self._update_pairs()
@@ -124,3 +125,4 @@ class Average:
 
     def add_comparison_spectra(self, spectra: SpectraContainerSubtraction):
         self._base.comparison.treeview.add_scan(spectra)
+

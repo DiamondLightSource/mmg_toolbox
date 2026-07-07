@@ -67,7 +67,7 @@ class TkFigure:
         self.fig = fig or plt.Figure()
         # Set fig size
         fig_size = fig_size or get_figure_size(root, self.config, C.plot_size)
-        fig_dpi = fig_dpi or self.config.get(C.plot_dpi, None)
+        fig_dpi = fig_dpi or self.config.get(C.plot_dpi, FIGURE_DPI)
         self.fig.set_dpi(fig_dpi)
         self.fig.set_size_inches(fig_size[0], fig_size[1])
 

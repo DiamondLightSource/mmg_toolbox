@@ -7,10 +7,10 @@ import os
 import json
 
 from mmg_toolbox.utils.env_functions import TMPDIR, get_beamline, get_user, check_file_access
-import mmg_toolbox.beamline_metadata.config as config
+import mmg_toolbox.beamline_metadata.config as beamline_config
 
 
-class C(config.C):
+class C(beamline_config.C):
     """Names used in config object"""
     processing_directory = 'processing_directory'
     notebook_directory = 'notebook_directory'
@@ -43,7 +43,7 @@ TEXT_WIDTH = 50  # Determines the width of text areas in DataViewer in character
 TEXT_HEIGHT = 25  # Determines height of text area in Dataviewer in lines
 TEXT_HEIGHT_SMALL = 10  # TEXT_HEIGHT when screen is small
 MAX_PLOT_SCREEN_PERCENTAGE = (75, 25)  # (wid, height) max plot size as % of screen
-BEAMLINE_CONFIG = config.BEAMLINE_CONFIG
+BEAMLINE_CONFIG = beamline_config.BEAMLINE_CONFIG
 
 # Matplotlib parameters
 FIGURE_SIZE = (8, 3)
@@ -55,7 +55,7 @@ COLORMAPS = ['viridis', 'Spectral', 'plasma', 'inferno', 'Greys', 'Blues', 'wint
              'hot', 'hot_r', 'hsv', 'rainbow', 'jet', 'twilight', 'hsv']
 
 CONFIG = {
-    **config.CONFIG,
+    **beamline_config.CONFIG,
     C.conf_file: CONFIG_FILE,
     C.default_directory: os.path.expanduser('~'),
     C.processing_directory: os.path.expanduser('~'),
@@ -96,8 +96,8 @@ def default_config(beamline: str | None = None) -> dict:
     cfg = CONFIG.copy()
     if beamline is None:
         beamline = get_beamline()
-    if beamline in config.BEAMLINE_CONFIG:
-        cfg.update(config.BEAMLINE_CONFIG[beamline])
+    if beamline in beamline_config.BEAMLINE_CONFIG:
+        cfg.update(beamline_config.BEAMLINE_CONFIG[beamline])
     return cfg
 
 
@@ -136,3 +136,11 @@ def save_config_as(config_filename: str | None = None, **kwargs):
     cfg[C.conf_file] = config_filename
     save_config(cfg)
 
+
+def generate_output_filename(name: str, extension: str = '.nxs', config: dict | None = None) -> str:
+    """Creates a file in the current processing directory"""
+    cfg = config or get_config()
+    path, name = os.path.split(name)
+    name, ext = os.path.splitext(name)
+    path = path or cfg.get(C.current_proc, '')
+    return os.path.join(path, name + extension)

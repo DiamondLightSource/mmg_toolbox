@@ -138,7 +138,7 @@ def string2numbers(string: str) -> list[int]:
     values = string.split(',')
     numbers = []
     for value in values:
-        if value.lstrip('-+').isdigit():
+        if value.lstrip(' -+').isdigit():
             numbers.append(int(value))
         elif ':' in value:
             range_values = [int(n) for n in value.split(':')]

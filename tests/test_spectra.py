@@ -102,6 +102,15 @@ def test_average_spectra():
     assert repr(av_scan) == "SpectraContainer('scan1+..+scan2', 'average', ['tey', 'tfy'])"
     assert repr(av_scan.spectra['tey']) == "SpectraAverage('test+test+test+test', 'tey', energy=array(300,), signal=array(300,), process_label='average')"
 
+    # TODO: merge these tests once SpectraContainerAverage is integrated.
+    from mmg_toolbox.xas.spectra_container import SpectraContainerAverage
+    av_scan = SpectraContainerAverage(container1, container2, container3)
+    assert repr(av_scan) == "SpectraContainerAverage('scan1+scan2+scan3', 'average', ['tey', 'tfy'])"
+    assert len(av_scan.parents) == 3
+    av_scan = SpectraContainerAverage(container1, container2, av_scan)
+    assert repr(av_scan) == "SpectraContainerAverage('scan1+..+scan3', 'average', ['tey', 'tfy'])"
+    assert len(av_scan.parents) == 5
+
 
 @only_dls_file_system
 def test_load_xas_scans():

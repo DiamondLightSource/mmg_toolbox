@@ -335,6 +335,37 @@ class SpectraContainer:
         return self._process_spectra('auto_edge_background', peak_width_ev, edges)
 
 
+# TODO: integrate this into other objects.
+class SpectraContainerAverage(SpectraContainer):
+    """Special subclass for average of SpectraContainers"""
+    def __init__(self, *spectra_containers: SpectraContainer):
+        if len(spectra_containers) < 2:
+            raise ValueError('SpectraContainerAverage must have at least two spectra')
+        # Expand any Average containers into their parents
+        expanded_list = []
+        for spectra_container in spectra_containers:
+            if isinstance(spectra_container, SpectraContainerAverage):
+                expanded_list.extend(spectra_container.parents)
+            else:
+                expanded_list.append(spectra_container)
+        first = expanded_list[0]
+        spectra = {
+            n: sum((s.spectra[n] for s in expanded_list[1:]), first.spectra[n])
+            for n in first.spectra
+        }
+        metadata = merge_xas_metadata(*(s.metadata for s in expanded_list))
+        name = '+'.join(
+            [expanded_list[0].name, '..', expanded_list[-1].name]
+            if len(expanded_list) > 3 else
+            [s.name for s in expanded_list]
+        )
+        super().__init__(name, spectra, *expanded_list, metadata=metadata)
+        self.process_label = 'average'
+
+    def __repr__(self):
+        return f"SpectraContainerAverage('{self.name}', '{self.process_label}', {list(self.spectra)})"
+
+
 class SpectraContainerSubtraction(SpectraContainer):
     """Special subclass for subtraction of SpectraContainers - XMCD and XMLD"""
     def __init__(self, spectra_container1: SpectraContainer, spectra_container2: SpectraContainer):
@@ -373,6 +404,9 @@ class SpectraContainerSubtraction(SpectraContainer):
         metadata = merge_xas_metadata(m1, m2)
         super().__init__(name, spectra, self.spectra1, self.spectra2, metadata=metadata)
 
+    def __repr__(self):
+        return f"SpectraContainerSubtraction('{self.name}', '{self.process_label}', {list(self.spectra)})"
+
     def __str__(self):
         s = super().__str__()
         return s + '\n' + self.sum_rules_report()
@@ -402,7 +436,8 @@ class SpectraContainerSubtraction(SpectraContainer):
             for mode, spectra in self.spectra.items()
         }
 
-    def calculate_sum_rules(self, n_holes: float | None = None, mode: str | None = None) -> tuple[float, float]:
+    def calculate_sum_rules(self, n_holes: float | None = None, mode: str | None = None,
+                            split_energy: float | None = None) -> tuple[float, float]:
         """
         Calculate sum rules of XMCD spectra from integration
 
@@ -411,13 +446,15 @@ class SpectraContainerSubtraction(SpectraContainer):
         Parameters
         :param n_holes: number of holes in absorbing ion
         :param mode: select which detection mode to use (None for default)
+        :param split_energy: energy half-way between two edges
         :returns: orb, spin sum rule values for the detector mode
         """
         spectra = self.spectra[mode or self.metadata.default_mode]
         n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
-        return spectra.calculate_sum_rules(n_holes)
+        return spectra.calculate_sum_rules(n_holes, split_energy)
 
-    def sum_rules_report(self, n_holes: float | None = None, mode: str | None = None) -> str:
+    def sum_rules_report(self, n_holes: float | None = None, mode: str | None = None,
+                         split_energy: float | None = None) -> str:
         """
         Calculate sum rules of XMCD spectra and return report
 
@@ -426,16 +463,20 @@ class SpectraContainerSubtraction(SpectraContainer):
         Parameters
         :param n_holes: number of holes in absorbing ion
         :param mode: select which detection mode to use (None for default)
+        :param split_energy: energy half-way between two edges
         :returns: str
         """
-        spectra = self.spectra[mode or  self.metadata.default_mode]
+        mode = mode or self.metadata.default_mode
+        spectra = self.spectra[mode]
         try:
             n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
         except ValueError:
             return f"=== Sum Rules not available for element {self.metadata.element} ===\n"
         report = "=== Sum Rules === \n"
-        report += f"{self.metadata.default_mode} signal = {self.calculate_signal_ratio()[self.metadata.default_mode]:.2%}\n"
-        report += spectra.sum_rules_report(n_holes, self.metadata.element)
+        report += f"{mode} signal = {self.calculate_signal_ratio()[mode]:.2%}\n"
+
+        report += f"Split energy between {self.metadata.element} {self.metadata.edge} edges: {split_energy: .2} eV\n"
+        report += spectra.sum_rules_report(n_holes, self.metadata.element, split_energy)
         return report
 
     def create_sum_rules_figure(self, **kwargs) -> plt.Figure:

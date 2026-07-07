@@ -7,13 +7,11 @@ a tkinter frame with 3 sections:
 import tkinter as tk
 from tkinter import ttk
 
-
 from ..misc.logging import create_logger
 from ..misc.config import get_config
 
 logger = create_logger(__file__)
 
-# TODO: add tab for sum rule analysis
 
 class XMCDVisualiser:
     """
@@ -26,6 +24,7 @@ class XMCDVisualiser:
                  pairs: list[tuple[int, int]] = None, config: dict | None = None):
         from .average_tab import Average
         from .processed_data_plot import Comparison
+        from .sum_rules_tab import SumRules
         self.root = root
         self.config = config or get_config()
 
@@ -37,16 +36,19 @@ class XMCDVisualiser:
         self.view_tabs = ttk.Notebook(self.root)
         tab1 = ttk.Frame(self.view_tabs)
         tab2 = ttk.Frame(self.view_tabs)
+        tab3 = ttk.Frame(self.view_tabs)
         # self.view_tabs.bind('<<NotebookTabChanged>>', self.tab_change)
 
         self.view_tabs.add(tab1, text='Average Data')
         self.view_tabs.add(tab2, text='Compare Data')
+        self.view_tabs.add(tab3, text='Sum Rule Analysis')
 
         # Average Tab
         self.average = Average(tab1, self)
-
         # Comparison Tab
         self.comparison = Comparison(tab2, self)
+        # Sum Rule Tab
+        self.sum_rules = SumRules(tab3, self)
         self.view_tabs.grid(column=0, row=0, sticky='nsew')
 
         if scan_range_str:
