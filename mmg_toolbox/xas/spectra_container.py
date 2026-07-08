@@ -81,9 +81,7 @@ class SpectraContainer:
 
     def __add__(self, other):
         if issubclass(type(other), SpectraContainer):
-            # average Spectra
-            spectra = {n: s + other.spectra[n] for n, s in self.spectra.items() if n in other.spectra}
-            return SpectraContainer(self.name, spectra, self, other, metadata=self.metadata)
+            return SpectraContainerAverage(self, other)
         # add float or array to Spectra
         spectra = {n: s + other for n, s in self.spectra.items()}
         return SpectraContainer(self.name, spectra, self, *self.parents, metadata=self.metadata)
@@ -139,15 +137,18 @@ class SpectraContainer:
         signals = np.array([spectra.signal for spectra in self.spectra.values()])
         return np.array([energy, *signals])
 
-    def get_raw_metadata(self, field: str):
+    def get_raw_metadata(self, field: str) -> dict:
         """Recursively get raw metadata from top level parent"""
         if self.parents:
-            return next(iter(self.parents)).get_raw_metadata(field)
-        return getattr(self.metadata, field)
+            return {
+                name: metadata for parent in self.parents
+                for name, metadata in parent.get_raw_metadata(field).items()
+            }
+        return {self.name: getattr(self.metadata, field)}
 
     def get_raw_filename(self) -> str:
         """Recursively look through the parents for a raw filename"""
-        return self.get_raw_metadata('filename')
+        return next(iter(self.get_raw_metadata('filename').values()))
 
     def analysis_steps(self) -> dict[str, dict[str, Spectra]]:
         """Return ordered dictionary of processing steps from parent objects"""
@@ -335,7 +336,6 @@ class SpectraContainer:
         return self._process_spectra('auto_edge_background', peak_width_ev, edges)
 
 
-# TODO: integrate this into other objects.
 class SpectraContainerAverage(SpectraContainer):
     """Special subclass for average of SpectraContainers"""
     def __init__(self, *spectra_containers: SpectraContainer):
@@ -368,7 +368,7 @@ class SpectraContainerAverage(SpectraContainer):
 
 class SpectraContainerSubtraction(SpectraContainer):
     """Special subclass for subtraction of SpectraContainers - XMCD and XMLD"""
-    def __init__(self, spectra_container1: SpectraContainer, spectra_container2: SpectraContainer):
+    def __init__(self, spectra_container1: SpectraContainer | SpectraContainerAverage, spectra_container2: SpectraContainer | SpectraContainerAverage):
         # subtract each spectra in container
         spectra = {
             name: spectra - spectra_container2.spectra[name]
@@ -475,7 +475,7 @@ class SpectraContainerSubtraction(SpectraContainer):
         report = "=== Sum Rules === \n"
         report += f"{mode} signal = {self.calculate_signal_ratio()[mode]:.2%}\n"
 
-        report += f"Split energy between {self.metadata.element} {self.metadata.edge} edges: {split_energy: .2} eV\n"
+        report += f"Split energy between {self.metadata.element} {self.metadata.edge} edges: {split_energy} eV\n"
         report += spectra.sum_rules_report(n_holes, self.metadata.element, split_energy)
         return report
 

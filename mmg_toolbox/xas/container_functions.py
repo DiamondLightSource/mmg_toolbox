@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from mmg_toolbox.utils.polarisation import opposite_polarisations, check_polarisation
-from mmg_toolbox.xas.spectra_container import SpectraContainer
+from mmg_toolbox.xas.spectra_container import SpectraContainer, SpectraContainerAverage
 
 
-def average_scans(*scans: SpectraContainer) -> SpectraContainer:
+def average_scans(*scans: SpectraContainer) -> SpectraContainerAverage:
     """
     Average spectra within a set of scans
 
@@ -15,17 +15,10 @@ def average_scans(*scans: SpectraContainer) -> SpectraContainer:
     :param scans: list of SpectraContainer objects
     :return: SpectraContainer object containing averaged spectra
     """
-    av_scan = sum(scans[1:], scans[0].copy())
-    av_scan.name = '+'.join(
-        [scans[0].name, '..', scans[-1].name]
-        if len(scans) > 3 else
-        [s.name for s in scans]
-    )
-    av_scan.parents = list(scans)
-    return av_scan
+    return SpectraContainerAverage(*scans)
 
 
-def average_polarised_scans(*scans: SpectraContainer) -> tuple[SpectraContainer, SpectraContainer | None]:
+def average_polarised_scans(*scans: SpectraContainer) -> tuple[SpectraContainerAverage, SpectraContainerAverage | None]:
     """
     Find unique polarisations and average each scan at that polarisation
     Spectra are only separated by polarisation, all spectra with the same polarisation

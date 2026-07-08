@@ -10,8 +10,8 @@ import h5py
 
 from mmg_toolbox import data_file_reader
 from mmg_toolbox.xas import (
-    Spectra, SpectraContainer, SpectraContainerSubtraction, load_xas_scans,
-    average_polarised_scans, polarised_pairs, pair_scans, average_scans
+    Spectra, SpectraContainer, SpectraContainerSubtraction, SpectraContainerAverage,
+    load_xas_scans, average_polarised_scans, polarised_pairs, pair_scans, average_scans
 )
 from mmg_toolbox.xas.nxxas_loader import is_nxxas, is_processed
 from . import only_dls_file_system
@@ -70,7 +70,7 @@ def test_spectra_container():
 
     container3 = container + container + container
     assert container3.spectra['tey'].signal.max() == approx(3)
-    assert len(container3.parents) == 2  # TODO: find a way to flatten identical processes as parents
+    assert len(container3.parents) == 3
 
     pol1 = container3.copy('pc')
     pol1.metadata.pol = 'pc'
@@ -95,15 +95,13 @@ def test_average_spectra():
 
     av_scan = average_scans(container1, container2, container3)
     assert len(av_scan.parents) == 3
-    assert repr(av_scan) == "SpectraContainer('scan1+scan2+scan3', 'average', ['tey', 'tfy'])"
+    assert repr(av_scan) == "SpectraContainerAverage('scan1+scan2+scan3', 'average', ['tey', 'tfy'])"
     av_scan = average_scans(container1, container2, container3, container2)
     assert len(av_scan.parents) == 4
     assert av_scan.parents[0].parents == ()
-    assert repr(av_scan) == "SpectraContainer('scan1+..+scan2', 'average', ['tey', 'tfy'])"
+    assert repr(av_scan) == "SpectraContainerAverage('scan1+..+scan2', 'average', ['tey', 'tfy'])"
     assert repr(av_scan.spectra['tey']) == "SpectraAverage('test+test+test+test', 'tey', energy=array(300,), signal=array(300,), process_label='average')"
 
-    # TODO: merge these tests once SpectraContainerAverage is integrated.
-    from mmg_toolbox.xas.spectra_container import SpectraContainerAverage
     av_scan = SpectraContainerAverage(container1, container2, container3)
     assert repr(av_scan) == "SpectraContainerAverage('scan1+scan2+scan3', 'average', ['tey', 'tfy'])"
     assert len(av_scan.parents) == 3
@@ -168,7 +166,7 @@ def test_average_polarised_scans():
     assert orbital == approx(-0.088, abs=0.001)
     assert spin == approx(0.008, abs=0.001)
     report = xmcd.sum_rules_report()
-    assert ' n_holes = 4\nL = -0.088 μB\nS = 0.008 μB' in report
+    assert ' n_holes = 4, energy split = None eV\nL = -0.088 μB\nS = 0.008 μB' in report
 
     # Write nexus
     xmcd.write_nexus('test_xmcd.nxs')

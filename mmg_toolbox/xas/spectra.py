@@ -521,7 +521,7 @@ class SpectraSubtraction(Spectra):
         :returns: str
         """
         orb, spin = self.calculate_sum_rules(n_holes, split_energy=split_energy)
-        report = (f"{element} n_holes = {n_holes}, energy split = {split_energy: .2f} eV\n" +
+        report = (f"{element} n_holes = {n_holes}, energy split = {split_energy} eV\n" +
                   f"L = {orb:.3f} μB\nS = {spin:.3f} μB")
         return report
 

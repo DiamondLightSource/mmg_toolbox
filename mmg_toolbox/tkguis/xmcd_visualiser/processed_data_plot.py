@@ -67,7 +67,7 @@ class ProcessedTreeView(CanvasTreeview):
             name = os.path.basename(scan.metadata.filename).rstrip('.nxs')
         else:
             name = scan.label()
-        scan_no = scan.get_raw_metadata('scan_no')
+        scan_no = next(iter(scan.get_raw_metadata('scan_no').values()))
         filename = scan.metadata.filename
         selected = tk.BooleanVar(self.root, True)
         values = (str(scan_no), filename, str(self._current_id))
