@@ -2,13 +2,14 @@ import tkinter as tk
 from tkinter import ttk
 
 from mmg_toolbox.xas import SpectraContainerSubtraction
+from ..misc.styles import create_root
 from ..misc.functions import create_scrollable_window
-from ..widgets.simple_plot import SimplePlot
+from .spectra_plot import SpectraPlot
 
 
 GRID_COLUMNS = 2
-GRID_FIG_SIZE = (4, 3)
-GRID_FIG_DPI = 40
+GRID_FIG_SIZE = (4, 4)
+GRID_FIG_DPI = 60
 
 
 class GridPlot:
@@ -16,13 +17,14 @@ class GridPlot:
         self.config = config
         self.root = root
         self.figure_frames: list[ttk.Frame] = []
-        self.figures: list[SimplePlot] = []
+        self.figures: list[SpectraPlot] = []
         self.n_columns = GRID_COLUMNS
         self.grid_fig_size = GRID_FIG_SIZE
         self.grid_fig_dpi = GRID_FIG_DPI
 
         self.root.rowconfigure(0, weight=1)
-        self.root.columnconfigure(0, weight=1)
+        for n in range(self.n_columns):
+            self.root.columnconfigure(n, weight=1)
         self.grid_options = dict(padx=5, pady=5, sticky='nsew')
 
         tk_scaling = root.tk.call('tk', 'scaling')
@@ -30,35 +32,30 @@ class GridPlot:
         grid_height = tk_scaling * 2 * self.grid_fig_size[1] * self.grid_fig_dpi
         self.window = create_scrollable_window(self.root, width=grid_width, height=grid_height)
 
-
     def create_plot(self, column: int, row: int,
                     spectra: SpectraContainerSubtraction, mode: str | None,
-                    title: str, check_var: tk.BooleanVar, command) -> tuple[ttk.Frame, SimplePlot]:
+                    title: str, check_var: tk.BooleanVar, command) -> tuple[ttk.Frame, SpectraPlot]:
         frm = ttk.Frame(self.window, relief='ridge')
         frm.grid(column=column, row=row, **self.grid_options)
+
+        def popout():
+            figure.duplicate(create_root(title, self.root), fig_dpi=100)
 
         header = ttk.Frame(frm)
         header.pack(side='top', fill='x', padx=3, pady=2)
         ttk.Label(header, text=title).pack(side='left')
         ttk.Checkbutton(header, variable=check_var, command=command).pack(side='left')
+        ttk.Button(header, text='^', command=popout, width=1).pack(side='right')
 
-        figure = SimplePlot(
+        figure = SpectraPlot(
             root=frm,
-            xdata=[],
-            ydata=[],
-            xlabel='Energy [eV]',
-            ylabel='',
-            title=title,
+            spectra=spectra,
+            mode=mode,
             config=self.config,
             fig_size=self.grid_fig_size,
-            fig_dpi=self.grid_fig_dpi,
+            fig_dpi=self.grid_fig_dpi
         )
         figure.toolbar.destroy()  # remove toolbar for small figures
-        spectra.create_combined_axes(mode, figure.ax1)
-        figure.ax1.set_title('')
-        figure.ax1.legend([spectra.spectra1.name, spectra.spectra2.name, spectra.name], frameon=False)
-        figure.fig.tight_layout()
-        figure.update_axes()
 
         self.figure_frames.append(frm)
         self.figures.append(figure)
@@ -99,7 +96,4 @@ class GridPlot:
         if len(spectra) != len(self.figures):
             raise Exception(f"Number of figures({len(self.figures)}) does not match spectra({len(spectra)}).")
         for fig, s in zip(self.figures, spectra):
-            fig.ax1.clear()
-            s.create_combined_axes(mode, fig.ax1)
-            fig.ax1.legend([s.spectra1.name, s.spectra2.name, s.name], frameon=False)
-            fig.update_axes()
+            fig.update_spectra(s, mode)

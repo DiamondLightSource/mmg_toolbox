@@ -6,8 +6,7 @@ import os
 from ..misc.styles import tk, ttk, create_root
 from ..misc.logging import create_logger
 from ..misc.functions import topmenu
-from ..misc.config import get_config, save_config, default_config, C
-from ..misc.matplotlib import COLORMAPS
+from ..misc.config import get_config, save_config, default_config, C, COLORMAPS
 from ..widgets.roi_editor import RoiEditor
 from .edit_text import EditText
 

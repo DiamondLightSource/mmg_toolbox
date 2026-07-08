@@ -81,9 +81,7 @@ class SpectraContainer:
 
     def __add__(self, other):
         if issubclass(type(other), SpectraContainer):
-            # average Spectra
-            spectra = {n: s + other.spectra[n] for n, s in self.spectra.items() if n in other.spectra}
-            return SpectraContainer(self.name, spectra, self, other, metadata=self.metadata)
+            return SpectraContainerAverage(self, other)
         # add float or array to Spectra
         spectra = {n: s + other for n, s in self.spectra.items()}
         return SpectraContainer(self.name, spectra, self, *self.parents, metadata=self.metadata)
@@ -139,15 +137,18 @@ class SpectraContainer:
         signals = np.array([spectra.signal for spectra in self.spectra.values()])
         return np.array([energy, *signals])
 
-    def get_raw_metadata(self, field: str):
+    def get_raw_metadata(self, field: str) -> dict:
         """Recursively get raw metadata from top level parent"""
         if self.parents:
-            return next(iter(self.parents)).get_raw_metadata(field)
-        return getattr(self.metadata, field)
+            return {
+                name: metadata for parent in self.parents
+                for name, metadata in parent.get_raw_metadata(field).items()
+            }
+        return {self.name: getattr(self.metadata, field)}
 
     def get_raw_filename(self) -> str:
         """Recursively look through the parents for a raw filename"""
-        return self.get_raw_metadata('filename')
+        return next(iter(self.get_raw_metadata('filename').values()))
 
     def analysis_steps(self) -> dict[str, dict[str, Spectra]]:
         """Return ordered dictionary of processing steps from parent objects"""
@@ -191,6 +192,15 @@ class SpectraContainer:
         np.savetxt(csv_filename, array, delimiter=', ', header=header)
         print(f"Saved {csv_filename}")
 
+    ### Plots ###
+
+    def add_edge_lines(self, ax: plt.Axes):
+        """Add absorption edge lines to a plot"""
+        for edge_label, energy in self.get_edges().items():
+            ax.axvline(energy, color='k', alpha=0.3)
+            ax.text(energy, 0.9, edge_label, color='k', alpha=0.3,
+                    ha='right', va='top', transform=ax.get_xaxis_transform())
+
     def create_figure(self, **kwargs) -> plt.Figure:
         """
         Create matplotlib figure showing each spectra in a separate axes
@@ -201,6 +211,7 @@ class SpectraContainer:
         fig, axs = plt.subplots(1, len(self.spectra), squeeze=False, **kwargs)
 
         for ax, s in zip(axs.flat, self.spectra.values()):
+            self.add_edge_lines(ax=ax)
             s.plot(ax)
             ax.set_xlabel('E [eV]')
             ax.set_ylabel('signal')
@@ -221,12 +232,7 @@ class SpectraContainer:
             spectra.plot_parents(ax=axes[0, n])
             spectra.plot_bkg(ax=axes[0, n])
             axes[0, n].set_ylabel(mode)
-            for edge_label, energy in self.get_edges().items():
-                axes[0, n].axvline(energy, color='k', alpha=0.3)
-                axes[0, n].text(energy, 0.9, edge_label, color='k', alpha=0.3,
-                                ha='right', va='top',
-                                transform=axes[0, n].get_xaxis_transform())
-
+            self.add_edge_lines(axes[0, n])
             spectra.plot(ax=axes[1, n], label=self.name)
             axes[1, n].set_ylabel(mode)
 
@@ -330,9 +336,39 @@ class SpectraContainer:
         return self._process_spectra('auto_edge_background', peak_width_ev, edges)
 
 
+class SpectraContainerAverage(SpectraContainer):
+    """Special subclass for average of SpectraContainers"""
+    def __init__(self, *spectra_containers: SpectraContainer):
+        if len(spectra_containers) < 2:
+            raise ValueError('SpectraContainerAverage must have at least two spectra')
+        # Expand any Average containers into their parents
+        expanded_list = []
+        for spectra_container in spectra_containers:
+            if isinstance(spectra_container, SpectraContainerAverage):
+                expanded_list.extend(spectra_container.parents)
+            else:
+                expanded_list.append(spectra_container)
+        first = expanded_list[0]
+        spectra = {
+            n: sum((s.spectra[n] for s in expanded_list[1:]), first.spectra[n])
+            for n in first.spectra
+        }
+        metadata = merge_xas_metadata(*(s.metadata for s in expanded_list))
+        name = '+'.join(
+            [expanded_list[0].name, '..', expanded_list[-1].name]
+            if len(expanded_list) > 3 else
+            [s.name for s in expanded_list]
+        )
+        super().__init__(name, spectra, *expanded_list, metadata=metadata)
+        self.process_label = 'average'
+
+    def __repr__(self):
+        return f"SpectraContainerAverage('{self.name}', '{self.process_label}', {list(self.spectra)})"
+
+
 class SpectraContainerSubtraction(SpectraContainer):
     """Special subclass for subtraction of SpectraContainers - XMCD and XMLD"""
-    def __init__(self, spectra_container1: SpectraContainer, spectra_container2: SpectraContainer):
+    def __init__(self, spectra_container1: SpectraContainer | SpectraContainerAverage, spectra_container2: SpectraContainer | SpectraContainerAverage):
         # subtract each spectra in container
         spectra = {
             name: spectra - spectra_container2.spectra[name]
@@ -368,6 +404,9 @@ class SpectraContainerSubtraction(SpectraContainer):
         metadata = merge_xas_metadata(m1, m2)
         super().__init__(name, spectra, self.spectra1, self.spectra2, metadata=metadata)
 
+    def __repr__(self):
+        return f"SpectraContainerSubtraction('{self.name}', '{self.process_label}', {list(self.spectra)})"
+
     def __str__(self):
         s = super().__str__()
         return s + '\n' + self.sum_rules_report()
@@ -397,7 +436,8 @@ class SpectraContainerSubtraction(SpectraContainer):
             for mode, spectra in self.spectra.items()
         }
 
-    def calculate_sum_rules(self, n_holes: float | None = None, mode: str | None = None) -> tuple[float, float]:
+    def calculate_sum_rules(self, n_holes: float | None = None, mode: str | None = None,
+                            split_energy: float | None = None) -> tuple[float, float]:
         """
         Calculate sum rules of XMCD spectra from integration
 
@@ -406,13 +446,15 @@ class SpectraContainerSubtraction(SpectraContainer):
         Parameters
         :param n_holes: number of holes in absorbing ion
         :param mode: select which detection mode to use (None for default)
+        :param split_energy: energy half-way between two edges
         :returns: orb, spin sum rule values for the detector mode
         """
         spectra = self.spectra[mode or self.metadata.default_mode]
         n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
-        return spectra.calculate_sum_rules(n_holes)
+        return spectra.calculate_sum_rules(n_holes, split_energy)
 
-    def sum_rules_report(self, n_holes: float | None = None, mode: str | None = None) -> str:
+    def sum_rules_report(self, n_holes: float | None = None, mode: str | None = None,
+                         split_energy: float | None = None) -> str:
         """
         Calculate sum rules of XMCD spectra and return report
 
@@ -421,18 +463,20 @@ class SpectraContainerSubtraction(SpectraContainer):
         Parameters
         :param n_holes: number of holes in absorbing ion
         :param mode: select which detection mode to use (None for default)
+        :param split_energy: energy half-way between two edges
         :returns: str
         """
-        spectra = self.spectra[mode or  self.metadata.default_mode]
-        # if len(spectra.edges()) != 2:
-        #     return f"=== Sum Rules not available for edge {' '.join(spectra.edge_label())} ===\n"
+        mode = mode or self.metadata.default_mode
+        spectra = self.spectra[mode]
         try:
             n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
         except ValueError:
             return f"=== Sum Rules not available for element {self.metadata.element} ===\n"
         report = "=== Sum Rules === \n"
-        report += f"{self.metadata.default_mode} signal = {self.calculate_signal_ratio()[self.metadata.default_mode]:.2%}\n"
-        report += spectra.sum_rules_report(n_holes, self.metadata.element)
+        report += f"{mode} signal = {self.calculate_signal_ratio()[mode]:.2%}\n"
+
+        report += f"Split energy between {self.metadata.element} {self.metadata.edge} edges: {split_energy} eV\n"
+        report += spectra.sum_rules_report(n_holes, self.metadata.element, split_energy)
         return report
 
     def create_sum_rules_figure(self, **kwargs) -> plt.Figure:
@@ -442,26 +486,18 @@ class SpectraContainerSubtraction(SpectraContainer):
         :param kwargs: kwargs to pass to plt.figure
         :return: matplotlib Figure
         """
-        fig, axes = plt.subplots(2, len(self.spectra), squeeze=False, **kwargs)
-        fig.tight_layout(h_pad=0.1, w_pad=0.1)
+        fig, axes = plt.subplots(2, len(self.spectra), squeeze=False, sharex=True, **kwargs)
+        fig.tight_layout(h_pad=0, w_pad=0.1)
         signal_ratio = self.calculate_signal_ratio()
 
         for parent in self.parents:
             for n, (mode, spectra) in enumerate(parent.spectra.items()):
-                for edge_label, energy in self.get_edges().items():
-                    axes[0, n].axvline(energy, color='k', alpha=0.3)
-                    axes[0, n].text(energy, 0.9, edge_label, color='k', alpha=0.3,
-                                    ha='right', va='top',
-                                    transform=axes[0, n].get_xaxis_transform())
+                self.add_edge_lines(axes[0, n])
                 spectra.plot(ax=axes[0, n], label=parent.name)
                 axes[0, n].set_ylabel(mode)
 
         for n, (mode, spectra) in enumerate(self.spectra.items()):
-            for edge_label, energy in self.get_edges().items():
-                axes[1, n].axvline(energy, color='k', alpha=0.3)
-                axes[1, n].text(energy, 0.9, edge_label, color='k', alpha=0.3,
-                                ha='right', va='top',
-                                transform=axes[1, n].get_xaxis_transform())
+            self.add_edge_lines(axes[1, n])
             spectra.plot_sum_rules(ax=axes[1, n])
             axes[1, n].set_ylabel(self.name)
             idx = abs(spectra.signal).argmax()
@@ -501,11 +537,7 @@ class SpectraContainerSubtraction(SpectraContainer):
             x, y = spectra.energy[idx], spectra.signal[idx]
             axes.text(x, y, f"max signal = {signal_ratio[mode]:.2%}")
 
-        for edge_label, energy in self.get_edges().items():
-            axes.axvline(energy, color='k', alpha=0.3)
-            axes.text(energy, 0.9, edge_label, color='k', alpha=0.3,
-                            ha='right', va='top',
-                            transform=axes.get_xaxis_transform())
+        self.add_edge_lines(axes)
         axes.set_xlabel('E [eV]')
         axes.legend()
         return axes

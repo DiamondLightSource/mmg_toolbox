@@ -11,7 +11,7 @@ from mmg_toolbox.xas.nxxas_loader import load_xas_scans, is_subtraction
 from mmg_toolbox.plotting.matplotlib import plot_lines, plot_3d_lines
 
 from ..misc.logging import create_logger
-from ..misc.functions import show_error
+from ..misc.functions import show_error, select_hdf_file
 from ..widgets.treeview import CanvasTreeview
 from ..widgets.simple_plot import SimplePlot
 from .widget import XMCDVisualiser
@@ -23,6 +23,18 @@ METADATA_OPTIONS = {
     'Field': 'mag_field',
     'Pitch': 'pitch'
 }
+
+
+def load_subtraction_file(root: tk.Misc, initial_directory: str | None = None) -> str | None:
+    filename = select_hdf_file(root, initial_directory)
+    if filename and not is_subtraction(filename):
+        messagebox.showwarning(
+            title='File must be a processed XMCD file',
+            message=f"File: \n{filename}\n is not an XAS Subtraction file.",
+            parent=root
+        )
+        filename = None
+    return filename
 
 
 class ProcessedTreeView(CanvasTreeview):
@@ -55,7 +67,7 @@ class ProcessedTreeView(CanvasTreeview):
             name = os.path.basename(scan.metadata.filename).rstrip('.nxs')
         else:
             name = scan.label()
-        scan_no = scan.get_raw_metadata('scan_no')
+        scan_no = next(iter(scan.get_raw_metadata('scan_no').values()))
         filename = scan.metadata.filename
         selected = tk.BooleanVar(self.root, True)
         values = (str(scan_no), filename, str(self._current_id))
@@ -85,29 +97,30 @@ class Comparison:
         self.selection: list[tk.BooleanVar] = []
         self.metadata_option = tk.StringVar(self.root, 'Temperature')
 
+        # Comparison Tab
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(0, weight=1)
         grid_options = dict(padx=5, pady=5, sticky='nsew')
 
-        window = ttk.Frame(self.root)
-        window.grid(column=0, row=0, **grid_options)
-        window.columnconfigure(0, weight=0)  # set window resize properties
-        window.columnconfigure(1, weight=1)  # only resize middle panel
-        window.columnconfigure(2, weight=0)
-        window.rowconfigure(0, weight=1)
+        tab = ttk.Frame(self.root)
+        tab.grid(column=0, row=0, **grid_options)
+        tab.columnconfigure(0, weight=0)  # set window resize properties
+        tab.columnconfigure(1, weight=1)  # only resize middle panel
+        tab.columnconfigure(2, weight=0)
+        tab.rowconfigure(0, weight=1)
 
         # LEFT
-        frm = ttk.LabelFrame(window, text='Files')
+        frm = ttk.LabelFrame(tab, text='Files')
         frm.grid(column=0, row=0, **grid_options)
         self.treeview = self._data_selection(frm)
 
         # MIDDLE
-        frm = ttk.LabelFrame(window, text='Select Plots')
+        frm = ttk.LabelFrame(tab, text='Select Plots')
         frm.grid(column=1, row=0, **grid_options)
         self.grid_plots = GridPlot(frm, self._base.config)
 
         # RIGHT
-        frm = ttk.LabelFrame(window, text='Combined Data')
+        frm = ttk.LabelFrame(tab, text='Combined Data')
         frm.grid(column=2, row=0, **grid_options)
         self.multiplot = self._comparison_plot(frm)
 
@@ -165,6 +178,7 @@ class Comparison:
         self.treeview.add_scan(scan)
 
     def browse_data(self):
+        # TODO: replace with load_subtraciton_file
         filenames = filedialog.askopenfilenames(
             title='Select file to open',
             filetypes=[('NXS file', '.nxs'),

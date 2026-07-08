@@ -16,6 +16,8 @@ NX_NOTE = 'NXnote'
 NX_PROC = 'NXprocess'
 NX_TRAN = 'NXtransformations'
 NX_PARAM = 'NXparameters'
+NX_ELEMENT = 'NXelement'
+NX_EDGE = 'NXabsorption_edge'
 
 # Fields
 NX_WL = 'incident_wavelength'

@@ -317,7 +317,7 @@ class Experiment:
         """
         filenames = [self.get_scan_filename(file) for file in scan_files]
         kwargs = dict(sample_name=sample_name, element_edge=element_edge, mode=mode, dls_loader=dls_loader)
-        if match_metadata:
+        if match_metadata and len(scan_files) > 1:
             return find_similar_measurements(*filenames, temp_tol=temp_tol, field_tol=field_tol, **kwargs)
         return load_xas_scans(*filenames, **kwargs)
 

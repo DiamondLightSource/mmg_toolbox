@@ -71,6 +71,12 @@ def generate_processing_menu(parent, config: dict, directory: str | None = None,
         scan_numbers = [get_scan_number(f) for f in filenames]
         create_multi_scan_analysis(parent, config, exp_directory=directory, scan_numbers=scan_numbers)
 
+    def start_xmcd_visualiser():
+        filenames = scan_files_getter()
+        scan_numbers = ', '.join(str(get_scan_number(f)) for f in filenames)
+        create_xmcd_visualiser(parent=parent, config=config, data_directory=directory,
+                               scan_range_str=scan_numbers)
+
     def replacements():
         values = {
             R.exp: directory,
@@ -92,7 +98,7 @@ def generate_processing_menu(parent, config: dict, directory: str | None = None,
     }
     menu = {
         'Multi-Scan': start_multi_scan_plot,
-        'XMCD Visualiser': lambda: create_xmcd_visualiser(parent=parent, config=config, data_directory=directory),
+        'XMCD Visualiser': start_xmcd_visualiser,
         'Script Editor': lambda: create_python_editor(None, parent, config),
         'Open a terminal': lambda: open_terminal(f"cd {directory}"),
         'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', proc_dir),

@@ -12,9 +12,9 @@ from hdfmap import create_nexus_map
 from mmg_toolbox.utils.file_functions import read_tiff, get_scan_number
 from ..misc.styles import create_hover, create_root
 from ..misc.screen_size import get_figure_size
-from ..misc.matplotlib import ini_image, COLORMAPS, DEFAULT_COLORMAP, add_rectangle
+from ..misc.matplotlib import ini_image, add_rectangle
 from ..misc.logging import create_logger
-from ..misc.config import get_config, C
+from ..misc.config import get_config, C, COLORMAPS, DEFAULT_COLORMAP
 from .roi_editor import RoiEditor
 
 logger = create_logger(__file__)

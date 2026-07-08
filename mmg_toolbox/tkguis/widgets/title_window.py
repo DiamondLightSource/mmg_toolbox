@@ -97,7 +97,7 @@ class TitleWindow:
     def menu_items(self):
         menu = {
             'Recent Files': {
-                file: lambda x=file: self.data_dir.set(x)
+                file: lambda x=file: self.dls_directories(x)
                 for file in self.config.get(C.recent_data_directories)
             },
             'Beamline': {
