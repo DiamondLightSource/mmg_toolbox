@@ -9,8 +9,8 @@ from mmg_toolbox.utils.env_functions import get_dls_visits, get_dls_visits_str, 
 from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 from mmg_toolbox.scripts.experiment_startup import create_notebooks
 
-__version__ = '0.6.3'
-__date__ = '29/06/2026'
+__version__ = '0.6.4'
+__date__ = '08/07/2026'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info',
