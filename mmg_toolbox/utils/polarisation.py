@@ -2,6 +2,7 @@
 Polarisation utilities
 """
 
+import re
 import numpy as np
 import h5py
 
@@ -177,6 +178,16 @@ def get_polarisation_angle(pol: h5py.Dataset | h5py.Group) -> float:
         if pol.size == 1:
             return float(pol[()])
     return np.nan
+
+
+def get_i16_polarisation_from_phaseplate_cmd(cmd: str) -> str:
+    """Get polarisation label from I16 scan command using phase plate, based on +/- offset value"""
+    pattern = r'PP\d+[ud]\s*\[[^]]*,\s*([-+]?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)\]'
+    match = re.search(pattern, cmd)
+    if match:
+        offset = float(match.group(1))
+        return PolLabels.circular_negative if offset < 0 else PolLabels.circular_positive
+    return PolLabels.linear_horizontal
 
 
 def pol_subtraction_label(label: str):

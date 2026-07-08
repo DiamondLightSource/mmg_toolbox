@@ -91,20 +91,38 @@ def get_notebook_directory(data_directory: str):
     return os.path.join(data_directory, 'processed', 'notebooks')
 
 
-def get_dls_visits(instrument: str | None = None, year: str | int | None = None) -> dict[str, str]:
-    """Return dict of {visit: path} for each visible visit in the beamline directory"""
+def get_dls_visits(instrument: str | None = None, year: str | int | None = None,
+                   max_visits: int | None = None, omit_empty: bool = False) -> dict[str, str]:
+    """
+    Return dict of {visit: path} for each visible visit in the beamline directory
+
+        visits = get_dls_visits('i16')
+
+    :param instrument: displays visits for this instrument, or None for current beamline.
+    :param year: displays visits in this year, or None for current year.
+    :param max_visits: maximum number of visits to display, nor None for all visits
+    :param omit_empty: if True, omits visits containing no scans
+    """
     if instrument is None:
         instrument = get_beamline()
     if year is None:
         year = datetime.now().year
+
+    if max_visits:
+        visits = get_dls_visits(instrument, year, max_visits=None, omit_empty=omit_empty)
+        return {visit: visits[visit] for visit in list(visits)[:max_visits]}
 
     dls_dir = os.path.join(DLS, instrument.lower(), 'data', str(year))
     if os.path.isdir(dls_dir):
         return {
             os.path.basename(path): path
             for path in sorted(
-                (file.path for file in os.scandir(dls_dir)
-                 if file.is_dir() and os.access(file.path, os.R_OK)),
+                (
+                    file.path for file in os.scandir(dls_dir)
+                    if file.is_dir() and
+                       os.access(file.path, os.R_OK) and
+                       (contains_filetype(file.path, '.nxs') if omit_empty else True)
+                 ),
                 key=lambda x: os.path.getmtime(x), reverse=True
             )
         }
@@ -146,6 +164,12 @@ def get_dls_visits_str(instrument: str | None = None, year: str | int | None = N
         if len(strings) == max_visits:
             break
     return f"{instrument} visits in {year}\n" + '\n'.join(strings)
+
+
+def contains_filetype(folder: str, extension: str = '.nxs') -> bool:
+    """Return True if folder contains filetype"""
+    gen = (file.path for file in os.scandir(folder) if file.is_file() and file.name.endswith(extension))
+    return True if next(gen, False) else False
 
 
 def get_first_file(folder: str, extension='.nxs') -> str:

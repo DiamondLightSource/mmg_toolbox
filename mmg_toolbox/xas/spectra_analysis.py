@@ -53,6 +53,11 @@ def find_edge_labels(string: str) -> list[str]:
     edges = regex_edges.findall(string)
     edge_labels = []
     for edge in edges:
+        # Expand edges to common multiples
+        if edge == 'L':
+            edge = 'L32'
+        elif edge == 'M':
+            edge = 'M45'
         edge_labels.append(f"{element} {edge[:2].upper()}")
         if len(edge) == 3:
             edge_labels.append(f"{element} {edge[0].upper()}{edge[2]}")

@@ -10,7 +10,8 @@ import datetime
 from mmg_toolbox.utils.file_functions import get_scan_number
 from mmg_toolbox.utils.file_reader import read_dat_file
 from mmg_toolbox.utils.polarisation import (get_polarisation, get_polarisation_angle,
-                                            check_polarisation, opposite_polarisations)
+                                            check_polarisation, opposite_polarisations,
+                                            get_i16_polarisation_from_phaseplate_cmd)
 from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
@@ -23,6 +24,11 @@ from .metadata import XasMetadata
 def is_nxxas(filename: str) -> bool:
     """Return True if the NeXus file contains an entry or sub-entry with application definition NXxas"""
     return bool(nx_find_data(hdfmap.load_hdf(filename), 'NXentry', 'definition') == 'NXxas')
+
+
+def is_i16vortex(filename: str) -> bool:
+    """Return True if file is from i16 and uses the vortex detector"""
+    return bool(nx_find(hdfmap.load_hdf(filename), 'NXinstrument', 'xmapMca'))
 
 
 def is_processed(filename: str) -> bool:
@@ -409,6 +415,78 @@ def load_xmcd_from_processed_nxs(filename: str, mode: str | list[str] = 'all') -
     return load_from_nxs(filename, mode=mode)
 
 
+def load_from_i16_vortex(filename: str, sample_name: str | None = None,
+                         element_edge: str | None = None, mode: str | list[str] = 'all') -> SpectraContainer:
+    """
+    Load XAS Spectra from NeXus file with arbitrary application definition
+
+    Parameters
+    :param filename: path to file
+    :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
+    :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
+    :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :return: SpectraContainer
+    """
+    if isinstance(mode, str):
+        mode = [mode]
+
+    with hdfmap.load_hdf(filename) as hdf:
+        # HdfMap creates data-path namespace
+        m = hdfmap.NexusMap()
+        m.populate(hdf)
+
+        # scan data
+        scan_no = m.eval(hdf, 'entry_identifier', default=get_scan_number(filename))
+        energy = m.eval(hdf, 'xmapMca_energy') * 1000  # keV -> eV
+        monitor = m.eval(hdf, '(xmapMca_ic1monitor / xmapMca_ic1monitor[0]) / (rc / 300.)')
+        default_mode = 'pfy' if mode[0].lower() in ['default', 'all'] else mode[0]
+        mode_spec = {
+            'pfy': m.eval(hdf, 'signal'),
+        }
+        if mode[0].lower() == 'all':
+            use_modes = mode_spec.keys()
+        else:
+            use_modes = [default_mode if _mode.lower() == 'default' else _mode for _mode in mode]
+
+        signals = {_mode: mode_spec[_mode] for _mode in use_modes}
+
+        # metadata
+        beamline = m.eval(hdf, 'beamline')
+        start_date_iso = m.eval(hdf, 'str(start_time)')
+        end_date_iso = m.eval(hdf, 'str(end_time)')
+        cmd = m.eval(hdf, Md.cmd)
+        pol = get_polarisation(hdf)
+        pol_angle = get_polarisation_angle(hdf)
+        if pol == 'lh':
+            pol = get_i16_polarisation_from_phaseplate_cmd(cmd)
+        count_time = m.eval(hdf, Md.count_time)
+        if sample_name is None:
+            sample_name = m.eval(hdf, 'sample_name', '')
+        temp = m.eval(hdf, Md.temp)
+        mag_field = m.eval(hdf, Md.field_z)
+        pitch = m.eval(hdf, '/entry/instrument/diffractometer_sample/alpha')
+    return create_xas_scan(
+        name=str(scan_no),
+        energy=energy,
+        raw_signals=signals,
+        monitor=monitor,
+        filename=filename,
+        beamline=beamline,
+        scan_no=scan_no,
+        start_date_iso=start_date_iso,
+        end_date_iso=end_date_iso,
+        cmd=cmd,
+        count_time=float(np.mean(count_time)),
+        default_mode=default_mode,
+        pol=pol,
+        pol_angle=float(pol_angle),
+        sample_name=sample_name,
+        temp=float(temp),
+        mag_field=float(np.mean(mag_field)),
+        pitch=float(pitch),
+        element_edge=element_edge
+    )
+
 def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge: str | None = None,
                    mode: str | list[str] = 'all', dls_loader: bool = False) -> list[SpectraContainer]:
     """
@@ -425,6 +503,8 @@ def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge
     scans = [
         load_from_dat(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         if filename.endswith('.dat')
+        else load_from_i16_vortex(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
+        if is_i16vortex(filename)
         else load_from_nxs(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         if not dls_loader and is_nxxas(filename)
         else load_from_nxs_using_hdfmap(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
