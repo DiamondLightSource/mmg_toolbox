@@ -7,33 +7,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import ndarray
 
-from ..misc.config import C
-from ..misc.screen_size import get_figure_size
-from ..misc.matplotlib import ini_plot
+from ..misc.matplotlib import TkFigure
 from ..misc.logging import create_logger
 
 logger = create_logger(__file__)
 
 
-class SimplePlot:
+class SimplePlot(TkFigure):
     """
     Simple plot - single plot in frame with axes
     """
+    _y_axis_expansion_factor = 0.1
 
     def __init__(self, root: tk.Misc, xdata: list[float], ydata: list[float],
                  xlabel: str = '', ylabel: str = '', title: str = '',
-                 config: dict | None = None, fig_size: tuple[int, int] | None = None, fig_dpi: int = None,):
-        self.root = root
-        self.config = config or {}
-        self._y_axis_expansion_factor = 0.1
-
-        fig_size = fig_size or get_figure_size(root, self.config, C.plot_size)
-        fig_dpi = fig_dpi or self.config.get(C.plot_dpi, None)
-        self.fig, self.ax1, self.plot_list, self.toolbar = ini_plot(
-            frame=self.root,
-            figure_size=fig_size,
-            figure_dpi=fig_dpi
+                 config: dict | None = None, fig_size: tuple[int, int] | None = None, fig_dpi: int = None):
+        super().__init__(
+            root=root,
+            config=config,
+            fig_size=fig_size,
+            fig_dpi=fig_dpi
         )
+        self.plot_list: list[plt.Line2D] = []
+        # Add axes
+        self.ax1 = self.fig.add_subplot(111)
+        self.ax1.set_autoscaley_on(True)
+        self.ax1.set_autoscalex_on(True)
         self.ax1.set_xlabel(xlabel)
         self.ax1.set_ylabel(ylabel)
         self.ax1.set_title(title)
@@ -116,13 +115,8 @@ class SimplePlot:
         self.ax1.autoscale_view()
 
     def update_axes(self):
-        # self.ax1.relim()
-        # self.ax1.autoscale(True)
-        # self.ax1.autoscale_view()
         self._relim()
-        self.fig.canvas.draw()
-        if self.toolbar.winfo_exists():
-            self.toolbar.update()
+        self._update()
 
 
 class MultiAxisPlot(SimplePlot):

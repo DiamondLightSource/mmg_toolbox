@@ -42,4 +42,9 @@ pol1, pol2 = average_polarised_scans(*spectra)
 
 pol1.create_background_figure()
 
+xmcd_av = pol1 - pol2
+xmcd_av.create_sum_rules_figure()
+
 plt.show()
+
+print(xmcd_av.get_raw_metadata('filename'))

@@ -4,6 +4,7 @@ a tkinter frame with 3 sections:
     2. Grid of pair-subtraction-plots with checkboxes
     3. average of selected pairs
 """
+import os
 import tkinter as tk
 from tkinter import ttk
 
@@ -32,14 +33,16 @@ class Average:
         self.use_dls_loader = False
         instrument = self._base.config.get(C.beamline, None)
         data_directory = self._base.config.get(C.current_dir, '')
-        print(f"data_directory: {data_directory}")
         self.exp = Experiment(data_directory, instrument=instrument)
         self.pair_numbers: list[tuple[int, int]] = []
         self.pairs: list[tuple[SpectraContainer, SpectraContainer]] = []
         self.selection: list[tk.BooleanVar] = []
 
         # Average Tab
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(0, weight=1)
         grid_options = dict(padx=5, pady=5, sticky='nsew')
+        
         tab = ttk.Frame(self.root)
         tab.grid(column=0, row=0, **grid_options)
         tab.columnconfigure(0, weight=0)  # set window resize properties
@@ -61,6 +64,11 @@ class Average:
         frm = ttk.LabelFrame(tab, text='Average Data')
         frm.grid(column=2, row=0, **grid_options)
         self.average_plot = AveragePlot(frm, self, self._base.config)
+
+    def add_exp_path(self, filename: str):
+        if os.path.isfile(filename):
+            filename = os.path.dirname(filename)
+        self.exp.add_data_paths(filename)
 
     def load_scans(self, *scan_number: int, dls_loader: bool | None = None) -> list[SpectraContainer]:
         return self.exp.load_xas(*scan_number, dls_loader=self.use_dls_loader if dls_loader is None else dls_loader)
@@ -105,6 +113,7 @@ class Average:
             s2 = average_scans(*[s2 for (s1, s2), check in zip(self.pairs, self.selection) if check.get()])
             spectra = s1 - s2
             self.average_plot.update_plot(spectra, mode=mode)
+            self._base.sum_rules.update_plot(spectra, mode=mode)
 
     def update_plots(self, event=None):
         self._update_pairs()
@@ -116,6 +125,4 @@ class Average:
 
     def add_comparison_spectra(self, spectra: SpectraContainerSubtraction):
         self._base.comparison.treeview.add_scan(spectra)
-
-
 

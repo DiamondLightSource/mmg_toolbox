@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from inspect import signature
 import numpy as np
-from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib import ticker
 import h5py
 
 from mmg_toolbox.nexus import nexus_writer as nw
@@ -488,7 +489,26 @@ class SpectraSubtraction(Spectra):
         ax.fill_between(energy[split_index:], 0, difference[split_index:], color='b')
         return lines
 
-    def sum_rules_report(self, n_holes: float, element: str = '') -> str:
+    def plot_sum_rules_ratio(self, ax: Axes | None = None, *args, split_energy: float | None = None,
+                             edges: dict[str, float] | None = None, **kwargs) -> list[plt.Line2D]:
+        """
+        Create plots of spectra highlighting integration for sum rules, showing relative signal vs parents
+        """
+        energy = self.energy
+        difference = self.signal
+        ratio = max(max(abs(parent.signal)) for parent in self.parents)
+        # average = self.average_subtracted_spectra().signal
+        split_energy = split_energy or self.get_split_energy(edges)
+        split_index = np.argmin(np.abs(energy - split_energy))
+
+        ax = ax or plt.subplots(1, 1)[1]
+        lines = self.plot(ax, *args, **kwargs)
+        ax.fill_between(energy[:split_index], 0, difference[:split_index], color='r')
+        ax.fill_between(energy[split_index:], 0, difference[split_index:], color='b')
+        ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=ratio))
+        return lines
+
+    def sum_rules_report(self, n_holes: float, element: str = '', split_energy: float | None = None) -> str:
         """
         Calculate sum rules of XMCD spectra and return report
 
@@ -496,19 +516,23 @@ class SpectraSubtraction(Spectra):
 
         Parameters
         :param n_holes: number of holes in absorbing ion
+        :param element: element symbol
+        :param split_energy: energy half-way between two edges
         :returns: str
         """
-        orb, spin = self.calculate_sum_rules(n_holes)
-        report = f"{element} n_holes = {n_holes}\nL = {orb:.3f} μB\nS = {spin:.3f} μB"
+        orb, spin = self.calculate_sum_rules(n_holes, split_energy=split_energy)
+        report = (f"{element} n_holes = {n_holes}, energy split = {split_energy} eV\n" +
+                  f"L = {orb:.3f} μB\nS = {spin:.3f} μB")
         return report
 
     def create_sum_rules_nxnote(self, n_holes: float, parent: h5py.Group,
-                                name: str, sequence_index: int | None = None, element: str = '') -> h5py.Group:
+                                name: str, sequence_index: int | None = None, element: str = '',
+                                split_energy: float | None = None) -> h5py.Group:
         note = nw.add_nxnote(
             root=parent,
             name=name,
             description=f"{self.label} {self.mode} {self.process_label} Sum Rules",
-            data=self.sum_rules_report(n_holes, element),
+            data=self.sum_rules_report(n_holes, element, split_energy),
             sequence_index=sequence_index
         )
         return note

@@ -5,12 +5,12 @@ from tkinter import ttk
 from mmg_toolbox.xas import SpectraContainerSubtraction
 from ..misc.config import generate_output_filename
 from ..widgets.simple_plot import SimplePlot
-from .spectra_plot import SpectraPlot
-from .average_tab import Average
+from .spectra_plot import SpectraPlotSlider
+from .widget import XMCDVisualiser
 
 
-class AveragePlot:
-    def __init__(self, root: tk.Misc, base: Average, config: dict | None = None):
+class SumRules:
+    def __init__(self, root: tk.Misc, base: XMCDVisualiser, config: dict | None = None):
         self._base = base
         self.config = config
         self.root = root
@@ -18,9 +18,20 @@ class AveragePlot:
         self.mode: str = ''
         self.output_name = tk.StringVar(self.root, '')
 
+        # Average Tab
+        self.root.columnconfigure(0, weight=0)
+        self.root.columnconfigure(1, weight=1)
+        self.root.columnconfigure(2, weight=0)
+        self.root.rowconfigure(0, weight=1)
+        grid_options = dict(padx=5, pady=5, sticky='nsew')
+
+        # Column 1 - XAS plots
+        col = ttk.Frame(self.root)
+        col.grid(column=0, row=0, **grid_options)
+
         # Pol 1
-        frm = ttk.Frame(self.root)
-        frm.pack(side='top', fill='x')
+        frm = ttk.Frame(col)
+        frm.grid(column=0, row=0, **grid_options)
         self.pol1_figure = SimplePlot(
             root=frm,
             xdata=[],
@@ -34,8 +45,8 @@ class AveragePlot:
         self.pol1_figure.fig.tight_layout()
 
         # Pol 2
-        frm = ttk.Frame(self.root)
-        frm.pack(side='top', fill='x')
+        frm = ttk.Frame(col)
+        frm.grid(column=0, row=1, **grid_options)
         self.pol2_figure = SimplePlot(
             root=frm,
             xdata=[],
@@ -48,14 +59,14 @@ class AveragePlot:
         self.pol2_figure.ax1.set_xlabel('Energy [eV]')
         self.pol2_figure.fig.tight_layout()
 
-        # Average
+        # Column 2 - Average
         frm = ttk.Frame(self.root)
-        frm.pack(side='top', fill='x')
-        self.figure = SpectraPlot(frm, config=self.config)
+        frm.grid(column=1, row=0, **grid_options)
+        self.figure = SpectraPlotSlider(frm, config=self.config)
 
-        # Buttons
+        # Column 3 - Buttons
         frm = ttk.Frame(self.root)
-        frm.pack(side='top', fill='x')
+        frm.grid(column=2, row=0, **grid_options)
         ttk.Button(frm, text='Add Spectra to Comparison', command=self.btn_add_spectra).pack(side='top', fill='x')
         line = ttk.Frame(frm)
         line.pack(side='top', fill='x')
@@ -95,8 +106,7 @@ class AveragePlot:
     def btn_add_spectra(self):
         """Add spectra to different panel"""
         if self.spectra:
-            self._base.add_comparison_spectra(self.spectra)
-            # self._base._base.comparison.treeview.add_spectra(self.spectra)
+            self._base.comparison.treeview.add_spectra(self.spectra)
 
     def btn_nexus(self):
         output_name = self.output_name.get()

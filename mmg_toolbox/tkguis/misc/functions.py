@@ -67,7 +67,7 @@ def config_menu(root: tk.Misc, config: dict) -> dict:
     return menu
 
 
-def select_hdf_file(parent):
+def select_hdf_file(parent, initial_directory: str | None = None) -> str | None:
     """Select HDF file using filedialog"""
     from h5py import is_hdf5
     filename = filedialog.askopenfilename(
@@ -75,7 +75,8 @@ def select_hdf_file(parent):
         filetypes=[('NXS file', '.nxs'),
                    ('HDF file', '.h5'), ('HDF file', '.hdf'), ('HDF file', '.hdf5'),
                    ('All files', '.*')],
-        parent=parent
+        parent=parent,
+        initialdir=initial_directory
     )
     if filename and not is_hdf5(filename):
         messagebox.showwarning(
