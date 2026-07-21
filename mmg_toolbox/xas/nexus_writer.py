@@ -137,43 +137,65 @@ class XasNexusWriter:
             version=__version__,
             date=date,
             sequence_index=index,
-            raw_file=self.scan.get_raw_filename(),
+            raw_file=self.scan.get_raw_filename(),  # This only gives a single file - no good for combinations
         )
         index += 1
 
-        analysis_steps = self.scan.analysis_steps()
-        for name, spectra in analysis_steps.items():
-            process = nw.add_nxprocess(
-                root=entry,
-                name=name,
-                program='mmg_toolbox.xas',
-                version=__version__,
-                date=date,
-                sequence_index=index,
-            )
-            mode_spectra = spectra[self.metadata.default_mode]
-            # NXnote
-            mode_spectra.create_nxnote(process, 'description')
-            # NXparameters
-            mode_spectra.create_nxparameters(process, 'parameters')
-            # NXdata
-            self.nx_all_data(process, spectra)
-            index += 1
-        self.nx_sum_rules_process(entry, index)
+        self.nx_process_tree(entry, index, self.scan)
+        # analysis_steps = self.scan.analysis_steps()
+        # for name, spectra in analysis_steps.items():
+        #     process = nw.add_nxprocess(
+        #         root=entry,
+        #         name=name,
+        #         program='mmg_toolbox.xas',
+        #         version=__version__,
+        #         date=date,
+        #         sequence_index=index,
+        #     )
+        #     mode_spectra = spectra[self.metadata.default_mode]
+        #     # NXnote
+        #     mode_spectra.create_nxnote(process, 'description')
+        #     # NXparameters
+        #     mode_spectra.create_nxparameters(process, 'parameters')
+        #     # NXdata
+        #     self.nx_all_data(process, spectra)
+        #     index += 1
+        self.nx_sum_rules_process(entry, index + 1)
+
+    def nx_process_tree(self, entry: h5py.Group, sequence_index: int, scan: SpectraContainer):
+        from mmg_toolbox import __version__
+        date = str(datetime.datetime.now())
+        n = 1
+        while (label := f"{scan.process_label}_{n}") in entry:
+            n += 1
+
+        process = nw.add_nxprocess(
+            root=entry,
+            name=label,
+            program='mmg_toolbox.xas',
+            version=__version__,
+            date=date,
+            sequence_index=sequence_index,
+        )
+
+        mode_spectra = scan.spectra[scan.metadata.default_mode]
+        # NXnote
+        mode_spectra.create_nxnote(process, 'description')
+        # NXparameters
+        mode_spectra.create_nxparameters(process, 'parameters')
+        # NXdata
+        self.nx_all_data(process, scan.spectra)
+
+        for parent in scan.parents:
+            self.nx_process_tree(process, sequence_index+1, parent)
 
     def nx_sum_rules_process(self, entry: h5py.Group, sequence_index: int):
         from mmg_toolbox import __version__
         if not isinstance(self.scan, SpectraContainerSubtraction):
             return
 
-        if self.n_holes is None:
-            try:
-                n_holes = spa.d_electron_holes(self.metadata.element)
-            except KeyError as ke:
-                print(f"Warning: {ke}")
-                n_holes = 1
-        else:
-            n_holes = self.n_holes
+        # Set sum rule parameters
+        self.scan.set_sum_rule_parameters(self.scan.n_holes, self.scan.split_energy)
 
         process = nw.add_nxprocess(
             root=entry,
@@ -182,10 +204,21 @@ class XasNexusWriter:
             version=__version__,
             date=str(datetime.datetime.now()),
             sequence_index=sequence_index,
-            n_holes=n_holes  # parameter
+            n_holes=self.scan.n_holes  # parameter
         )
         for n, (name, spectra) in enumerate(self.scan.spectra.items()):
-            spectra.create_sum_rules_nxnote(n_holes, process, name, n + 1, element=self.metadata.element)
+            spectra.create_sum_rules_nxnote(
+                n_holes=self.scan.n_holes,
+                parent=process,
+                name=name,
+                sequence_index=n + 1,
+                element=self.metadata.element,
+                split_energy=self.scan.split_energy
+            )
+        files1 = self.scan.spectra1.get_raw_metadata('filename')  # {'scanno': 'filename'}
+        files2 = self.scan.spectra2.get_raw_metadata('filename')  # {'scanno': 'filename'}
+        nw.add_nxparameters(root=process, group_name='raw_files1', **files1)
+        nw.add_nxparameters(root=process, group_name='raw_files2', **files2)
 
     def nx_main_entry(self, nexus: h5py.File, name='entry', default=True):
         entry = self.nx_entry(nexus, name=name, default=default)

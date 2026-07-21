@@ -178,6 +178,27 @@ def create_scrollable_window(root: tk.Misc, scroll_x=True, scroll_y=True,
     return inner_frame
 
 
+def entry_with_placeholder(root: tk.Misc, text: tk.Variable, placeholder_text: str, **kwargs) -> ttk.Entry:
+    """Create an entry widget with placeholder text"""
+
+    def on_focus_in(event):
+        if entry.get() == placeholder_text:
+            entry.delete(0, tk.END)
+            entry.config(fg="black")
+
+    def on_focus_out(event):
+        if entry.get() == "":
+            entry.insert(0, placeholder_text)
+            entry.config(fg="grey")
+
+    entry = tk.Entry(root, textvariable=text, fg="grey", **kwargs)
+    entry.insert(0, placeholder_text)
+
+    entry.bind("<FocusIn>", on_focus_in)
+    entry.bind("<FocusOut>", on_focus_out)
+    return entry
+
+
 def open_close_all_tree(treeview, branch="", openstate=True):
     """Open or close all items in ttk.treeview"""
     treeview.item(branch, open=openstate)

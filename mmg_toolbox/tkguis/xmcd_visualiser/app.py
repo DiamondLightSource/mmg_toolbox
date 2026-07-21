@@ -12,6 +12,7 @@ def create_xmcd_visualiser(data_directory: str | None = None, scan_range_str: st
     Create a Data Viewer showing all scans in an experiment folder
     """
     from .widget import XMCDVisualiser
+    from ..apps.experiment import create_title_window
 
     root = create_root(parent=parent, window_title='XMCD Visualiser')
     config = config or get_config()
@@ -35,9 +36,10 @@ def create_xmcd_visualiser(data_directory: str | None = None, scan_range_str: st
     menu = {
         'File': {
             'New': lambda: create_xmcd_visualiser(parent=root, config=config, data_directory=data_directory),
+            'Experiment UI': create_title_window,
             'Set Data path': set_data_path,
             'Set Save path': set_save_dir,
-            # 'Load from Processed file': widget.average.pair_selector.btn_load_file,
+            'Load from Processed file': widget.average.pair_selector.btn_load_file,
         },
     }
 

@@ -106,7 +106,8 @@ class Experiment:
 
     def get_scan_filename(self, scan_file: int | str = -1) -> str:
         """Return the full filename of a scan number"""
-        if isinstance(scan_file, int):
+        if isinstance(scan_file, int) or scan_file.isdigit():
+            scan_file = int(scan_file)
             if scan_file < 1:
                 scan_numbers = self._scan_numbers()
                 return self.scan_list[scan_numbers[scan_file]]

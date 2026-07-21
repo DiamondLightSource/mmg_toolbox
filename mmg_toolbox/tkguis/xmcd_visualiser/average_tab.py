@@ -30,9 +30,10 @@ class Average:
         from .pair_selector import PairSelector
         self._base = base
         self.root = root
+        self.config = base.config
         self.use_dls_loader = False
-        instrument = self._base.config.get(C.beamline, None)
-        data_directory = self._base.config.get(C.current_dir, '')
+        instrument = self.config.get(C.beamline, None)
+        data_directory = self.config.get(C.current_dir, '')
         self.exp = Experiment(data_directory, instrument=instrument)
         self.pair_numbers: list[tuple[int, int]] = []
         self.pairs: list[tuple[SpectraContainer, SpectraContainer]] = []
@@ -58,12 +59,12 @@ class Average:
         # MIDDLE
         frm = ttk.LabelFrame(tab, text='Select Plots')
         frm.grid(column=1, row=0, **grid_options)
-        self.grid_plots = GridPlot(frm, self._base.config)
+        self.grid_plots = GridPlot(frm, self.config)
 
         # RIGHT
         frm = ttk.LabelFrame(tab, text='Average Data')
         frm.grid(column=2, row=0, **grid_options)
-        self.average_plot = AveragePlot(frm, self, self._base.config)
+        self.average_plot = AveragePlot(frm, self, self.config)
 
     def add_exp_path(self, filename: str):
         if os.path.isfile(filename):
@@ -80,7 +81,7 @@ class Average:
 
     def process_pair(self, scan_number1: int, scan_number2: int,
                      background: str) -> tuple[SpectraContainer, SpectraContainer]:
-        scan1, scan2 = self.load_pair(scan_number1, scan_number2)
+        scan1, scan2 = self.load_pair(scan_number1, scan_number2, dls_loader=self.use_dls_loader)
         scan1_proc = scan1.divide_by_preedge()
         scan2_proc = scan2.divide_by_preedge()
         if background != 'None':

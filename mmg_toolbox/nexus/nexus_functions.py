@@ -47,6 +47,7 @@ def update_args(name: str, obj: h5py.Group, axes: str, signal: str, *args: str |
     # Add NX application definition
     if isinstance(obj, h5py.Group) and nn.NX_DEFINITION in obj:
         names.append(bytes2str(obj[nn.NX_DEFINITION][()]))
+    # TODO: add option for args like 'name:NXclass'
     # Add axes & signal from parent group
     if name == axes:
         names.append(nn.NX_AXES)
@@ -86,6 +87,8 @@ def nx_find(parent: h5py.Group, *field_or_class: str | list[str]) -> h5py.Datase
     """
 
     def recursor(group: h5py.Group, *args: str | list[str]) -> h5py.Dataset | h5py.Group | None:
+        if len(args) == 0:
+            return None
         # return object from path, e.g. obj['group/data']
         if len(args) == 1:
             alt_args = [args[0]] if isinstance(args[0], (str, bytes)) else args[0]
@@ -141,6 +144,8 @@ def nx_find_all(parent: h5py.Group, *field_or_class: str | list[str]) -> list[h5
 
     def recursor(group: h5py.Group, *args: str | list[str]) -> list[h5py.Dataset | h5py.Group]:
         found = []
+        if len(args) == 0:
+            return found
         # object from path, e.g. obj['group/data']
         if len(args) == 1:
             alt_args = [args[0]] if isinstance(args[0], (str, bytes)) else args[0]

@@ -38,7 +38,7 @@ def is_processed(filename: str) -> bool:
 
 def is_subtraction(filename: str) -> bool:
     """Return True if the NeXus file contains Spectra Subtraction like XMCD or XMLD"""
-    return bool(nx_find(hdfmap.load_hdf(filename), 'NXxas', ['subtract', 'xmcd', 'xmld']))
+    return bool(nx_find(hdfmap.load_hdf(filename), 'NXxas', 'sum_rules'))
 
 
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
@@ -246,16 +246,16 @@ def _load_from_nxxas(hdf: h5py.File | h5py.Group, sample_name=None, element_edge
 
     # Processed files
     if nx_find_data(hdf, 'NXentry', 'NXprocess', 'program') == 'mmg_toolbox.xas':
-        raw_energy = nx_find_data(hdf, 'NXxas', 'raw', 'energy')
-        raw_signals = {
-            str(nx_find_data(grp, 'mode')).lower(): nx_find_data(grp, 'signal')
-            for grp in nx_find_all(nx_find(hdf, 'NXxas', 'raw'), 'NXdata')
-            if mode[0] == 'all' or str(nx_find_data(grp, 'mode')).lower() in mode
-        }
-        raw_spectra = {
-            name: Spectra(raw_energy, signal, label=str(scan_no), mode=name, process_label='raw')
-            for name, signal in raw_signals.items()
-        }
+        # raw_energy = nx_find_data(hdf, 'NXxas', 'raw', 'energy')
+        # raw_signals = {
+        #     str(nx_find_data(grp, 'mode')).lower(): nx_find_data(grp, 'signal')
+        #     for grp in nx_find_all(nx_find(hdf, 'NXxas', 'raw'), 'NXdata')
+        #     if mode[0] == 'all' or str(nx_find_data(grp, 'mode')).lower() in mode
+        # }
+        # raw_spectra = {
+        #     name: Spectra(raw_energy, signal, label=str(scan_no), mode=name, process_label='raw')
+        #     for name, signal in raw_signals.items()
+        # }
         spectra = {
             name: Spectra(energy, signal, label=str(scan_no), mode=name,
                           process_label='processed', process=name)
@@ -280,9 +280,20 @@ def _load_from_nxxas(hdf: h5py.File | h5py.Group, sample_name=None, element_edge
             element=element,
             edge=edge,
             energy=energy,
-            raw_signals=raw_spectra,
+            raw_signals={},#raw_spectra,
             monitor=monitor
         )
+        # Add raw files for each polarisation
+        group = nx_find(hdf, 'sum_rules')
+        if group:
+
+            for name in ['raw_files1', 'raw_files2']:
+                params = group[name]
+                files = {
+                    scan_no: str(nx_find_data(params, scan_no))
+                    for scan_no in params
+                }
+                setattr(metadata, name, files)
         return SpectraContainer(name, spectra, metadata=metadata)
     # Raw files
     return create_xas_scan(
@@ -331,7 +342,7 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None,
                 if group != default and group.name in hdf  # omit links
             ]
             spectra.parents = tuple(parents)
-            if len(parents) == 2 and nx_find(hdf, 'NXxas', ['subtract', 'xmcd', 'xmld']):
+            if len(parents) == 2 and nx_find(hdf, 'NXxas', ['subtract_1', 'xmcd_1', 'xmld_1']):
                 return SpectraContainerSubtraction(*parents)
     return spectra
 
@@ -412,8 +423,16 @@ def load_xmcd_from_processed_nxs(filename: str, mode: str | list[str] = 'all') -
     """
     Load XMCD/XMLD Spectra from NeXus file saved by SpectraContainerSubtraction
     """
-    return load_from_nxs(filename, mode=mode)
-
+    spectra: SpectraContainerSubtraction = load_from_nxs(filename, mode=mode)
+    # # Add raw files for each polarisation
+    # with hdfmap.load_hdf(filename) as hdf:
+    #     group = nx_find(hdf, 'sum_rules')
+    #     if group:
+    #         files1 = {scan_no: filename for scan_no, filename in group['raw_files1'].items()}
+    #         files2 = {scan_no: filename for scan_no, filename in group['raw_files2'].items()}
+    #         spectra.metadata.raw_files1 = files1
+    #         spectra.metadata.raw_files2 = files2
+    return spectra
 
 def load_from_i16_vortex(filename: str, sample_name: str | None = None,
                          element_edge: str | None = None, mode: str | list[str] = 'all') -> SpectraContainer:
@@ -505,6 +524,8 @@ def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge
         if filename.endswith('.dat')
         else load_from_i16_vortex(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         if is_i16vortex(filename)
+        else load_xmcd_from_processed_nxs(filename, mode=mode)
+        if is_subtraction(filename)
         else load_from_nxs(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         if not dls_loader and is_nxxas(filename)
         else load_from_nxs_using_hdfmap(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
