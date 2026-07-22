@@ -4,7 +4,7 @@ name: mmg_toolbox
 channels:
   - conda-forge
 dependencies:
-  - python=3.12
+  - python=3.14
   - ipython
   - jupyter
   - numpy
@@ -16,6 +16,7 @@ dependencies:
   - lmfit
   - nbconvert
   - nbformat
+  - ipympl
   - nexpy
   - hdfmap
   - git

@@ -15,6 +15,7 @@ def create_title_window(beamline: str | None = None):
     from .log_viewer import create_gda_terminal_log_viewer
     from .file_browser import create_nexus_file_browser, create_file_browser, create_jupyter_browser
     from .scans import create_range_selector
+    from .nexus import create_nexus_viewer
     from .data_viewer import create_data_viewer
     from .python_editor import create_python_editor
     from .visit_viewer import create_visit_viewer
@@ -42,6 +43,7 @@ def create_title_window(beamline: str | None = None):
         'File': {
             'File Browser': lambda: create_file_browser(root, config.get(C.default_directory, None)),
             'NeXus File Browser': lambda: create_nexus_file_browser(root, config.get(C.default_directory, None)),
+            'NeXus File Viewer': lambda: create_nexus_viewer('', root, config),
             'Jupyter Browser': lambda: create_jupyter_browser(root, widget.notebook_dir.get()),
             'Data Viewer': lambda: create_data_viewer(widget.data_dir.get(), root, config),
             'Range selector': lambda: create_range_selector(widget.data_dir.get(), root, config),

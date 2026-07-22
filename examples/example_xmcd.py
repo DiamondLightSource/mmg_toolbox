@@ -29,22 +29,17 @@ xmcd_field2 = up_left - down_left
 xmcd_pol1 = up_left - up_right
 xmcd_pol2 = down_left - down_right
 
+av_pol1 = up_right + down_left
+av_pol2 = up_left + down_left
+xmcd_av = av_pol1 - av_pol2
+
 # xmcd_field1.create_sum_rules_figure()
 # xmcd_field2.create_sum_rules_figure()
-xmcd_pol1.create_sum_rules_figure()
+# xmcd_pol1.create_sum_rules_figure()
 # xmcd_pol2.create_sum_rules_figure()
-
-from mmg_toolbox.xas import average_polarised_scans
-
-print(xmcd_pol1)
-
-pol1, pol2 = average_polarised_scans(*spectra)
-
-pol1.create_background_figure()
-
-xmcd_av = pol1 - pol2
-xmcd_av.create_sum_rules_figure()
-
-plt.show()
+# xmcd_av.create_sum_rules_figure()
+# plt.show()
 
 print(xmcd_av.get_raw_metadata('filename'))
+
+xmcd_av.write_nexus('test.nxs')

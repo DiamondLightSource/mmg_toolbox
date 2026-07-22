@@ -218,7 +218,7 @@ def test_write_outputs():
     assert is_processed('test_xas.nxs')
 
     with h5py.File('test_xas.nxs', 'r') as hdf:
-        assert isinstance(hdf['/test/divide_by_preedge/tey/absorbed_beam'], h5py.Dataset)
+        assert isinstance(hdf['/test/divide_by_preedge_1/tey/absorbed_beam'], h5py.Dataset)
         assert isinstance(hdf['/test/tey/absorbed_beam'], h5py.Dataset)
     check, = load_xas_scans('test_xas.nxs')
     assert len(check.spectra) == 2

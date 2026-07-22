@@ -5,24 +5,24 @@ from typing import Callable
 from mmg_toolbox.utils.misc_functions import string2numbers
 from mmg_toolbox.xas import SpectraContainer, polarised_pairs
 from mmg_toolbox.xas.spectra import BACKGROUND_FUNCTIONS
-from mmg_toolbox.xas.nxxas_loader import load_xmcd_from_processed_nxs
-from ..misc.functions import create_scrollable_window
+from ..misc.functions import create_scrollable_window, entry_with_placeholder
+from ..misc.config import C
 from .average_tab import Average
-from .processed_data_plot import load_subtraction_file
+from .processed_data_plot import load_pairs
 
 
 BACKGROUNDS = ['None'] + list(BACKGROUND_FUNCTIONS)
 
 
 class PairSelector:
-    def __init__(self, root: tk.Misc, base: Average, scan_range_str: str = '12345-12355'):
+    def __init__(self, root: tk.Misc, base: Average, scan_range_str: str | None = None):
         self._base = base
         self.root = root
 
         # variables
         modes = ['TEY', 'TFY']
         backgrounds = BACKGROUNDS
-        self.scan_range = tk.StringVar(self.root, '')
+        self.scan_range = tk.StringVar(self.root, scan_range_str)
         self.dls_loader = tk.BooleanVar(self.root, False)
         self.mode_option = tk.StringVar(self.root, modes[0])
         self.bkg_option = tk.StringVar(self.root, backgrounds[0])
@@ -37,8 +37,8 @@ class PairSelector:
         frm = ttk.LabelFrame(self.root, text='Scan Numbers')
         # frm.pack(side='top', fill='x')
         frm.grid(row=0, column=0, **grid_options)
-        # ttk.Button(frm, text='Load', command=self.btn_load_file).pack(side='top', fill='x', padx=10, pady=3)
-        var = entry_with_placeholder(frm, self.scan_range, scan_range_str)
+        ttk.Button(frm, text='Load', command=self.btn_load_file).pack(side='top', fill='x', padx=10, pady=3)
+        var = entry_with_placeholder(frm, self.scan_range, '123456:123460')
         var.bind('<Return>', self.btn_find_pairs)
         var.pack(side='left')
         ttk.Checkbutton(frm, text='DLS Loader', variable=self.dls_loader).pack(side='left')
@@ -77,7 +77,7 @@ class PairSelector:
             n1, n2 = var1.get(), var2.get()
             if n1 and n2:
                 try:
-                    s1, s2 = self._base.load_pair(n1, n2)
+                    s1, s2 = self._base.load_pair(n1, n2, dls_loader=self.dls_loader.get())
                     subtract = s1 - s2
                     label.set(subtract.label())
                     self.update_modes(s1)
@@ -115,7 +115,7 @@ class PairSelector:
             else:
                 self.add_pair(scan_no1, scan_no2)
             if n == 0:
-                scan, = self._base.load_scans(scan_no1)
+                scan, = self._base.load_scans(scan_no1, dls_loader=self.dls_loader.get())
                 self.update_modes(scan)
 
     def update_modes(self, scan: SpectraContainer):
@@ -151,35 +151,8 @@ class PairSelector:
             self._base.plot_pairs()
 
     def btn_load_file(self):
-        filename = load_subtraction_file(self.root, self._base.exp.folder_paths[0])
-        if filename:
-            # scan, = load_xas_scans(filename)
-            scan = load_xmcd_from_processed_nxs(filename)
-            self._base.add_exp_path(scan.get_raw_filename())
-            parents1 = scan.spectra1.parents
-            parents2 = scan.spectra2.parents
-            pairs = [(s1.metadata.scan_no, s2.metadata.scan_no) for s1, s2 in zip(parents1, parents2)]
-            print(f"Loaded {len(pairs)} pairs in folder: {scan.get_raw_filename()}")
-            print(pairs)
+        folder, pairs = load_pairs(self.root, self._base.config[C.current_proc])
+        if folder:
+            self._base.add_exp_path(folder)
             self.set_pair_numbers(pairs)
-
-
-def entry_with_placeholder(root: tk.Misc, text: tk.Variable, placeholder_text: str, **kwargs) -> ttk.Entry:
-    """Create an entry widget with placeholder text"""
-
-    def on_focus_in(event):
-        if entry.get() == placeholder_text:
-            entry.delete(0, tk.END)
-            entry.config(fg="black")
-
-    def on_focus_out(event):
-        if entry.get() == "":
-            entry.insert(0, placeholder_text)
-            entry.config(fg="grey")
-
-    entry = tk.Entry(root, textvariable=text, fg="grey", **kwargs)
-    entry.insert(0, placeholder_text)
-
-    entry.bind("<FocusIn>", on_focus_in)
-    entry.bind("<FocusOut>", on_focus_out)
-    return entry
+            self._base.plot_pairs()

@@ -150,6 +150,11 @@ class SpectraContainer:
         """Recursively look through the parents for a raw filename"""
         return next(iter(self.get_raw_metadata('filename').values()))
 
+    def analysis_tree(self) -> dict[str, list[dict]]:
+        """Return ordered dict of analysis steps in tree structure"""
+        label = f"{self.process_label.replace('/', '').replace(' ', '')}"
+        return {label: [parent.analysis_tree() for parent in self.parents]}
+
     def analysis_steps(self) -> dict[str, dict[str, Spectra]]:
         """Return ordered dictionary of processing steps from parent objects"""
         return {
@@ -401,6 +406,9 @@ class SpectraContainerSubtraction(SpectraContainer):
         # subtraction metadata (merge these?)
         metadata = merge_xas_metadata(m1, m2)
         super().__init__(name, spectra, self.spectra1, self.spectra2, metadata=metadata)
+        # sum rule parameters
+        self.n_holes: float | None = None
+        self.split_energy: float | None = None
 
     def __repr__(self):
         return f"SpectraContainerSubtraction('{self.name}', '{self.process_label}', {list(self.spectra)})"
@@ -420,6 +428,11 @@ class SpectraContainerSubtraction(SpectraContainer):
             f"{self.metadata.element}{self.metadata.edge} " +
             f"T={round(self.metadata.temp, 1):.3g}K " + static
         )
+
+    def set_sum_rule_parameters(self, n_holes: float | None = None, split_energy: float | None = None):
+        self.n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
+        spectra = self.spectra[self.metadata.default_mode]
+        self.split_energy = spectra.get_split_energy() if split_energy is None else split_energy
 
     def calculate_signal_ratio(self) -> dict[str, float]:
         """Return the maximum signal as a ratio of the average parent spectra"""
@@ -447,9 +460,9 @@ class SpectraContainerSubtraction(SpectraContainer):
         :param split_energy: energy half-way between two edges
         :returns: orb, spin sum rule values for the detector mode
         """
+        self.set_sum_rule_parameters(n_holes=n_holes, split_energy=split_energy)
         spectra = self.spectra[mode or self.metadata.default_mode]
-        n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
-        return spectra.calculate_sum_rules(n_holes, split_energy)
+        return spectra.calculate_sum_rules(self.n_holes, self.split_energy)
 
     def sum_rules_report(self, n_holes: float | None = None, mode: str | None = None,
                          split_energy: float | None = None) -> str:
