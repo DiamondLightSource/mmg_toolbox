@@ -16,7 +16,9 @@ def test_file_loader():
     assert isinstance(scan, NexusDataHolder)
     assert scan.beamline == 'i16'
     # Check local data injection
-    assert scan('beamline, scan_number, filename') == ('i16', 1109527, '1109527.nxs')
+    assert scan('beamline, scan_number, filename, _cmd') == ('i16', 1109527, '1109527.nxs', 'flyscancn eta_fly 0.005 61 pil3_100k 0.1 0.5 roi1 roi2')
+    # Check config roi
+    assert scan('pilroi1_total').shape == (61, )
     scan_range = range(1032120, 1032130)
     scans = exp.scans(*scan_range)
     assert len([scn for scn in scans if isinstance(scn, NexusScan)]) == len(scans)

@@ -1,9 +1,12 @@
 
+from tkinter.messagebox import askokcancel
+
 from mmg_toolbox.tkguis.misc.config import get_config, C
 from mmg_toolbox.tkguis.misc.functions import topmenu
 from mmg_toolbox.tkguis.misc.styles import create_root
 from mmg_toolbox.tkguis.misc.jupyter import launch_jupyter_notebook, terminate_notebooks
 from mmg_toolbox.utils.env_functions import open_terminal
+from mmg_toolbox.beamline_metadata.default_scripts import create_beamline_scripts
 
 
 def create_title_window(beamline: str | None = None):
@@ -23,6 +26,18 @@ def create_title_window(beamline: str | None = None):
 
     widget = TitleWindow(root, config)
 
+    def create_scripts():
+        instrument = widget.config.get(C.beamline, beamline)
+        folder = widget.proc_dir.get()
+        response = askokcancel(
+            title=f"Create Example Scripts",
+            message=f"Create Example Scripts for {instrument.upper()} in folder:",
+            detail=folder,
+            parent=root,
+        )
+        if response:
+            create_beamline_scripts(instrument, folder)
+
     menu = {
         'File': {
             'File Browser': lambda: create_file_browser(root, config.get(C.default_directory, None)),
@@ -36,6 +51,7 @@ def create_title_window(beamline: str | None = None):
         'Processing': {
             'Script Editor': lambda: create_python_editor(None, root, config),
             'XMCD Visualiser': lambda: create_xmcd_visualiser(data_directory=widget.data_dir.get(), parent=root, config=config),
+            'Create Example Scripts': create_scripts,
             'Open a terminal': lambda: open_terminal(f"cd {widget.data_dir.get()}"),
             'Start Jupyter (processing)': lambda: launch_jupyter_notebook('notebook', widget.proc_dir.get()),
             'Start Jupyter (notebooks)': lambda: launch_jupyter_notebook('notebook', widget.notebook_dir.get()),

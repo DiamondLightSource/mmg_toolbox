@@ -339,8 +339,6 @@ class SpectraContainer:
 class SpectraContainerAverage(SpectraContainer):
     """Special subclass for average of SpectraContainers"""
     def __init__(self, *spectra_containers: SpectraContainer):
-        if len(spectra_containers) < 2:
-            raise ValueError('SpectraContainerAverage must have at least two spectra')
         # Expand any Average containers into their parents
         expanded_list = []
         for spectra_container in spectra_containers:

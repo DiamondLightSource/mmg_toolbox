@@ -295,3 +295,11 @@ def test_write_subtracted_outputs():
 
     os.remove('test_subtracted.csv')
 
+
+@only_dls_file_system
+def test_i16_vortex_spectra():
+    # single energy detector spectrum
+    # spectra, = load_xas_scans('/dls/i16/data/2026/cm44164-9/1145818.nxs')
+    spectra, = load_xas_scans('/dls/i16/data/2026/cm44164-9/1145910.nxs')
+    assert 'xes' in spectra.spectra
+    assert len(spectra.spectra['xes'].signal) == 4096

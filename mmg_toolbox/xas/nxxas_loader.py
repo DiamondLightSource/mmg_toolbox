@@ -15,7 +15,7 @@ from mmg_toolbox.utils.polarisation import (get_polarisation, get_polarisation_a
 from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 
-from .spectra_analysis import energy_range_edge_label
+from .spectra_analysis import energy_range_edge_label, nearest_edge_label
 from .spectra import Spectra
 from .spectra_container import SpectraContainer, SpectraContainerSubtraction
 from .metadata import XasMetadata
@@ -28,7 +28,7 @@ def is_nxxas(filename: str) -> bool:
 
 def is_i16vortex(filename: str) -> bool:
     """Return True if file is from i16 and uses the vortex detector"""
-    return bool(nx_find(hdfmap.load_hdf(filename), 'NXinstrument', 'xmapMca'))
+    return bool(nx_find(hdfmap.load_hdf(filename), 'NXinstrument', ['xmapMca', 'xsp3']))
 
 
 def is_processed(filename: str) -> bool:
@@ -56,7 +56,7 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
     if element_edge is None:
         element, edge = energy_range_edge_label(energy.min(), energy.max())
     else:
-        element, edge = element_edge.split()
+        element, edge = element_edge.replace(', ', ',').split()
 
     for detector, array in raw_signals.items():
         if len(array) != len(energy):
@@ -240,7 +240,7 @@ def _load_from_nxxas(hdf: h5py.File | h5py.Group, sample_name=None, element_edge
     start_date_iso = nx_find_data(hdf, 'start_time', default='')
     end_date_iso = nx_find_data(hdf, 'end_time', default=start_date_iso)
     scan_no = nx_find_data(hdf, 'entry_identifier', default=get_scan_number(hdf.file.filename))
-    count_time = nx_find_data(hdf, 'count_time', default=monitor_preset)  # TODO: check this
+    count_time = nx_find_data(hdf, 'count_time', default=monitor_preset)
     pol = get_polarisation(hdf)
     pol_angle = get_polarisation_angle(hdf)
 
@@ -418,9 +418,10 @@ def load_xmcd_from_processed_nxs(filename: str, mode: str | list[str] = 'all') -
 def load_from_i16_vortex(filename: str, sample_name: str | None = None,
                          element_edge: str | None = None, mode: str | list[str] = 'all') -> SpectraContainer:
     """
-    Load XAS Spectra from NeXus file with arbitrary application definition
+    Load XAS Spectra from NeXus file from I16 with a VorteX energy dispersion detector
 
-    Parameters
+    If the scan is in energy, the incident energy will be used. Otherwise, the detector spectrum will be returned.
+
     :param filename: path to file
     :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
     :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
@@ -437,12 +438,32 @@ def load_from_i16_vortex(filename: str, sample_name: str | None = None,
 
         # scan data
         scan_no = m.eval(hdf, 'entry_identifier', default=get_scan_number(filename))
-        energy = m.eval(hdf, 'xmapMca_energy') * 1000  # keV -> eV
-        monitor = m.eval(hdf, '(xmapMca_ic1monitor / xmapMca_ic1monitor[0]) / (rc / 300.)')
-        default_mode = 'pfy' if mode[0].lower() in ['default', 'all'] else mode[0]
-        mode_spec = {
-            'pfy': m.eval(hdf, 'signal'),
-        }
+        monitor = m.eval(hdf, '(ic1monitor / ic1monitor[0]) / (rc / 300.)')
+        axes, signal = m.nexus_default_names()
+        if 'energy' in axes:
+            # incident energy scan
+            energy = m.eval(hdf, 'measurement_energy') * 1000  # keV -> eV
+            mode_spec = {
+                'tfy': m.eval(hdf, 'signal'),
+            }
+        else:
+            # vortex spectrum
+            volume = m.get_image(hdf, ())
+            spectrum = volume.sum(axis=tuple(range(volume.ndim-1)))
+            monitor = np.mean(monitor) * np.ones_like(spectrum)
+            energy = 10 * np.arange(len(spectrum))  # 10eV per channel
+            mode_spec = {
+                'xes': spectrum
+            }
+            if element_edge is None:
+                # find edge around peak max
+                peak_energy = float(energy[np.argmax(spectrum)])
+                element, edge = nearest_edge_label(peak_energy)
+                element_edge = f"{element} {edge}"
+                print(f"Element edge: {element_edge} found at peak energy {peak_energy} eV")
+
+        default_mode = next(iter(mode_spec)) if mode[0].lower() in ['default', 'all'] else mode[0]
+
         if mode[0].lower() == 'all':
             use_modes = mode_spec.keys()
         else:

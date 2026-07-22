@@ -33,6 +33,10 @@ class ScanPlotManager:
         self.show = plt.show
 
     def __call__(self, *args, **kwargs) -> plt.Axes:
+        if self.scan.map.scannables_length() == 1 and self.scan.map.image_data:
+            return self.image(*args, **kwargs)
+        if len(self.scan.map.scannables_shape()) == 2:
+            return self.map2d(*args, **kwargs)
         return self.plot(*args, **kwargs)
 
     def plotline(self, xaxis: str = 'axes', yaxis: str = 'signal', *args, **kwargs) -> list[plt.Line2D]:
@@ -159,6 +163,50 @@ class ScanPlotManager:
         axes.set_title(ttl)
         return axes
 
+    def image_sum(self, index: int | tuple | slice | str | None = None, sum_axis: int = 0, xaxis: str = 'axes',
+                  axes: plt.Axes | None = None, x_label: str | None = None, x_scale: float = 1.0, x_offset: float = 0.0,
+                  **kwargs) -> plt.Axes:
+        """
+        Plot image in matplotlib figure (if available)
+        :param index: int, detector image index, 0-length of scan, if None, use centre index, if 'sum', sum stack
+        :param sum_axis: axis to sum (0 or 1)
+        :param xaxis: name or address of axes dataset (for title)
+        :param axes: matplotlib axes to plot on (None to create figure)
+        :param x_label: str name of plot label on x-axis
+        :param x_scale: scale of x-axis (default to 1)
+        :param x_offset: offset of x-axis (default to 0)
+        :param kwargs: additional arguments for plot_detector_image
+        :return: axes object
+        """
+        # x axis data
+        xdata, xname = self.scan.get_plot_axis(xaxis, reduce_shape=True, flatten=True)
+
+        # image data
+        im = self.scan.image(index)
+        if im is None:
+            im = np.zeros((101, 101))
+        if index is None or index == 'sum':
+            xvalue = xdata[np.size(xdata) // 2]
+        else:
+            xvalue = xdata[index]
+
+        # sum image
+        line = im.sum(axis=sum_axis)
+        xdata = x_scale * np.arange(line.size) + x_offset
+
+        # plot
+        axes = new_plot() if axes is None else axes
+        plot_line(axes, xdata, line, **kwargs)
+        if not self.scan.map.image_data:
+            axes.text(0.5, 0.5, 'No Detector Image', c='w',
+                      horizontalalignment='center',
+                      verticalalignment='center',
+                      transform=axes.transAxes)
+        ttl = '%s\n%s [%s] = %s' % (self.scan.title(), xname, index, xvalue)
+        axes.set_title(ttl)
+        axes.set_xlabel(x_label)
+        return axes
+
     def detail(self, xaxis: str = 'axes', yaxis: str | list[str] = 'signal',
                index: int | tuple | slice | None = None, clim: tuple[float, float] | None = None,
                cmap: str = DEFAULT_CMAP, **kwargs) -> plt.Figure:
@@ -224,21 +272,20 @@ class ScanPlotManager:
         self.image(index, xaxis, cmap=cmap, clim=clim, axes=rt)
         return fig
 
-    def image_histogram(self, index: int | tuple | slice | None = None,
+    def image_histogram(self, index: int | tuple | slice | None = (),
                         axes: plt.Axes | None = None, **kwargs) -> plt.Axes:
         """
-        Plot image in matplotlib figure (if available)
+        Plot histogram of detector images in matplotlib figure
         :param index: int, detector image index, 0-length of scan, if None, use centre index
         :param axes: matplotlib axes to plot on (None to create figure)
-        :param kwargs: additional arguments for plot_detector_image
-        :param cut_ratios: list of cut-ratios, each cut has a different colour and given as ratio of max intensity
+        :param kwargs: additional arguments for plt.hist
         :return: axes object
         """
         if index is None:
             index = ()
         vol = self.scan.get_image(index=index)
-
-        axes.hist(np.log10(vol[vol > 0].flatten()), 100)
+        axes = new_plot() if axes is None else axes
+        axes.hist(np.log10(vol[vol > 0].flatten()), 100, **kwargs)
 
         axes.set_xlabel('Log$_{10}$ Pixel Intensity')
         axes.set_ylabel('N')

@@ -64,6 +64,15 @@ def find_edge_labels(string: str) -> list[str]:
     return edge_labels
 
 
+def single_element_label(*edge_labels: str) -> tuple[str, str]:
+    """Return element, edges"""
+    # use first unit element
+    elements = {regex_element.match(label).group() for label in edge_labels}
+    element = next(iter(elements))
+    edges = [next(regex_edges.finditer(label)).group() for label in edge_labels if element in label]
+    return element, ', '.join(edges)
+
+
 def _load_edge_file(edges: list[str] | None = SEARCH_EDGES) -> dict[str, float]:
     """Load edges from file"""
     with open(EDGE_FILE, 'r') as infile:
@@ -161,7 +170,23 @@ def energy_range_edge_label(min_energy_ev: float, max_energy_ev: float | None = 
         if element1 != element2:
             raise ValueError(f"xray absorption edges of multiple edges present: {label1}, {label2}")
         return element1, f"{edge1}, {edge2}"
+    if len(edges) >= 2:
+        # list elements with lists of edges
+        edge_options = {
+            element: [edge.split()[1] for edge in edges if element in edge]
+            for element in {label.split()[0] for label in edges}
+        }
+        # pick first edge
+        edge_pick = next(iter(edge_options))
+        return edge_pick, ', '.join(edge_options[edge_pick])
     raise ValueError(f"xray absorption edge not found: {edges} edges at energy {min_energy_ev} eV")
+
+def nearest_edge_label(energy_ev: float) -> tuple[str, str]:
+    """Return the element edges nearest the energy"""
+    all_edge_energies, all_edge_labels = load_edge_energies(None)
+    nearest_edge = all_edge_labels[np.argmin(abs(all_edge_energies - energy_ev))]
+    expand_edges = find_edge_labels(str(nearest_edge).strip('12345'))  # expand to L23 etc
+    return single_element_label(*expand_edges)
 
 
 def average_energy_scans(*args: np.ndarray):
