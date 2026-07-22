@@ -3,6 +3,7 @@ mmg_toolbox tests
 Test nexus reader
 """
 import numpy as np
+from pytest import approx
 
 from mmg_toolbox.nexus.nexus_scan import NexusScan, NexusDataHolder
 from mmg_toolbox.nexus.nexus_reader import (read_nexus_file, read_nexus_files, find_scans,
@@ -48,6 +49,24 @@ def test_read_old_nexus_file():
     assert data['xlabel'] == 'TimeFromEpoch'
     assert data['ylabel'] == 'sum'
     assert data['x'].size == data['y'].size == 81
+    assert len(data['data'].keys()) == 19
+
+
+@only_dls_file_system
+def test_read_2d_nexus_file():
+    file = DIR + '/i16/1144224.nxs'
+    scan, = read_nexus_files(file)
+    data = scan.get_plot_data()
+    assert 'x' in data and 'y' in data
+    assert data['grid_xlabel'] == 'sy'
+    assert data['grid_ylabel'] == 'sx'
+    assert data['grid_label'] == 'roi2_sum'
+    assert data['grid_xdata'].shape == (51, 51)
+    assert data['grid_ydata'].shape == (51, 51)
+    assert data['grid_data'].shape == (51, 51)
+    assert np.mean(np.diff(data['grid_xdata'][:, 0])) == approx(0.04, 0.001)
+    assert np.mean(np.diff(data['grid_ydata'][0, :])) == approx(0.04, 0.001)
+    assert data['x'].size == data['y'].size == 2601
     assert len(data['data'].keys()) == 19
 
 

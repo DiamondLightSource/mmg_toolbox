@@ -38,6 +38,7 @@ NOTEBOOKS = {
     'example': ('example_notebook.ipynb', 'An example notebook describing mmg_toolbox'),
     'xmcd': ('xmcd_notebook.ipynb', 'An example notebook describing XAS analysis'),
     'xmcd_visualiser': ('xmcd_visualiser.ipynb', 'A notebook for selecting XMCD pairs'),
+    'i16_vortex': ('i16_xas_notebook.ipynb', 'An example notebook for i16 vortex files'),
     'msmapper': ('msmapper_notebook.ipynb', 'An example notebook describing MSMapper analysis'),
 }
 

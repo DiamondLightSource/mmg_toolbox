@@ -12,6 +12,7 @@ FILES = [
     (DIR + 'i16/928878.nxs', 'i16 merlin 2d delta gam calibration'),
     (DIR + 'i16/1109527.nxs', 'i16 pilatus eta scan, new nexus format'),
     (DIR + 'i16/1116988.nxs', 'i16 pilatus eta scan, new nexus format2'),
+    (DIR + 'i16/1144224.nxs', 'i16 pilatus 2d sx sy scan, new nexus format'),
     (DIR + 'i16/processed/1090391_msmapper.nxs', 'msmapper volume'),
     (DIR + 'i16/processed/1109527_msmapper.nxs', 'msmapper volume 527'),
     (DIR + 'i16/processed/1116988_msmapper.nxs', 'msmapper volume 988'),

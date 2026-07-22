@@ -6,15 +6,16 @@ import sys
 from mmg_toolbox.utils.file_reader import data_file_reader
 from mmg_toolbox.utils.experiment import Experiment
 from mmg_toolbox.utils.env_functions import get_dls_visits, get_dls_visits_str, find_scan_files, scan_number_mapping
+from mmg_toolbox.nexus import NexusScan, NexusDataHolder
 from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 from mmg_toolbox.scripts.experiment_startup import create_notebooks
 
-__version__ = '0.6.3'
-__date__ = '29/06/2026'
+__version__ = '0.6.4'
+__date__ = '22/07/2026'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info',
-           'data_file_reader', 'Experiment',
+           'data_file_reader', 'Experiment', 'NexusScan', 'NexusDataHolder',
            'get_dls_visits', 'get_dls_visits_str', 'find_scan_files', 'scan_number_mapping',
            'metadata', 'xas_metadata', 'nexus_metadata',
            'create_notebooks']

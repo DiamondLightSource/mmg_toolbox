@@ -8,7 +8,7 @@ import hdfmap
 
 from ..utils.misc_functions import numbers2string
 from ..utils.env_functions import scan_number_mapping, last_folder_update, get_beamline_from_directory
-from ..beamline_metadata.config import beamline_config, C
+from ..beamline_metadata.config import beamline_config, C, add_roi
 from ..nexus.nexus_scan import NexusScan, NexusDataHolder
 from ..nexus.nexus_reader import find_scans
 from ..xas import load_xas_scans, SpectraContainer, find_similar_measurements, average_polarised_scans
@@ -33,7 +33,7 @@ class Experiment:
     """
 
     def __init__(self, *folder_paths: str, instrument: str | None = None):
-        self.folder_paths = folder_paths
+        self.folder_paths = [os.path.dirname(f) if os.path.isfile(f) else f for f in folder_paths]
         self.scan_list = {}
         self._scan_list_update = None
         self.instrument = instrument or get_beamline_from_directory(folder_paths[0], None)
@@ -85,7 +85,7 @@ class Experiment:
 
     def add_data_paths(self, *folder_paths: str):
         """Add additional paths"""
-        new_paths = tuple(
+        new_paths = list(
             path for path in folder_paths
             if path not in self.folder_paths and os.path.isdir(path)
         )
@@ -344,4 +344,29 @@ class Experiment:
                                 mode=mode, dls_loader=dls_loader, match_metadata=match_metadata,
                                 temp_tol=temp_tol, field_tol=field_tol)
         return average_polarised_scans(*spectra)
+
+    def add_roi(self, name: str, cen_i: int | str, cen_j: int | str,
+                wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE'):
+        """
+        Add an image ROI (region of interest) to scans
+        The ROI operates on the default IMAGE dataset, loading only the required region from the file.
+        The following expressions will be added, for use in self.eval etc.
+            *name* -> returns the whole ROI array as a HDF5 dataset
+            *name*_total -> returns the sum of each image in the ROI array
+            *name*_max -> returns the max of each image in the ROI array
+            *name*_min -> returns the min of each image in the ROI array
+            *name*_mean -> returns the mean of each image in the ROI array
+            *name*_bkg -> returns the background ROI array (area around ROI)
+            *name*_rmbkg -> returns the total with background subtracted
+            *name*_box -> returns the pixel positions of the ROI corners
+            *name*_bkg_box -> returns the pixel positions of the background ROI
+
+        :param name: string name of the ROI
+        :param cen_i: central pixel index along first dimension, can be callable string
+        :param cen_j: central pixel index along second dimension, can be callable string
+        :param wid_i: full width along first dimension, in pixels
+        :param wid_j: full width along second dimension, in pixels
+        :param image_name: string name of the image
+        """
+        add_roi(self.config, name, cen_i, cen_j, wid_i, wid_j, image_name)
 

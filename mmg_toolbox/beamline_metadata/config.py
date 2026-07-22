@@ -34,6 +34,7 @@ META_LIST = {
 REPLACE_NAMES = {
     # NEW_NAME: EXPRESSION
     '_t': '(count_time|counttime|t?(1.0))',
+    '_cmd': DEFAULT_SCAN_DESCRIPTION.strip('{}'),
 }
 
 ROIs: list[tuple[str, str | int, str | int, int, int, str]] = [
@@ -118,3 +119,26 @@ def beamline_config(beamline: str | None = None) -> dict:
         config[C.beamline] = beamline
     return config
 
+
+def add_roi(config: dict, name: str, cen_i: int | str, cen_j: int | str,
+            wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE'):
+    """
+    Create an image ROI (region of interest) and update the config
+
+    :param config: dict of config values
+    :param name: string name of the ROI
+    :param cen_i: central pixel index along first dimension, can be callable string
+    :param cen_j: central pixel index along second dimension, can be callable string
+    :param wid_i: full width along first dimension, in pixels
+    :param wid_j: full width along second dimension, in pixels
+    :param image_name: string name of the image
+    """
+    roi = (name, cen_i, cen_j, wid_i, wid_j, image_name)
+    current_roi_list = config.get(C.roi, [])
+    names = [c_roi[0] for c_roi in current_roi_list]
+    if name in names:
+        # overwrite
+        current_roi_list[names.index(name)] = roi
+    else:
+        current_roi_list.append(roi)
+    config[C.roi] = current_roi_list
