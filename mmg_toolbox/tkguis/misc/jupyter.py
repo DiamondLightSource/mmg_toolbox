@@ -2,6 +2,7 @@
 Jupyter Notebook commands
 """
 
+import sys
 from urllib.request import urlopen
 import webbrowser
 import subprocess
@@ -17,7 +18,7 @@ def popen_jupyter_server(cmd='notebook', directory: str | None = None, file: str
     :param directory: None, or directory to start in
     :param file: None, or file to open
     """
-    command = ['jupyter', cmd]
+    command = [sys.executable, '-m', 'jupyter', cmd]
     if directory:
         command.append('--ServerApp.root_dir=' + directory)
     elif file:
@@ -28,7 +29,7 @@ def popen_jupyter_server(cmd='notebook', directory: str | None = None, file: str
 
 
 def check_notebook_servers() -> list[str]:
-    list_servers = subprocess.run("jupyter server list", shell=True, capture_output=True)
+    list_servers = subprocess.run(sys.executable + " -m jupyter server list", shell=True, capture_output=True)
     output = list_servers.stdout.decode()
     urls = [item for item in output.split() if item.startswith('http')]
     # Check urls exist

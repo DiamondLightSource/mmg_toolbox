@@ -3,6 +3,7 @@ Menu options for processing tasks
 """
 import os
 import tkinter as tk
+from tkinter.messagebox import askokcancel
 
 from mmg_toolbox.utils.env_functions import (get_notebook_directory, open_terminal, get_scan_number,
                                              get_processing_directory)
@@ -31,7 +32,14 @@ def create_notebook_from_template(root: tk.Misc, template: str = 'example', dire
     script_name = os.path.join(proc_dir, f"{template}.ipynb")
     new_file = check_new_file(root, script_name)
     create_notebook(new_file, template, **replacements)
-    launch_jupyter_notebook('notebook', file=new_file)
+    response = askokcancel(
+        parent=root,
+        title=f"{template} notebook",
+        message=f"Start Jupyter to view notebook?",
+        detail=f"{new_file}",
+    )
+    if response:
+        launch_jupyter_notebook('notebook', file=new_file)
 
 
 def generate_replacement_getter(scanno_getter, title_getter, x_getter = None,
