@@ -129,6 +129,10 @@ class NexusDetectorImage:
         """A hovering frame with options"""
         window, fun_close = create_hover(self.parent, top_left=(0, 0.1))
 
+        def close_frame():
+            self.update_image_plot()
+            fun_close()
+
         frm = ttk.LabelFrame(window, text='Options', relief='ridge')
         frm.pack(expand=False, pady=2, padx=5)
         line = ttk.Frame(frm)
@@ -179,7 +183,7 @@ class NexusDetectorImage:
 
         frm = ttk.Frame(window)
         frm.pack(side='top', expand=True, fill='x')
-        var = ttk.Button(frm, text='Close', command=fun_close)
+        var = ttk.Button(frm, text='Close', command=close_frame)
         var.pack(fill='x')
 
     def roi_frame(self):
@@ -307,6 +311,16 @@ class NexusDetectorImage:
             raise Warning('Not implemented yet')
         return image, value
 
+    def _scale(self, coord: float | np.ndarray, add_offset=True) -> float | np.ndarray:
+        """Apply scale and offset"""
+        offset = self.sum_x_offset.get() if add_offset else 0
+        return (self.sum_x_scale.get() * coord) + offset
+
+    def _descale(self, coord: float | np.ndarray, add_offset=True) -> float | np.ndarray:
+        """Apply scale and offset"""
+        offset = self.sum_x_offset.get() if add_offset else 0
+        return  (coord - offset) / self.sum_x_scale.get()
+
     def update_value(self, value: float):
         self.axis_value.set(f"{self.axis_name.get()} = {value:.3f}")
 
@@ -335,10 +349,11 @@ class NexusDetectorImage:
             self.colorbar.update_normal(self.ax_image)
         elif 1 <= option <= 2:  # sum axis 0/1
             line = image.sum(axis=option-1)
-            xdata = (self.sum_x_scale.get() * np.arange(len(line))) + self.sum_x_offset.get()
+            xdata = self._scale(np.arange(len(line)))
             self.ax_image, = self.im_ax.plot(xdata, line, '-')
             self.im_ax.axis('auto')
-            self.im_ax.set_xlabel(self.sum_x_label.get() or self.plot_option.get())
+            self.im_ax.set_xlabel(self.sum_x_label.get() or 'Channel')
+            self.im_ax.set_ylabel(self.plot_option.get())
             self.im_fig.tight_layout()
             self.plot_config_rois()
 
@@ -435,14 +450,17 @@ class NexusDetectorImage:
                             if self.flip_x.get():
                                 cen_j = shape[1] - cen_j
                             if self.flip_y.get():
-                                # print(name, 'flip y:', shape, cen_i, shape[0] - cen_i)
                                 cen_i = shape[0] - cen_i
                             if option == 1: # sum axis 0
                                 cen_i = (ymax + ymin) / 2
                                 wid_i = (ymax - ymin)
+                                cen_j = self._scale(cen_j)
+                                wid_j = self._scale(wid_j, False)
                             elif option == 2:  # sum axis 1
                                 cen_j = (ymax + ymin) / 2
                                 wid_j = (ymax - ymin)
+                                cen_i = self._scale(cen_i)
+                                wid_i = self._scale(wid_i, False)
                             roi_square = np.array([
                                 # x, y
                                 [cen_i - wid_i // 2, cen_j - wid_j // 2],
@@ -549,11 +567,11 @@ class NexusDetectorImage:
 
         def mouse_release(event):
             x_end = event.xdata
-            y_end = event.ydata
             x_wid = x_end - x_start[0]
-            y_wid = y_end - y_start[0]
             x_cen = x_start[0] + x_wid/2
-            y_cen = y_start[0] + y_wid/2
+            # change scale
+            x_cen = self._descale(x_cen)
+            x_wid = self._descale(x_wid, add_offset=False)
             detector = self.detector_name.get()
             det_shape = self.map.get_image_shape()
             sum_axis_n = self.PLOT_OPTIONS.index(self.plot_option.get()) - 1
