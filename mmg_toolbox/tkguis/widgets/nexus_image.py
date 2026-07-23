@@ -129,6 +129,10 @@ class NexusDetectorImage:
         """A hovering frame with options"""
         window, fun_close = create_hover(self.parent, top_left=(0, 0.1))
 
+        def close_frame():
+            self.update_image_plot()
+            fun_close()
+
         frm = ttk.LabelFrame(window, text='Options', relief='ridge')
         frm.pack(expand=False, pady=2, padx=5)
         line = ttk.Frame(frm)
@@ -179,7 +183,7 @@ class NexusDetectorImage:
 
         frm = ttk.Frame(window)
         frm.pack(side='top', expand=True, fill='x')
-        var = ttk.Button(frm, text='Close', command=fun_close)
+        var = ttk.Button(frm, text='Close', command=close_frame)
         var.pack(fill='x')
 
     def roi_frame(self):
@@ -348,7 +352,8 @@ class NexusDetectorImage:
             xdata = self._scale(np.arange(len(line)))
             self.ax_image, = self.im_ax.plot(xdata, line, '-')
             self.im_ax.axis('auto')
-            self.im_ax.set_xlabel(self.sum_x_label.get() or self.plot_option.get())
+            self.im_ax.set_xlabel(self.sum_x_label.get() or 'Channel')
+            self.im_ax.set_ylabel(self.plot_option.get())
             self.im_fig.tight_layout()
             self.plot_config_rois()
 
