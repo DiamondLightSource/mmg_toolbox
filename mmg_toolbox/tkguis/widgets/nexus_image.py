@@ -28,7 +28,9 @@ class NexusDetectorImage:
         self.map = hdf_map
         self.config = config or get_config()
 
+        self.PLOT_OPTIONS = ['Image', 'sum axis 0', 'sum axis 1']
         self.detector_name = tk.StringVar(root, 'NXdetector')
+        self.plot_option = tk.StringVar(root, self.PLOT_OPTIONS[0])
         self.view_index = tk.IntVar(root, 0)
         self.axis_name = tk.StringVar(root, 'axis')
         self.axis_value = tk.StringVar(root, '')
@@ -41,6 +43,9 @@ class NexusDetectorImage:
         self.cmax = tk.DoubleVar(root, 1)
         self.fixclim = tk.BooleanVar(root, False)
         self.colormap = tk.StringVar(root, self.config.get(C.default_colormap, DEFAULT_COLORMAP))
+        self.sum_x_scale = tk.DoubleVar(root, 1)
+        self.sum_x_offset = tk.DoubleVar(root, 0)
+        self.sum_x_label = tk.StringVar(root, '')
         self.image_error = tk.StringVar(root, '')
         self.extra_plot_callbacks = []  # calls any function in this list on update_image
         self.roi_names = []
@@ -55,6 +60,8 @@ class NexusDetectorImage:
         ttk.Button(frm, text='Draw new ROI', command=self.mouse_select_roi).pack(side='left')
         self.detector_menu = ttk.OptionMenu(frm, self.detector_name, None, 'NXdetector', command=self.update_image_plot)
         self.detector_menu.pack(side='right')
+        self.plot_option_menu = ttk.OptionMenu(frm, self.plot_option, None, *self.PLOT_OPTIONS, command=self.update_image_plot)
+        self.plot_option_menu.pack(side='right')
 
         frm = ttk.Frame(section)
         frm.pack(side='top', expand=True, fill='both')
@@ -124,39 +131,51 @@ class NexusDetectorImage:
 
         frm = ttk.LabelFrame(window, text='Options', relief='ridge')
         frm.pack(expand=False, pady=2, padx=5)
+        line = ttk.Frame(frm)
+        line.pack(side='top', pady=2)
+        var = ttk.Checkbutton(line, text='Flip-y', variable=self.flip_y, command=self.update_image)
+        var.pack(side='left', padx=6)
+        var = ttk.Checkbutton(line, text='Flip-x', variable=self.flip_x, command=self.update_image)
+        var.pack(side='left', padx=6)
+        var = ttk.Checkbutton(line, text='Log', variable=self.logplot, command=self.update_image)
+        var.pack(side='left', padx=6)
+        var = ttk.Checkbutton(line, text='Diff', variable=self.difplot, command=self.update_image)
+        var.pack(side='left', padx=6)
 
-        var = ttk.Checkbutton(frm, text='Flip-y', variable=self.flip_y, command=self.update_image)
-        var.pack(side='left', padx=6)
-        var = ttk.Checkbutton(frm, text='Flip-x', variable=self.flip_x, command=self.update_image)
-        var.pack(side='left', padx=6)
-        var = ttk.Checkbutton(frm, text='Log', variable=self.logplot, command=self.update_image)
-        var.pack(side='left', padx=6)
-        var = ttk.Checkbutton(frm, text='Diff', variable=self.difplot, command=self.update_image)
-        var.pack(side='left', padx=6)
-
-        var = ttk.Label(frm, text='Mask <')
+        var = ttk.Label(line, text='Mask <')
         var.pack(side='left', expand=False, padx=6)
-        var = ttk.Entry(frm, textvariable=self.mask, width=6)
+        var = ttk.Entry(line, textvariable=self.mask, width=6)
         var.pack(side='left', padx=6)
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
-        var = ttk.OptionMenu(frm, self.colormap, self.colormap.get(), *COLORMAPS,
+        line = ttk.Frame(frm)
+        line.pack(side='top', pady=2)
+        var = ttk.OptionMenu(line, self.colormap, self.colormap.get(), *COLORMAPS,
                              command=self.update_colormap_details)
         var.pack(side='left')
 
-        var = ttk.Label(frm, text='clim:')
+        var = ttk.Label(line, text='clim:')
         var.pack(side='left', expand=False)
-        var = ttk.Entry(frm, textvariable=self.cmin, width=6)
+        var = ttk.Entry(line, textvariable=self.cmin, width=6)
         var.pack(side='left')
         var.bind('<Return>', self.update_colormap_details)
         var.bind('<KP_Enter>', self.update_colormap_details)
-        var = ttk.Entry(frm, textvariable=self.cmax, width=6)
+        var = ttk.Entry(line, textvariable=self.cmax, width=6)
         var.pack(side='left')
         var.bind('<Return>', self.update_colormap_details)
         var.bind('<KP_Enter>', self.update_colormap_details)
-        var = ttk.Checkbutton(frm, text='Fix', variable=self.fixclim)
+        var = ttk.Checkbutton(line, text='Fix', variable=self.fixclim)
         var.pack(side='left')
+
+        line = ttk.Frame(frm)
+        line.pack(side='top', pady=2)
+        ttk.Label(line, text='Sum Axis Label').pack(side='left', padx=2)
+        ttk.Entry(line, textvariable=self.sum_x_label, width=12).pack(side='left', padx=2)
+        ttk.Label(line, text='Scale').pack(side='left', padx=2)
+        ttk.Entry(line, textvariable=self.sum_x_scale, width=4).pack(side='left', padx=2)
+        ttk.Label(line, text='Offset').pack(side='left', padx=2)
+        ttk.Entry(line, textvariable=self.sum_x_offset, width=4).pack(side='left', padx=2)
 
         frm = ttk.Frame(window)
         frm.pack(side='top', expand=True, fill='x')
@@ -207,7 +226,8 @@ class NexusDetectorImage:
 
     def remove_im_lines(self):
         for obj in self._im_lines:
-            obj.remove()
+            if obj.axes:
+                obj.remove()
         self._im_lines.clear()
 
     def update_image_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
@@ -219,10 +239,19 @@ class NexusDetectorImage:
         detector_names = list(self.map.image_data.keys())
         # self.detector_menu['values'] = detector_names if detector_names else ['No 2D NXdetectors']
         self.detector_menu.set_menu(
+            detector_names[0],
             *detector_names
         )
         if not detector_names:
             return
+        # shape = self.map.datasets[self.map.image_data[detector_names[0]]].shape
+        shape = self.map.get_image_shape()
+        if shape[0] / shape[1] < 0.01:
+            self.plot_option.set(self.PLOT_OPTIONS[1])
+        elif shape[1] / shape[0] < 0.01:
+            self.plot_option.set(self.PLOT_OPTIONS[2])
+        else:
+            self.plot_option.set(self.PLOT_OPTIONS[0])
         self.add_config_rois()
         self.view_index.set(0)
         self.update_image_plot()
@@ -271,7 +300,7 @@ class NexusDetectorImage:
         if self.flip_x.get():
             image = np.fliplr(image)
         if self.logplot.get():
-            image = np.log10(image)
+            image = np.log10(image + 1)
         if self.difplot.get():
             raise Warning('Not implemented yet')
         if self.mask.get():
@@ -288,21 +317,31 @@ class NexusDetectorImage:
             return
         image, value = self._get_image()
 
-        cmap = self.colormap.get()
-        cmin, cmax = self._get_clim()
-        if not self.fixclim.get():
-            cmax = 1 + image.max() / 2
-            self.cmax.set(cmax)
-        # Add plot by removing old one
-        self.ax_image.remove()
-        self.rectangle.remove()
-        self.ax_image = self.im_ax.pcolormesh(image, shading='auto', clim=[cmin, cmax], cmap=cmap)
-        self.im_ax.set_xlim([0, image.shape[1]])
-        self.im_ax.set_ylim([0, image.shape[0]])
-        # self.rectangle = self.ax.axvspan(0, 0, alpha=0.9, facecolor='k', zorder=2)
+        # clear previous plot
+        self.im_ax.clear()
         self.rectangle = add_rectangle(self.im_ax, 0, 0, 0, 0)
-        self.plot_config_rois()
-        self.colorbar.update_normal(self.ax_image)
+        option = self.PLOT_OPTIONS.index(self.plot_option.get())
+        if option == 0:  # Image
+            cmap = self.colormap.get()
+            cmin, cmax = self._get_clim()
+            if not self.fixclim.get():
+                cmax = 1 + image.max() / 2
+                self.cmax.set(cmax)
+            self.ax_image = self.im_ax.pcolormesh(image, shading='auto', clim=[cmin, cmax], cmap=cmap)
+            self.im_ax.set_xlim((0, image.shape[1]))
+            self.im_ax.set_ylim((0, image.shape[0]))
+            self.im_ax.axis('image')
+            self.plot_config_rois()
+            self.colorbar.update_normal(self.ax_image)
+        elif 1 <= option <= 2:  # sum axis 0/1
+            line = image.sum(axis=option-1)
+            xdata = (self.sum_x_scale.get() * np.arange(len(line))) + self.sum_x_offset.get()
+            self.ax_image, = self.im_ax.plot(xdata, line, '-')
+            self.im_ax.axis('auto')
+            self.im_ax.set_xlabel(self.sum_x_label.get() or self.plot_option.get())
+            self.im_fig.tight_layout()
+            self.plot_config_rois()
+
         self.toolbar.update()
         self.im_fig.canvas.draw()
         # Load axis mode
@@ -318,9 +357,19 @@ class NexusDetectorImage:
             return
         image, value = self._get_image()
 
-        self.ax_image.set_array(image)
         self.update_value(value)
-        self.update_colormap_details()
+        option = self.PLOT_OPTIONS.index(self.plot_option.get())
+        if option == 0:  # Image
+            self.ax_image.set_array(image)
+            self.update_colormap_details()
+        elif 1 <= option <= 2:  # sum axis 0/1
+            line = image.sum(axis=option-1)
+            xdata = np.arange(len(line))
+            self.ax_image.set_data(xdata, line)
+            self.toolbar.update()
+            self.im_fig.canvas.draw()
+        # Update ROIs
+        self.plot_config_rois()
         # Run additional callbacks
         for function in self.extra_plot_callbacks:
             function()
@@ -374,13 +423,26 @@ class NexusDetectorImage:
         self.remove_im_lines()
         rois = self.config.get(C.roi)
         detector = self.detector_name.get()
+        option = self.PLOT_OPTIONS.index(self.plot_option.get())
+        shape = self.map.get_image_shape()
+        ymin, ymax = self.im_ax.get_ylim()
         if rois:
-            #TODO: replace with roi_box from hdfmap
             try:
                 with hdfmap.load_hdf(self.filename) as hdf:
                     for n, (name, cen_i, cen_j, wid_i, wid_j, det_name) in enumerate(rois):
                         if det_name == detector:
                             cen_i, cen_j, wid_i, wid_j = self.map.eval(hdf, f"{cen_i},{cen_j},{wid_i},{wid_j}")
+                            if self.flip_x.get():
+                                cen_j = shape[1] - cen_j
+                            if self.flip_y.get():
+                                # print(name, 'flip y:', shape, cen_i, shape[0] - cen_i)
+                                cen_i = shape[0] - cen_i
+                            if option == 1: # sum axis 0
+                                cen_i = (ymax + ymin) / 2
+                                wid_i = (ymax - ymin)
+                            elif option == 2:  # sum axis 1
+                                cen_j = (ymax + ymin) / 2
+                                wid_j = (ymax - ymin)
                             roi_square = np.array([
                                 # x, y
                                 [cen_i - wid_i // 2, cen_j - wid_j // 2],
@@ -389,14 +451,18 @@ class NexusDetectorImage:
                                 [cen_i + wid_i // 2, cen_j - wid_j // 2],
                                 [cen_i - wid_i // 2, cen_j - wid_j // 2],
                             ])
-                            self.im_line(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2)
-                            self.text(cen_j + wid_j // 2, cen_i + wid_i // 2, str(n))
+                            self.im_line(roi_square[:, 1], roi_square[:, 0], 'k-', lw=2, scaley=False, scalex=False)
+                            text_pos = roi_square.max(axis=0)
+                            self.text(text_pos[1] + wid_j * 0.05, text_pos[0] + wid_i * 0.1, str(n), va='top')
             except Exception as e:
                 self._show_image_error(f'Error plotting ROIs: {e}')
         self.im_fig.canvas.draw()
 
     def mouse_select_roi(self):
         """Select a roi with the mouse"""
+        if self.PLOT_OPTIONS.index(self.plot_option.get()) > 0:
+            return self.mouse_select_roi_1d()
+
         x_start = [0]
         y_start = [0]
         ipress = [False]
@@ -430,6 +496,7 @@ class NexusDetectorImage:
             x_cen = x_start[0] + x_wid/2
             y_cen = y_start[0] + y_wid/2
             detector = self.detector_name.get()
+            det_shape = self.map.get_image_shape()
             name = f"{detector}_roi"
             roi_count = 1
             roi_names = [roi[0] for roi in self.config.get(C.roi)]
@@ -437,10 +504,71 @@ class NexusDetectorImage:
                 roi_count += 1
             self.add_roi(
                 name=f"{name}{roi_count}",
-                cen_i=int(y_cen),
-                cen_j=int(x_cen),
-                wid_i=int(y_wid),
-                wid_j=int(x_wid),
+                cen_i=det_shape[0] - int(y_cen) if self.flip_y.get() else int(y_cen),
+                cen_j=det_shape[1] - int(x_cen) if self.flip_x.get() else int(x_cen),
+                wid_i=int(abs(y_wid)),
+                wid_j=int(abs(x_wid)),
+                image_name=detector
+            )
+            self.rectangle.set_bounds(0, 0, 0, 0)
+            self.im_fig.canvas.draw()
+            disconnect()
+
+        press = self.im_fig.canvas.mpl_connect('button_press_event', mouse_press)
+        move = self.im_fig.canvas.mpl_connect('motion_notify_event', mouse_move)
+        release = self.im_fig.canvas.mpl_connect('button_release_event', mouse_release)
+        self.im_fig.canvas._tkcanvas.master.config(cursor="crosshair")
+
+    def mouse_select_roi_1d(self):
+        """Select a roi with the mouse"""
+        x_start = [0]
+        y_start = [0]
+        ipress = [False]
+
+        def disconnect():
+            self.im_fig.canvas.mpl_disconnect(press)
+            self.im_fig.canvas.mpl_disconnect(move)
+            self.im_fig.canvas.mpl_disconnect(release)
+            self.im_fig.canvas._tkcanvas.master.config(cursor="arrow")
+
+        def mouse_press(event):
+            if event.inaxes:
+                x_start[0] = event.xdata
+                y_start[0] = event.ydata
+                ipress[0] = True
+            else:
+                disconnect()
+
+        def mouse_move(event):
+            if event.inaxes and ipress[0]:
+                y_min, y_max = self.im_ax.get_ylim()
+                x_end = event.xdata
+                # y_end = event.ydata
+                self.rectangle.set_bounds(x_start[0], y_min, x_end - x_start[0], y_max - y_min)
+                self.im_fig.canvas.draw()
+
+        def mouse_release(event):
+            x_end = event.xdata
+            y_end = event.ydata
+            x_wid = x_end - x_start[0]
+            y_wid = y_end - y_start[0]
+            x_cen = x_start[0] + x_wid/2
+            y_cen = y_start[0] + y_wid/2
+            detector = self.detector_name.get()
+            det_shape = self.map.get_image_shape()
+            sum_axis_n = self.PLOT_OPTIONS.index(self.plot_option.get()) - 1
+            sum_axis_len = det_shape[sum_axis_n]
+            name = f"{detector}_roi"
+            roi_count = 1
+            roi_names = [roi[0] for roi in self.config.get(C.roi)]
+            while f"{name}{roi_count}" in roi_names:
+                roi_count += 1
+            self.add_roi(
+                name=f"{name}{roi_count}",
+                cen_i=int(sum_axis_len // 2) if sum_axis_n == 0 else int(x_cen),
+                cen_j=int(sum_axis_len // 2) if sum_axis_n == 1 else int(x_cen),
+                wid_i=int(sum_axis_len) if sum_axis_n == 0 else int(x_wid),
+                wid_j=int(sum_axis_len) if sum_axis_n == 1 else int(x_wid),
                 image_name=detector
             )
             self.rectangle.set_bounds(0, 0, 0, 0)
