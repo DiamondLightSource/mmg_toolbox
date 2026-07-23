@@ -459,12 +459,14 @@ def load_from_i16_vortex(filename: str, sample_name: str | None = None,
         scan_no = m.eval(hdf, 'entry_identifier', default=get_scan_number(filename))
         monitor = m.eval(hdf, '(ic1monitor / ic1monitor[0]) / (rc / 300.)')
         axes, signal = m.nexus_default_names()
-        if 'energy' in axes:
+        if 'energy2' in axes:
             # incident energy scan
-            energy = m.eval(hdf, 'measurement_energy') * 1000  # keV -> eV
+            energy = m.eval(hdf, 'measurement_energy2') * 1000  # keV -> eV
             mode_spec = {
                 'tfy': m.eval(hdf, 'signal'),
             }
+            if 'Window_1' in signal:  # Vortex energy scan with energy window
+                mode_spec['pfy'] = m.eval(hdf, 'Window_1')
         else:
             # vortex spectrum
             volume = m.get_image(hdf, ())
@@ -497,8 +499,8 @@ def load_from_i16_vortex(filename: str, sample_name: str | None = None,
         cmd = m.eval(hdf, Md.cmd)
         pol = get_polarisation(hdf)
         pol_angle = get_polarisation_angle(hdf)
-        if pol == 'lh':
-            pol = get_i16_polarisation_from_phaseplate_cmd(cmd)
+        # if pol == 'lh':
+        #     pol = get_i16_polarisation_from_phaseplate_cmd(cmd)
         count_time = m.eval(hdf, Md.count_time)
         if sample_name is None:
             sample_name = m.eval(hdf, 'sample_name', '')

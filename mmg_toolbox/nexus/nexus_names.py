@@ -60,8 +60,8 @@ SEARCH_ATTRS = (NX_CLASS, 'local_name')  # DLS attribute 'local_name' helps matc
 # Polarisation field names inside NeXus groups
 # See https://manual.nexusformat.org/classes/base_classes/NXbeam.html#nxbeam
 NX_POLARISATION_FIELDS = [
-    'incident_polarization_stokes',  # NXbeam
     'incident_polarization',  # NXbeam
+    'incident_polarization_stokes',  # NXbeam
     'polarisation',  # DLS specific in NXinsertion_device
     'linear_arbitrary_angle',  # DLS specific in NXinsertion_device
 ]
