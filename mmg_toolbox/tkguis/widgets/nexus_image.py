@@ -46,18 +46,18 @@ class NexusDetectorImage:
         self.roi_names = []
 
         section = ttk.Frame(root)
-        section.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        section.pack(side='top', expand=True, fill='both')
 
         frm = ttk.Frame(section)
-        frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
-        ttk.Button(frm, text='Window', command=self.new_window).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frm, text='ROIs', command=self.roi_frame).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Draw new ROI', command=self.mouse_select_roi).pack(side=tk.LEFT)
+        frm.pack(side='top', expand=False, fill='x')
+        ttk.Button(frm, text='Window', command=self.new_window).pack(side='left', padx=5)
+        ttk.Button(frm, text='ROIs', command=self.roi_frame).pack(side='left')
+        ttk.Button(frm, text='Draw new ROI', command=self.mouse_select_roi).pack(side='left')
         self.detector_menu = ttk.OptionMenu(frm, self.detector_name, None, 'NXdetector', command=self.update_image_plot)
-        self.detector_menu.pack(side=tk.RIGHT)
+        self.detector_menu.pack(side='right')
 
         frm = ttk.Frame(section)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
         self.im_fig, self.im_ax, self._im_lines, self.ax_image, self.colorbar, self.toolbar = ini_image(
             frame=frm,
@@ -70,7 +70,7 @@ class NexusDetectorImage:
 
         # Error message
         frm = ttk.Frame(section)
-        frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        frm.pack(side='top', expand=False, fill='x')
         self.error_label = ttk.Label(frm, textvariable=self.image_error, style='error.TLabel')  # only pack this on error
 
         self.slider = self.ini_slider(root)
@@ -80,7 +80,7 @@ class NexusDetectorImage:
 
     def ini_slider(self, root: tk.Misc):
         frm = ttk.Frame(root)
-        frm.pack(expand=tk.NO, fill=tk.X, pady=2, padx=5)
+        frm.pack(expand=False, fill='x', pady=2, padx=5)
 
         def inc():
             new_val = self.view_index.get() + 1
@@ -95,73 +95,73 @@ class NexusDetectorImage:
                 self.update_image()
 
         var = ttk.Label(frm, text='Index:', width=8)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Button(frm, text='-', command=dec, width=2)
-        var.pack(side=tk.LEFT)
-        tkscale = ttk.Scale(frm, from_=0, to=100, variable=self.view_index, orient=tk.HORIZONTAL,
+        var.pack(side='left')
+        tkscale = ttk.Scale(frm, from_=0, to=100, variable=self.view_index, orient='horizontal',
                             command=self.update_image)
         # var.bind("<ButtonRelease-1>", callback)
-        tkscale.pack(side=tk.LEFT, expand=tk.YES, fill=tk.X)
+        tkscale.pack(side='left', expand=True, fill='x')
         var = ttk.Button(frm, text='+', command=inc, width=2)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Entry(frm, textvariable=self.view_index, width=3)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
         # axis mode
         var = ttk.Label(frm, textvariable=self.axis_value, width=12)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
         # Options button
         var = ttk.Button(frm, text='Options', command=self.options_frame)
-        var.pack(side=tk.LEFT, padx=3)
+        var.pack(side='left', padx=3)
         return tkscale
 
     def options_frame(self):
         """A hovering frame with options"""
         window, fun_close = create_hover(self.parent, top_left=(0, 0.1))
 
-        frm = ttk.LabelFrame(window, text='Options', relief=tk.RIDGE)
-        frm.pack(expand=tk.NO, pady=2, padx=5)
+        frm = ttk.LabelFrame(window, text='Options', relief='ridge')
+        frm.pack(expand=False, pady=2, padx=5)
 
         var = ttk.Checkbutton(frm, text='Flip-y', variable=self.flip_y, command=self.update_image)
-        var.pack(side=tk.LEFT, padx=6)
+        var.pack(side='left', padx=6)
         var = ttk.Checkbutton(frm, text='Flip-x', variable=self.flip_x, command=self.update_image)
-        var.pack(side=tk.LEFT, padx=6)
+        var.pack(side='left', padx=6)
         var = ttk.Checkbutton(frm, text='Log', variable=self.logplot, command=self.update_image)
-        var.pack(side=tk.LEFT, padx=6)
+        var.pack(side='left', padx=6)
         var = ttk.Checkbutton(frm, text='Diff', variable=self.difplot, command=self.update_image)
-        var.pack(side=tk.LEFT, padx=6)
+        var.pack(side='left', padx=6)
 
         var = ttk.Label(frm, text='Mask <')
-        var.pack(side=tk.LEFT, expand=tk.NO, padx=6)
+        var.pack(side='left', expand=False, padx=6)
         var = ttk.Entry(frm, textvariable=self.mask, width=6)
-        var.pack(side=tk.LEFT, padx=6)
+        var.pack(side='left', padx=6)
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
         var = ttk.OptionMenu(frm, self.colormap, self.colormap.get(), *COLORMAPS,
                              command=self.update_colormap_details)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
         var = ttk.Label(frm, text='clim:')
-        var.pack(side=tk.LEFT, expand=tk.NO)
+        var.pack(side='left', expand=False)
         var = ttk.Entry(frm, textvariable=self.cmin, width=6)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', self.update_colormap_details)
         var.bind('<KP_Enter>', self.update_colormap_details)
         var = ttk.Entry(frm, textvariable=self.cmax, width=6)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', self.update_colormap_details)
         var.bind('<KP_Enter>', self.update_colormap_details)
         var = ttk.Checkbutton(frm, text='Fix', variable=self.fixclim)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
         frm = ttk.Frame(window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
+        frm.pack(side='top', expand=True, fill='x')
         var = ttk.Button(frm, text='Close', command=fun_close)
-        var.pack(fill=tk.X)
+        var.pack(fill='x')
 
     def roi_frame(self):
         """a hovering frame with ROIs"""
