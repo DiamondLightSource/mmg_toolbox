@@ -106,8 +106,20 @@ class NexusPlotAndImage(NexusMultiAxisPlot, NexusDetectorImage):
     def add_config_rois(self):
         super().add_config_rois()
         # add rois to signal drop-down
+        current_items = [self.listbox.item(item_id, 'text') for item_id in self.listbox.get_children()]
         for item in self.roi_names:
-            self.listbox.insert("", tk.END, text=item)
+            if item not in current_items:
+                self.listbox.insert("", tk.END, text=item)
+
+    def add_roi(self, name: str, cen_i: int | str, cen_j: int | str,
+                wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE'):
+        super().add_roi(name, cen_i, cen_j, wid_i, wid_j, image_name)
+        select_name = f"{name}_total"
+        iid = next((iid for iid in self.listbox.get_children() if self.listbox.item(iid, 'text') == select_name), None)
+        if iid:
+            self.listbox.selection_set(iid)
+            self.listbox.focus(iid)
+            self.listbox.see(iid)
 
     def new_window(self):
         title = self.map.format_hdf(self.map.load_hdf(), self.config.get(C.scan_title, '')) or self.filename
