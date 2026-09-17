@@ -15,7 +15,7 @@ Conda           | <https://github.com/conda-forge/hdfmap-feedstock>
 
 
 ### Installation
-*Requires:* Python >=3.10, Numpy, h5py, matplotlib, hdfmap, nexus2srs
+*Requires:* Python >=3.10, Numpy, h5py, scipy, lmfit, matplotlib, hdfmap, nexus2srs
 ```bash
 python -m pip install mmg_toolbox
 ```

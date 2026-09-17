@@ -10,8 +10,8 @@ from mmg_toolbox.nexus import NexusScan, NexusDataHolder
 from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 from mmg_toolbox.scripts.experiment_startup import create_notebooks
 
-__version__ = '0.7.0'
-__date__ = '01/09/2026'
+__version__ = '0.7.1'
+__date__ = '17/09/2026'
 __author__ = 'Dan Porter'
 
 __all__ = ['start_gui', 'version_info', 'title', 'module_info',

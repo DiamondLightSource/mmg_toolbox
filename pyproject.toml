@@ -15,6 +15,7 @@ dependencies = [
     "scipy",
     "lmfit",
     "stomp.py",
+    "nexus2srs",
 ]
 requires-python = ">=3.10"
 authors = [{ name = "Dan Porter", email = "dan.porter@diamond.ac.uk" }]
@@ -49,7 +50,7 @@ powder = [
   "fabio",
 ]
 
-# full install with additional packages
+# full installation with additional packages
 full = [
   "mmg_toolbox[powder]",
   "mmg_toolbox[base]",
@@ -58,11 +59,22 @@ full = [
   "jupyter",
   "nbconvert",
   "nbformat",
-  "nexpy",
+  "papermill",
   "ipywidgets",
   "kaleido",
   "plotly",
+  "nexpy",
 ]
+
+dev = [
+    "mmg_toolbox[full]",
+    "pytest",
+    "scipy-stubs>=1.15.3.0",
+]
+
+[project.scripts]
+dataviewer = "mmg_toolbox.tkguis:cli_run"
+create_notebooks = "mmg_toolbox.scripts.experiment_startup:cli_create_notebooks"
 
 [tool.setuptools]
 packages = [
@@ -92,6 +104,3 @@ packages = [
 [tool.setuptools.dynamic]
 version = { attr = "mmg_toolbox.__version__" }
 
-[project.scripts]
-dataviewer = "mmg_toolbox.tkguis:cli_run"
-create_notebooks = "mmg_toolbox.scripts.experiment_startup:cli_create_notebooks"
