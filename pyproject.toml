@@ -82,6 +82,7 @@ packages = [
     'mmg_toolbox.beamline_metadata',
     'mmg_toolbox.data',
     'mmg_toolbox.scripts',
+    'mmg_toolbox.scripts.templates',
     'mmg_toolbox.diffraction',
     'mmg_toolbox.diffraction.powder',
     'mmg_toolbox.misc',
@@ -98,8 +99,8 @@ packages = [
 ]
 
 [tool.setuptools.package-data]
-"mmg_toolbox.data" = ["*.json"]
-"mmg_toolbox.scripts" = ["*.ipynb"]
+"mmg_toolbox.data" = ["*.json", "*.poni"]
+"mmg_toolbox.scripts.templates" = ["*.ipynb", "*.py"]
 
 [tool.setuptools.dynamic]
 version = { attr = "mmg_toolbox.__version__" }

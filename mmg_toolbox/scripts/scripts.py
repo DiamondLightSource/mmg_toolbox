@@ -2,10 +2,6 @@
 Script & Notebook templates
 """
 
-#TODO: move templates into template folder
-#TODO: update locations for template folder
-#TODO: update package information to include template folder
-
 import os
 import re
 import datetime
@@ -84,7 +80,7 @@ def list_templates() -> str:
     for n, opt in [('Script', SCRIPTS), ('Notebook', NOTEBOOKS)]:
         s += f"\n----{n} Templates----\n"
         for name, (file, description) in opt.items():
-            template_file = os.path.join(os.path.dirname(__file__), file)
+            template_file = os.path.join(str(os.path.dirname(__file__)), 'templates', file)
             replacements = check_replacements(template_file)
             r_str = ', '.join(replacements)
             s += f"{name:30}: {description:100} : {r_str}\n"
@@ -94,7 +90,7 @@ def list_templates() -> str:
 def generate_script(template_name: str, **replacements) -> str:
     """generate script str from template"""
     template_file, description = SCRIPTS[template_name]
-    template_file = os.path.join(os.path.dirname(__file__), template_file)
+    template_file = os.path.join(str(os.path.dirname(__file__)), 'templates', template_file)
     template_changes = TEMPLATE.copy()
     template_changes[R.date] = str(datetime.date.today())
     template_changes.update(replacements)
