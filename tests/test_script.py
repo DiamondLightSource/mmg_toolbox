@@ -2,6 +2,27 @@
 test user interface
 """
 
+from mmg_toolbox.scripts.scripts import (check_replacements, find_all_replacements,
+                                         TEMPLATE, NOTEBOOKS, SCRIPTS, R, Rxas,
+                                         generate_script, create_script, create_notebook)
+
+def test_xmcd_script():
+    files1 = ['12345.nxs', '12346.nxs']
+    files2 = ['12347.nxs', '12348.nxs']
+    opt = {
+        Rxas.files1: '\n    '.join(f"'{f}'," for f in files1),
+        Rxas.files2: '\n    '.join(f"'{f}'," for f in files2),
+        Rxas.mode: 'TEY',
+        Rxas.proc: '.',
+        Rxas.description: 'test - description',
+        Rxas.title: 'xmcd test',
+        Rxas.background: 'linear'
+    }
+    script = generate_script('xmcd', **opt)
+    print(script)
+    assert len(script) > 1000
+    assert "background = 'linear'" in script
+
 import numpy as np
 from mmg_toolbox.tkguis.misc.styles import create_root
 # from mmg_toolbox.tkguis.widgets.python_editor import PythonEditor

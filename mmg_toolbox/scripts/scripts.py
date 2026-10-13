@@ -25,13 +25,23 @@ class R:
     value = 'value'
 
 
+class Rxas(R):
+    """Names used in XAS script replacements"""
+    files1 = 'xas_files1'
+    files2 = 'xas_files2'
+    mode = 'xas_mode'
+    background = 'xas_background'
+
+
+
 SCRIPTS = {
     # name: (filename, description)
     'example': ('example_script.py', 'a simple example script'),
     'plot multi-line': ('experiment_multiline.py', 'create a multi-line plot'),
     'peak fitting': ('experiment_fitting.py', 'fit peaks and plot the results'),
     'spectra': ('spectra_script.py', 'normalise spectra and subtract polarisations'),
-    'qbpm': ('qbpm_script.py', 'determine PhasePlate offset using QBPM detector')
+    'qbpm': ('qbpm_script.py', 'determine PhasePlate offset using QBPM detector'),
+    'xmcd': ('xmcd_script.py', 'process pairs of spectra and subtract the average')
 }
 
 NOTEBOOKS = {
@@ -67,7 +77,7 @@ def check_replacements(template_file: str) -> list[str]:
     """Return list of replacement names in file"""
     template_string = open(template_file, 'r').read()
     all_replacements = find_all_replacements(template_string)
-    allowed_replacements = [v for n, v in vars(R).items() if not n.startswith('_') and isinstance(v, str)]
+    allowed_replacements = [v for n, v in vars(Rxas).items() if not n.startswith('_') and isinstance(v, str)]
     bad_replacements = [r for r in all_replacements if r not in allowed_replacements]
     if bad_replacements:
         print(f"Warning: bad replacements in '{os.path.basename(template_file)}': {bad_replacements}")

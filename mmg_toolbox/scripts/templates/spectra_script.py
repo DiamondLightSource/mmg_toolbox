@@ -75,5 +75,5 @@ plt.tight_layout(h_pad=0.1, w_pad=0.1)
 
 # create processed nexus file
 xmcd_filename = f"{spectras[0].metadata.scan_no}-{spectras[-1].metadata.scan_no}_{xmcd.name}.nxs"
-xmcd.write_nexus('{{experiment_dir}}/' + xmcd_filename)
+xmcd.write_nexus('{{processing_dir}}/' + xmcd_filename)
 
