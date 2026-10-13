@@ -9,7 +9,7 @@ import hdfmap
 from ..utils.misc_functions import numbers2string
 from ..utils.env_functions import scan_number_mapping, last_folder_update, get_beamline_from_directory
 from ..utils.surface_grid import coordinates_to_grid, interpolate_to_grid
-from ..beamline_metadata.config import beamline_config, C, add_roi
+from ..beamline_metadata.config import beamline_config, C, add_roi, META_STRING, BEAMLINE_META
 from ..nexus.nexus_scan import NexusScan, NexusDataHolder
 from ..xas import SpectraContainer, find_similar_measurements, average_polarised_scans
 
@@ -376,7 +376,6 @@ class Experiment:
                  hdf_map: hdfmap.NexusMap | None = None) -> str:
         """Read scan file and return metadata string"""
         if metadata_str is None:
-            from ..tkguis.misc.beamline_metadata import META_STRING, BEAMLINE_META
             if self.instrument in BEAMLINE_META:
                 metadata_str = BEAMLINE_META[self.instrument]
             else:

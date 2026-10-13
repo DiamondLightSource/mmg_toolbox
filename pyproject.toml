@@ -73,7 +73,6 @@ dev = [
 ]
 
 [project.scripts]
-dataviewer = "mmg_toolbox.tkguis:cli_run"
 create_notebooks = "mmg_toolbox.scripts.experiment_startup:cli_create_notebooks"
 
 [tool.setuptools]
@@ -91,11 +90,6 @@ packages = [
     'mmg_toolbox.utils',
     'mmg_toolbox.xas',
     'mmg_toolbox.fitting',
-    'mmg_toolbox.tkguis',
-    'mmg_toolbox.tkguis.misc',
-    'mmg_toolbox.tkguis.widgets',
-    'mmg_toolbox.tkguis.apps',
-    'mmg_toolbox.tkguis.xmcd_visualiser',
 ]
 
 [tool.setuptools.package-data]

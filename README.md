@@ -41,18 +41,8 @@ scan.plot.show()
 ```
 
 ### Usage - DataViewer
-Start the dataviewer from a terminal
-```bash
-$ dataviewer
-```
-Or, to open the data viewer in the current folder:
-```bash
-$ dataviewer .
-```
-Or, to open the file viewer for a specific file:
-```bash
-dataviewer path/to/file.nxs
-```
+The DataViewer has now been moved out of mmg_toolbox and into a separate repository. 
+See [mmg_tk_dataviewer]().
 
 ### Usage - Scripting
 mmg_toolbox contains many useful tools for data analysis in python scripts, for example:
@@ -86,7 +76,7 @@ script can then start a Jupyter Lab instance in that directory.
 | `$ create_notebooks -b i10-1 .` | create i10-1 specific scripts in the current directory |
 | `$ create_notebooks --help`     | additional options                                     |
 
-### Dataviewer
+### DataViewer
 mmg_toolbox contains a tkinter based dataviewer for viewing data in NeXus files. Various plotting and processing 
 capabilities are available.
 ![mmg_dataviewer](docs/images/mmg_dataviewer.png)
