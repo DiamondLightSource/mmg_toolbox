@@ -163,6 +163,7 @@ def test_average_polarised_scans():
     assert xmcd.spectra['tey'].signal.max() == approx(0.145, abs=0.001)
     assert 'xmcd' == xmcd.name
     assert 'xmcd' in xmcd.analysis_steps_str()
+    assert xmcd.label() == '37436-37439 xmcd FeL3, L2 T=10K B=+0T'
     assert xmcd.parents[0].parents[0].parents[0].parents[0].parents == ()
     assert xmcd.get_raw_filename() == FILES_DICT['i10-1 Fe L3,2 +1T pc']
     orbital, spin = xmcd.calculate_sum_rules()

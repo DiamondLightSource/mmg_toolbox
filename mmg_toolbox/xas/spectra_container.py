@@ -491,8 +491,9 @@ class SpectraContainerSubtraction(SpectraContainer):
             static = f"'{self.metadata.pol}'"
         else:
             static = f"B={round(self.metadata.mag_field, 5):+.3g}T"
+        scan_nos = list(self.get_raw_metadata('scan_no').values())
         return (
-            f"{p1.metadata.scan_no}-{p2.metadata.scan_no} {self.process_label} " +
+            f"{min(scan_nos)}-{max(scan_nos)} {self.process_label} " +
             f"{self.metadata.element}{self.metadata.edge} " +
             f"T={round(self.metadata.temp, 1):.3g}K " + static
         )
