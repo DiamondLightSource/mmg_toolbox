@@ -67,20 +67,33 @@ TEMPLATE = {
     R.value: 'sample_temperature?(300)'
 }
 
+def get_script_file(template_name: str) -> str:
+    """Get script file path"""
+    template_file, description = SCRIPTS[template_name]
+    template_file = os.path.join(str(os.path.dirname(__file__)), 'templates', template_file)
+    return template_file
+
+
+def get_notebook_file(template_name: str) -> str:
+    """Get notebook file path"""
+    template_file, description = NOTEBOOKS[template_name]
+    template_file = os.path.join(str(os.path.dirname(__file__)), 'templates', template_file)
+    return template_file
+
 
 def find_all_replacements(string: str) -> list[str]:
     """find all replacements in string"""
     return re_replacement.findall(string)
 
 
-def check_replacements(template_file: str) -> list[str]:
+def check_replacements(template_filename: str) -> list[str]:
     """Return list of replacement names in file"""
-    template_string = open(template_file, 'r').read()
+    template_string = open(template_filename, 'r').read()
     all_replacements = find_all_replacements(template_string)
-    allowed_replacements = [v for n, v in vars(Rxas).items() if not n.startswith('_') and isinstance(v, str)]
+    allowed_replacements = [getattr(Rxas, name) for name in dir(Rxas) if not name.startswith('_')]
     bad_replacements = [r for r in all_replacements if r not in allowed_replacements]
     if bad_replacements:
-        print(f"Warning: bad replacements in '{os.path.basename(template_file)}': {bad_replacements}")
+        print(f"Warning: bad replacements in '{os.path.basename(template_filename)}': {bad_replacements}")
     return all_replacements
 
 
@@ -92,15 +105,14 @@ def list_templates() -> str:
         for name, (file, description) in opt.items():
             template_file = os.path.join(str(os.path.dirname(__file__)), 'templates', file)
             replacements = check_replacements(template_file)
-            r_str = ', '.join(replacements)
-            s += f"{name:30}: {description:100} : {r_str}\n"
+            r_str = ', '.join(set(replacements))
+            s += f"{name:30}: {description:50} : {r_str}\n"
     return s
 
 
 def generate_script(template_name: str, **replacements) -> str:
     """generate script str from template"""
-    template_file, description = SCRIPTS[template_name]
-    template_file = os.path.join(str(os.path.dirname(__file__)), 'templates', template_file)
+    template_file = get_script_file(template_name)
     template_changes = TEMPLATE.copy()
     template_changes[R.date] = str(datetime.date.today())
     template_changes.update(replacements)
@@ -124,8 +136,7 @@ def create_script(new_script_path: str, template_name: str, **replacements):
 
 def create_notebook(new_notebook_path: str, template_name: str, **replacements):
     """create script from template"""
-    template_file, description = NOTEBOOKS[template_name]
-    template_file = os.path.join(os.path.dirname(__file__), template_file)
+    template_file = get_notebook_file(template_name)
     template_changes = TEMPLATE.copy()
     template_changes[R.date] = str(datetime.date.today())
     template_changes.update(replacements)

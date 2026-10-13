@@ -2,9 +2,61 @@
 test user interface
 """
 
-from mmg_toolbox.scripts.scripts import (check_replacements, find_all_replacements,
-                                         TEMPLATE, NOTEBOOKS, SCRIPTS, R, Rxas,
-                                         generate_script, create_script, create_notebook)
+import os
+from mmg_toolbox.scripts.scripts import (list_templates, generate_script,
+                                         R, Rxas,
+                                         create_script, create_notebook)
+
+def test_list_templates(capsys):
+    out = list_templates()
+    warnings = capsys.readouterr()
+
+    print('\n', out)
+    assert 'Warning' not in warnings.out, "Warnings listed in list_templates()"
+    assert len(out) > 300
+
+
+def test_example_script():
+    scan_files = ['12345.nxs', '12346.nxs']
+    replacements = {
+        R.filepaths: '\n    '.join(f"'{f}'," for f in scan_files),
+        R.beamline: 'i16',
+        R.scannos: '[12345, 12346]',
+        R.title: 'Test Title',
+        R.description: 'Created by test_script.py',
+    }
+    script = generate_script('example', **replacements)
+    print(script)
+    assert len(script) > 400
+    assert "filenames = [\n    '12345.nxs',\n    '12346.nxs',\n]" in script, 'formatting wrong'
+    assert "data = scan.get_plot_data('axes', 'signal')" in script, 'default axes incorrect'
+
+    create_script('test_script.py', 'example', **replacements)
+    assert os.path.isfile('test_script.py')
+    os.remove('test_script.py')
+
+
+def test_example_notebook():
+    replacements = {
+        R.exp: '/dls/i16/data/2026/cm12345-1',
+        R.beamline: 'i16',
+        R.scannos: '[12345, 12346]',
+        R.title: 'Test Title',
+        R.description: 'Created by test_script.py',
+        R.scanno: '9999',
+        R.value: 'Ta',
+        R.xaxis: 'axes',
+        R.yaxis: 'signal / Transmission',
+    }
+    create_notebook('test_notebook.ipynb', 'example', **replacements)
+
+    assert os.path.isfile('test_notebook.ipynb')
+    nb = open('test_notebook.ipynb', 'r').read()
+    assert "exp = Experiment('/dls/i16/data/2026/cm12345-1', instrument='i16')" in nb
+    assert "exp.plot.multi_lines(*[12345, 12346], xaxis='axes', yaxis='signal / Transmission')" in nb
+
+    os.remove('test_notebook.ipynb')
+
 
 def test_xmcd_script():
     files1 = ['12345.nxs', '12346.nxs']
@@ -21,57 +73,7 @@ def test_xmcd_script():
     script = generate_script('xmcd', **opt)
     print(script)
     assert len(script) > 1000
+    assert "files_pol1 = [\n    '12345.nxs',\n    '12346.nxs',\n]" in script
     assert "background = 'linear'" in script
-
-import numpy as np
-from mmg_toolbox.tkguis.misc.styles import create_root
-# from mmg_toolbox.tkguis.widgets.python_editor import PythonEditor
-# # from mmg_toolbox.tkguis.widgets.folder_treeview import NexusFolderTreeViewFrame
-# from mmg_toolbox.tkguis.widgets.nexus_treeview import HDFViewer
-# from mmg_toolbox.tkguis.widgets.simple_plot import NexusDefaultPlot
-from mmg_toolbox.tkguis import create_nexus_file_browser, create_data_viewer, create_title_window
-from mmg_toolbox.tkguis.widgets.scan_selector import FolderScanSelector
-# from mmg_toolbox.tkguis.widgets.nexus_details import NexusDetails
-from mmg_toolbox.tkguis.widgets.nexus_image import NexusDetectorImage
-from mmg_toolbox.tkguis.misc.logging import set_all_logging_level
-from mmg_toolbox.tkguis.misc.matplotlib import ini_image
-
-if __name__ == '__main__':
-    pass
-    # set_all_logging_level('debug')
-    # window = create_file_browser()
-
-    # f = "/scratch/grp66007/data/i16/das_example_data/1041304.nxs"
-    # f = r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus\1041304.nxs"
-    # root = create_root('details')
-    # NexusDetails(root, hdf_filename=f)
-    # root.mainloop()
-
-    # # HDFViewer(f)
-    # obj = NexusDefaultPlot(f)
-    # obj.root.mainloop()
-
-    # root = create_root('folder')
-    # root.geometry('200x300')
-    # FolderScanSelector(root)
-    # root.mainloop()
-
-    # create_data_viewer(r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus")
-    # create_title_window()
-
-    # root = create_root('image')
-    # NexusDetectorImage(root, hdf_filename=r"C:\Users\grp66007\OneDrive - Diamond Light Source Ltd\I16\Nexus_Format\example_nexus\1041304.nxs")
-    # root.mainloop()
-
-    # root = create_root('Image')
-    # fig, ax, ax_image, colorbar, toolbar = ini_image(root)
-    # ax_image.remove()
-    # ax_image = ax.pcolormesh(10 * np.random.rand(200, 50), shading='auto')
-    # ax.set_xlim([0, 50])
-    # ax.set_ylim([0, 200])
-    # fig.canvas.draw()
-    # root.mainloop()
-
-
 
 
