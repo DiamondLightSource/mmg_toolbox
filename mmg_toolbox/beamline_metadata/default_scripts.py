@@ -58,6 +58,8 @@ def create_beamline_scripts(beamline: str, directory: str, prefix: str = '', **r
         R.title: 'mmg_toolbox Example Script',
     }
     template.update(replacements)  # note that additional values are added on create_script/notebook
+    print(f"Creating Scripts: {default_scripts['scripts']}")
+    print(f"Creating Notebooks: {default_scripts['notebooks']}")
     # Create script files
     for script_name in default_scripts['scripts']:
         filename = os.path.join(directory, script_name + '.py')
