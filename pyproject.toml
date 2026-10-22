@@ -70,6 +70,10 @@ dev = [
     "mmg_toolbox[full]",
     "pytest",
     "scipy-stubs>=1.15.3.0",
+    "mkdocs-techdocs-diamond",
+    "mkdocstrings[python]",
+    "ruamel.yaml",
+    "mkdocs-jupyter>=0.26.3",
 ]
 
 [project.scripts]
