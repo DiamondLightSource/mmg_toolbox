@@ -4,8 +4,8 @@ Functions to load data from i06-1 and i10-1 beamline XAS measurements
 
 import numpy as np
 import h5py
-import hdfmap
 import datetime
+from hdfmap import NexusMap, load_hdf
 
 from mmg_toolbox.utils.file_functions import get_scan_number
 from mmg_toolbox.utils.file_reader import read_dat_file
@@ -14,6 +14,7 @@ from mmg_toolbox.utils.polarisation import (get_polarisation, get_polarisation_a
                                             get_i16_polarisation_from_phaseplate_cmd)
 from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
+from mmg_toolbox.beamline_metadata.hdfmap_generic import ROI_SUFFIXES
 
 from .spectra_analysis import energy_range_edge_label, nearest_edge_label
 from .spectra import Spectra
@@ -23,22 +24,22 @@ from .metadata import XasMetadata
 
 def is_nxxas(filename: str) -> bool:
     """Return True if the NeXus file contains an entry or sub-entry with application definition NXxas"""
-    return bool(nx_find_data(hdfmap.load_hdf(filename), 'NXentry', 'definition') == 'NXxas')
+    return bool(nx_find_data(load_hdf(filename), 'NXentry', 'definition') == 'NXxas')
 
 
 def is_i16vortex(filename: str) -> bool:
     """Return True if file is from i16 and uses the vortex detector"""
-    return bool(nx_find(hdfmap.load_hdf(filename), 'NXinstrument', ['xmapMca', 'xsp3']))
+    return bool(nx_find(load_hdf(filename), 'NXinstrument', ['xmapMca', 'xsp3']))
 
 
 def is_processed(filename: str) -> bool:
     """Return True if the NeXus file has been written by mmg_toolbox.xas"""
-    return bool(nx_find_data(hdfmap.load_hdf(filename), 'NXentry', 'NXprocess', 'program') == 'mmg_toolbox.xas')
+    return bool(nx_find_data(load_hdf(filename), 'NXentry', 'NXprocess', 'program') == 'mmg_toolbox.xas')
 
 
 def is_subtraction(filename: str) -> bool:
     """Return True if the NeXus file contains Spectra Subtraction like XMCD or XMLD"""
-    return bool(nx_find(hdfmap.load_hdf(filename), 'NXxas', 'sum_rules'))
+    return bool(nx_find(load_hdf(filename), 'NXxas', 'sum_rules'))
 
 
 def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: dict[str, np.ndarray],
@@ -348,7 +349,8 @@ def load_from_nxs(filename: str, sample_name=None, element_edge=None,
 
 
 def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
-                               element_edge: str | None = None, mode: str | list[str] = 'all') -> SpectraContainer:
+                               element_edge: str | None = None, mode: str | list[str] = 'all',
+                               hdfmap: NexusMap | None = None) -> SpectraContainer:
     """
     Load XAS Spectra from NeXus file with arbitrary application definition
 
@@ -357,15 +359,19 @@ def load_from_nxs_using_hdfmap(filename: str, sample_name: str | None = None,
     :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
     :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
     :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :param hdfmap: NexusMap from hdfmap, namespace of datasets in NeXus file
     :return: SpectraContainer
     """
     if isinstance(mode, str):
         mode = [mode]
 
-    with hdfmap.load_hdf(filename) as hdf:
+    with load_hdf(filename) as hdf:
         # HdfMap creates data-path namespace
-        m = hdfmap.NexusMap()
-        m.populate(hdf)
+        if hdfmap is None:
+            m = NexusMap()
+            m.populate(hdf)
+        else:
+            m = hdfmap
 
         # scan data
         scan_no = m.eval(hdf, 'entry_identifier', default=get_scan_number(filename))
@@ -425,7 +431,7 @@ def load_xmcd_from_processed_nxs(filename: str, mode: str | list[str] = 'all') -
     """
     spectra: SpectraContainerSubtraction = load_from_nxs(filename, mode=mode)
     # # Add raw files for each polarisation
-    # with hdfmap.load_hdf(filename) as hdf:
+    # with load_hdf(filename) as hdf:
     #     group = nx_find(hdf, 'sum_rules')
     #     if group:
     #         files1 = {scan_no: filename for scan_no, filename in group['raw_files1'].items()}
@@ -434,8 +440,10 @@ def load_xmcd_from_processed_nxs(filename: str, mode: str | list[str] = 'all') -
     #         spectra.metadata.raw_files2 = files2
     return spectra
 
+
 def load_from_i16_vortex(filename: str, sample_name: str | None = None,
-                         element_edge: str | None = None, mode: str | list[str] = 'all') -> SpectraContainer:
+                         element_edge: str | None = None, mode: str | list[str] = 'all',
+                         hdfmap: NexusMap | None = None) -> SpectraContainer:
     """
     Load XAS Spectra from NeXus file from I16 with a VorteX energy dispersion detector
 
@@ -445,15 +453,18 @@ def load_from_i16_vortex(filename: str, sample_name: str | None = None,
     :param sample_name: sample name, e.g. 'sample1' or None to load from NeXus file
     :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
     :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
+    :param hdfmap: NexusMap from hdfmap, namespace of datasets in NeXus file
     :return: SpectraContainer
     """
     if isinstance(mode, str):
         mode = [mode]
 
-    with hdfmap.load_hdf(filename) as hdf:
-        # HdfMap creates data-path namespace
-        m = hdfmap.NexusMap()
-        m.populate(hdf)
+    with load_hdf(filename) as hdf:
+        if hdfmap is None:
+            m = NexusMap()
+            m.populate(hdf)
+        else:
+            m = hdfmap
 
         # scan data
         scan_no = m.eval(hdf, 'entry_identifier', default=get_scan_number(filename))
@@ -467,7 +478,21 @@ def load_from_i16_vortex(filename: str, sample_name: str | None = None,
             }
             if 'Window_1' in signal:  # Vortex energy scan with energy window
                 mode_spec['pfy'] = m.eval(hdf, 'Window_1')
-        else:
+            # Find ROIs
+            alternate_name_rois = {
+                next((name.removesuffix(sfx) for sfx in ROI_SUFFIXES if name.endswith(sfx)), name)
+                for name, expression in m.alternate_names.items()
+                if expression.startswith('d_xsp3')
+            }
+            for roi in alternate_name_rois:
+                mode_spec[roi] = m.eval(hdf, roi + '_total')
+            # Add other input options
+            for _mode in mode:
+                if _mode in m.scannables or _mode in m.alternate_names:
+                    _signal = m.eval(hdf, _mode)
+                    if np.size(_signal) == np.size(energy):
+                        mode_spec[_mode] = _signal
+        elif  'xsp3' in m or 'xmapMca' in m:
             # vortex spectrum
             volume = m.get_image(hdf, ())
             spectrum = volume.sum(axis=tuple(range(volume.ndim-1)))
@@ -482,6 +507,8 @@ def load_from_i16_vortex(filename: str, sample_name: str | None = None,
                 element, edge = nearest_edge_label(peak_energy)
                 element_edge = f"{element} {edge}"
                 print(f"Element edge: {element_edge} found at peak energy {peak_energy} eV")
+        else:
+            raise Exception(f"No energy spectra found in scan {filename}")
 
         default_mode = next(iter(mode_spec)) if mode[0].lower() in ['default', 'all'] else mode[0]
 
@@ -530,7 +557,8 @@ def load_from_i16_vortex(filename: str, sample_name: str | None = None,
     )
 
 def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge: str | None = None,
-                   mode: str | list[str] = 'all', dls_loader: bool = False) -> list[SpectraContainer]:
+                   mode: str | list[str] = 'all', dls_loader: bool = False,
+                   hdfmap: NexusMap | None = None) -> list[SpectraContainer]:
     """
     Load XAS Spectra from a list of scan files
 
@@ -540,18 +568,19 @@ def load_xas_scans(*filenames: str, sample_name: str | None = None, element_edge
     :param element_edge: element edge, e.g. 'FeL3' or None to determine from energy range
     :param mode: detector values to load, 'all', 'default' or e.g. 'tey', 'tfy' as specified in file
     :param dls_loader: bool, if True uses explicit loading of metadata from DLS MMG beamlines
+    :param hdfmap: NexusMap from hdfmap, namespace of datasets in NeXus file
     :return: SpectraContainer
     """
     scans = [
         load_from_dat(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         if filename.endswith('.dat')
-        else load_from_i16_vortex(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
+        else load_from_i16_vortex(filename, sample_name=sample_name, element_edge=element_edge, mode=mode, hdfmap=hdfmap)
         if is_i16vortex(filename)
         else load_xmcd_from_processed_nxs(filename, mode=mode)
         if is_subtraction(filename)
         else load_from_nxs(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
         if not dls_loader and is_nxxas(filename)
-        else load_from_nxs_using_hdfmap(filename, sample_name=sample_name, element_edge=element_edge, mode=mode)
+        else load_from_nxs_using_hdfmap(filename, sample_name=sample_name, element_edge=element_edge, mode=mode, hdfmap=hdfmap)
         for filename in filenames
     ]
     return scans

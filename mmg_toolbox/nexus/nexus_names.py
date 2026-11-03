@@ -34,6 +34,8 @@ NX_MODULE_SIZE = 'data_size'
 NX_MODULE_OFFSET = 'module_offset'
 NX_MODULE_FAST = 'fast_pixel_direction'
 NX_MODULE_SLOW = 'slow_pixel_direction'
+NX_START = 'start_time'
+NX_END = 'end_time'
 
 # Attributes
 NX_CLASS = 'NX_class'

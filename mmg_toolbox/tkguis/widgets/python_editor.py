@@ -86,19 +86,19 @@ class PythonEditorFrame:
         "----------- Textbox -----------"
 
         txt = ttk.Frame(root)
-        txt.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        txt.pack(side='top', expand=True, fill='both')
 
         # Scrollbars
-        scanx = ttk.Scrollbar(txt, orient=tk.HORIZONTAL)
-        scanx.pack(side=tk.BOTTOM, fill=tk.X)
-        scany = ttk.Scrollbar(txt, orient=tk.VERTICAL)
-        scany.pack(side=tk.RIGHT, fill=tk.Y)
+        scanx = ttk.Scrollbar(txt, orient='horizontal')
+        scanx.pack(side='bottom', fill='x')
+        scany = ttk.Scrollbar(txt, orient='vertical')
+        scany.pack(side='right', fill='y')
 
         # Text numbers
         border = 10
-        self.textno = tk.Text(txt, width=3, font=FONT, borderwidth=border, relief=tk.FLAT)
-        self.textno.pack(side=tk.LEFT, fill=tk.Y, expand=tk.YES)
-        self.textno.config(yscrollcommand=scany.set, state=tk.DISABLED)
+        self.textno = tk.Text(txt, width=3, font=FONT, borderwidth=border, relief='flat')
+        self.textno.pack(side='left', fill='y', expand=True)
+        self.textno.config(yscrollcommand=scany.set, state='disabled')
 
         # TEXT box
         # Add a hefty border width so we can achieve a little bit of padding
@@ -107,15 +107,15 @@ class PythonEditorFrame:
             background=Colours.background,
             foreground=Colours.normal,
             insertbackground=Colours.normal,
-            relief=tk.FLAT,
+            relief='flat',
             borderwidth=border,
             font=FONT,
             undo=True,
             autoseparators=True,
             maxundo=-1,
-            wrap=tk.NONE
+            wrap='none'
         )
-        self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
+        self.text.pack(side='left', fill='both', expand=True)
         self.text.insert('1.0', self.script_string)
         self.text.bind('<KeyRelease>', self.changes)
         self.text.bind('<Return>', self.auto_indent)
@@ -130,9 +130,9 @@ class PythonEditorFrame:
         scanx.config(command=self.text.xview)
         scany.config(command=self.text.yview)
 
-        frm = ttk.Frame(root, relief=tk.RIDGE, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-        ttk.Button(frm, text='RUN', command=self.run).pack(side=tk.RIGHT, pady=5)
+        frm = ttk.Frame(root, relief='ridge', borderwidth=2)
+        frm.pack(side='top', fill='both', expand=True)
+        ttk.Button(frm, text='RUN', command=self.run).pack(side='right', pady=5)
 
 
         self.changes()
@@ -357,23 +357,23 @@ class PythonTerminalFrame:
     def __init__(self, root: tk.Misc):
 
         txt = ttk.Frame(root)
-        txt.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        txt.pack(side='top', expand=True, fill='both')
 
         # Scrollbars
-        scanx = ttk.Scrollbar(txt, orient=tk.HORIZONTAL)
-        scanx.pack(side=tk.BOTTOM, fill=tk.X)
-        scany = ttk.Scrollbar(txt, orient=tk.VERTICAL)
-        scany.pack(side=tk.RIGHT, fill=tk.Y)
+        scanx = ttk.Scrollbar(txt, orient='horizontal')
+        scanx.pack(side='bottom', fill='x')
+        scany = ttk.Scrollbar(txt, orient='vertical')
+        scany.pack(side='right', fill='y')
 
         # Text numbers
         border = 10
-        self.textno = tk.Text(txt, width=3, font=FONT, borderwidth=border, relief=tk.FLAT)
-        self.textno.pack(side=tk.LEFT, fill=tk.Y, expand=tk.NO)
-        self.textno.config(yscrollcommand=scany.set, state=tk.DISABLED)
+        self.textno = tk.Text(txt, width=3, font=FONT, borderwidth=border, relief='flat')
+        self.textno.pack(side='left', fill='y', expand=False)
+        self.textno.config(yscrollcommand=scany.set, state='disabled')
 
         # Terminal
         frm = ttk.Frame(txt)
-        frm.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
+        frm.pack(side='left', fill='both', expand=True)
         # history
         self.history_str = f"Python {sys.version} on {sys.platform}\n"
         self.text = tk.Text(
@@ -381,33 +381,33 @@ class PythonTerminalFrame:
             background=Colours.background,
             foreground=Colours.normal,
             insertbackground=Colours.normal,
-            relief=tk.FLAT,
+            relief='flat',
             borderwidth=border,
             font=FONT,
             undo=True,
             autoseparators=True,
             maxundo=-1,
-            wrap=tk.NONE
+            wrap='none'
         )
-        self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
+        self.text.pack(side='left', fill='both', expand=True)
         self.text.insert('1.0', self.history_str)
-        self.text.config(xscrollcommand=scanx.set, yscrollcommand=scany.set, state=tk.DISABLED)
+        self.text.config(xscrollcommand=scanx.set, yscrollcommand=scany.set, state='disabled')
         # entry
         self.entry = tk.Text(
             frm,
             background=Colours.background,
             foreground=Colours.normal,
             insertbackground=Colours.normal,
-            relief=tk.FLAT,
+            relief='flat',
             borderwidth=border,
             font=FONT,
             undo=True,
             autoseparators=True,
             maxundo=-1,
-            wrap=tk.NONE,
+            wrap='none',
             height=2
         )
-        self.entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
+        self.entry.pack(side='left', fill='both', expand=True)
         self.entry.insert('1.0', ">>> ")
         self.entry.bind('<KeyRelease>', self.changes)
         self.entry.bind('<Return>', self.auto_indent)

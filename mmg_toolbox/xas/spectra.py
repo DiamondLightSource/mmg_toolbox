@@ -156,6 +156,13 @@ class Spectra:
         return Spectra(en, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode, parameters=parameters)
 
+    def shift(self, energy_shift=1.0):
+        """Shift spectra in energy by [energy_shift] eV"""
+        proc_label = 'shift'
+        process = f"shift spectra in energy by {energy_shift:.2f} eV"
+        return Spectra(self.energy + energy_shift, self.signal, parents=[self], background=self.background, label=self.label,
+                       process_label=proc_label, process=process, mode=self.mode, parameters={'ev': energy_shift})
+
     def divide_by_signal_at_energy(self, energy1: float, energy2: float | None = None) -> Spectra:
         """Divide spectra by signal"""
         value = self.signal_at_energy(energy1, energy2)

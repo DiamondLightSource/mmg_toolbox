@@ -41,7 +41,7 @@ class NexusDataViewer:
         grid_options = dict(padx=5, pady=5, sticky='nsew')
 
         window = ttk.Frame(self.root)
-        # window.pack(fill=tk.BOTH, expand=tk.YES)
+        # window.pack(fill='both', expand=True)
         window.grid(column=0, row=0, **grid_options)
         window.rowconfigure(0, weight=1)
         window.rowconfigure(1, weight=1)
@@ -56,7 +56,7 @@ class NexusDataViewer:
 
         # BOTTOM-LEFT
         frm = ttk.LabelFrame(window, text='Details')
-        # frm.pack(side=tk.LEFT, fill=tk.Y, expand=tk.YES, padx=2, pady=2)
+        # frm.pack(side='left', fill='y', expand=True, padx=2, pady=2)
         frm.grid(column=0, row=1, **grid_options)
         self.detail_widget = NexusDetails(frm, config=self.config)
 

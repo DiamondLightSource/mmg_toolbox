@@ -13,6 +13,7 @@ from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
 
+from mmg_toolbox.plotting.matplotlib import new_plot, plot_line
 from mmg_toolbox.utils.polarisation import pol_subtraction_label, PolLabels
 from mmg_toolbox.xas import spectra_analysis as spa
 from mmg_toolbox.xas.spectra import Spectra, SpectraSubtraction
@@ -206,9 +207,38 @@ class SpectraContainer:
             ax.text(energy, 0.9, edge_label, color='k', alpha=0.3,
                     ha='right', va='top', transform=ax.get_xaxis_transform())
 
+    def plot(self, mode: str | None = None, *args,
+             axes: plt.Axes | None = None, background: bool = False, parents: bool = False,
+             **kwargs) -> plt.Axes:
+        """
+        Create matplotlib axes of single mode
+
+            ax = spectra.plot('tfy')
+
+        :param mode: mode to plot, or None for default
+        :param args: given directly to plt.plot(..., *args, **kwars)
+        :param axes: matplotlib.axes subplot, or None to create a figure
+        :param background: whether to add a background line
+        :param parents: whether to add parents spectra to plot
+        :param kwargs: given directly to plt.plot(..., *args, **kwars)
+        :return: matplotlib Axes
+        """
+        axes = new_plot() if axes is None else axes
+        spectra = self.spectra[mode or self.metadata.default_mode]
+        spectra.plot(axes, *args, **kwargs)
+        if background:
+            spectra.plot_bkg(axes, *args, **kwargs)
+        if parents:
+            spectra.plot_parents(axes, *args, **kwargs)
+        self.add_edge_lines(axes)
+        axes.legend()
+        return axes
+
     def create_figure(self, **kwargs) -> plt.Figure:
         """
         Create matplotlib figure showing each spectra in a separate axes
+
+            fig = spectra.create_figure()
 
         :param kwargs: kwargs to pass to plt.figure
         :return: matplotlib Figure
@@ -226,6 +256,8 @@ class SpectraContainer:
     def create_background_figure(self, **kwargs) -> plt.Figure:
         """
         Create matplotlib figure showing each spectra and background subtraction in separate axes
+
+            fig = spectra.create_background_figure()
 
         :param kwargs: kwargs to pass to plt.figure
         :return: matplotlib Figure
@@ -264,6 +296,10 @@ class SpectraContainer:
         """Trim spectra between energies"""
         return self._process_spectra('trim', ev_from_start, ev_from_end)
 
+    def shift(self, energy_shift=1.0) -> SpectraContainer:
+        """Shift spectra in energy by [energy_shift] eV"""
+        return self._process_spectra('shift', energy_shift)
+
     def divide_by_signal_at_energy(self, energy1: float, energy2: float | None = None) -> SpectraContainer:
         """Divide spectra by signal"""
         return self._process_spectra('divide_by_signal_at_energy', energy1, energy2)
@@ -283,6 +319,20 @@ class SpectraContainer:
     def divide_by_jump(self, ev_from_start: float = 5, ev_from_end: float | None = None) -> SpectraContainer:
         """Normalise the spectra to the jump between edges"""
         return self._process_spectra('divide_by_jump', ev_from_start, ev_from_end)
+
+    def _prepare_edges_kwargs(self, name: str, *args, **kwargs) -> tuple[tuple, dict]:
+        """Prepare args, kwargs for processing"""
+        edges = self.get_edges()
+        if name == 'double_edge_step':
+            l3 = next((val for key, val in edges.items() if 'l3' in key.lower()), None)
+            l2 = next((val for key, val in edges.items() if 'l2' in key.lower()), None)
+            if l3 and 'l3_energy' not in kwargs:
+                kwargs['l3_energy'] = l3
+            if l2 and 'l2_energy' not in kwargs:
+                kwargs['l2_energy'] = l2
+        elif (name == 'poly_edges' or name == 'exp_edges') and not args:
+            args = tuple(edges.values())
+        return args, kwargs
 
     def divide_by_background(self, name='flat', *args, **kwargs) -> SpectraContainer:
         """
@@ -308,6 +358,7 @@ class SpectraContainer:
         :param kwargs: additional keyword arguments
         :return: processed SpectraContainer object
         """
+        args, kwargs = self._prepare_edges_kwargs(name, *args, **kwargs)
         return self._process_spectra('remove_background', name, *args, **kwargs)
 
     def remove_background(self, name='flat', *args, **kwargs) -> SpectraContainer:
@@ -317,7 +368,7 @@ class SpectraContainer:
           spectra = spectra.remove_background('flat', ev_from_start=5)
 
         Background options
-        | Option | parameters |
+        | Option | parameters |  # TODO: this doesn't show up in mkdocs
         |  ---   | ---------- |
         | 'flat' | ev_from_start |
         | 'norm' | ev_from_start |
@@ -334,11 +385,12 @@ class SpectraContainer:
         :param kwargs: additional keyword arguments
         :return: processed SpectraContainer object
         """
+        args, kwargs = self._prepare_edges_kwargs(name, *args, **kwargs)
         return self._process_spectra('remove_background', name, *args, **kwargs)
 
     def auto_edge_background(self, peak_width_ev: float = 5., edges: dict[str, float] | None = None) -> SpectraContainer:
         """Remove generic xray absorption background from spectra"""
-        return self._process_spectra('auto_edge_background', peak_width_ev, edges)
+        return self._process_spectra('auto_edge_background', peak_width_ev, edges or self.get_edges())
 
 
 class SpectraContainerAverage(SpectraContainer):
@@ -367,6 +419,14 @@ class SpectraContainerAverage(SpectraContainer):
 
     def __repr__(self):
         return f"SpectraContainerAverage('{self.name}', '{self.process_label}', {list(self.spectra)})"
+
+    def align_spectra(self, mode: str | None = None, differentiate=True) -> SpectraContainerAverage:
+        """Align parent spectra and return a new SpectraContainerAverage"""
+        mode = mode or self.metadata.default_mode
+        spectra = [parent.spectra[mode] for parent in self.parents]
+        shifts = spa.find_shifts(*((s.energy, s.signal) for s in spectra), differentiate=differentiate)
+        parents = [parent.shift(shift) for parent, shift in zip(self.parents, shifts)]
+        return SpectraContainerAverage(*parents)
 
 
 class SpectraContainerSubtraction(SpectraContainer):
@@ -417,14 +477,23 @@ class SpectraContainerSubtraction(SpectraContainer):
         s = super().__str__()
         return s + '\n' + self.sum_rules_report()
 
+    def align_spectra(self, mode: str | None = None, differentiate=True) -> SpectraContainerSubtraction:
+        """Align parent spectra and return a new SpectraContainerSubtraction"""
+        mode = mode or self.metadata.default_mode
+        spectra = [parent.spectra[mode] for parent in self.parents]
+        shifts = spa.find_shifts(*((s.energy, s.signal) for s in spectra), differentiate=differentiate)
+        parents = [parent.shift(shift) for parent, shift in zip(self.parents, shifts)]
+        return SpectraContainerSubtraction(*parents)
+
     def label(self):
         p1, p2 = self.parents
         if 'field' in self.process_label:
             static = f"'{self.metadata.pol}'"
         else:
             static = f"B={round(self.metadata.mag_field, 5):+.3g}T"
+        scan_nos = list(self.get_raw_metadata('scan_no').values())
         return (
-            f"{p1.metadata.scan_no}-{p2.metadata.scan_no} {self.process_label} " +
+            f"{min(scan_nos)}-{max(scan_nos)} {self.process_label} " +
             f"{self.metadata.element}{self.metadata.edge} " +
             f"T={round(self.metadata.temp, 1):.3g}K " + static
         )

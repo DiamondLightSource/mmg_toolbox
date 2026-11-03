@@ -49,41 +49,41 @@ class MultiScanAnalysis:
         self.file_list = []
 
         # sec = ttk.LabelFrame(self.root, text='Folders')
-        # sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        # sec.pack(side='top', fill='both', expand=True, padx=4, pady=4)
         #
         # frm = ttk.Frame(sec)
-        # frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        # ttk.Label(frm, text='Data Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        # ttk.Entry(frm, textvariable=self.exp_folder, width=60).pack(side=tk.LEFT)
-        # ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side=tk.LEFT)
+        # frm.pack(side='top', fill='x', expand=True, padx=4)
+        # ttk.Label(frm, text='Data Dir:', width=15).pack(side='left', padx=4)
+        # ttk.Entry(frm, textvariable=self.exp_folder, width=60).pack(side='left')
+        # ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side='left')
         #
         # frm = ttk.Frame(sec)
-        # frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        # ttk.Label(frm, text='Analysis Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        # ttk.Entry(frm, textvariable=self.proc_folder, width=60).pack(side=tk.LEFT)
-        # ttk.Button(frm, text='Browse', command=self.browse_analysis).pack(side=tk.LEFT)
+        # frm.pack(side='top', fill='x', expand=True, padx=4)
+        # ttk.Label(frm, text='Analysis Dir:', width=15).pack(side='left', padx=4)
+        # ttk.Entry(frm, textvariable=self.proc_folder, width=60).pack(side='left')
+        # ttk.Button(frm, text='Browse', command=self.browse_analysis).pack(side='left')
 
         # Axis + Metadata selection
         sec = ttk.LabelFrame(self.root, text='Axes')
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        sec.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
         frm = ttk.Frame(sec)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        ttk.Label(frm, text='X:', width=2).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(frm, textvariable=self.x_axis, width=20).pack(side=tk.LEFT)
-        ttk.Button(frm, text=':', command=self.browse_x_axis, width=1).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='x', expand=True, padx=4)
+        ttk.Label(frm, text='X:', width=2).pack(side='left', padx=2)
+        ttk.Entry(frm, textvariable=self.x_axis, width=20).pack(side='left')
+        ttk.Button(frm, text=':', command=self.browse_x_axis, width=1).pack(side='left')
 
-        ttk.Label(frm, text='Y:', width=2).pack(side=tk.LEFT, padx=4)
-        ttk.Entry(frm, textvariable=self.y_axis, width=20).pack(side=tk.LEFT)
-        ttk.Button(frm, text=':', command=self.browse_y_axis, width=1).pack(side=tk.LEFT)
+        ttk.Label(frm, text='Y:', width=2).pack(side='left', padx=4)
+        ttk.Entry(frm, textvariable=self.y_axis, width=20).pack(side='left')
+        ttk.Button(frm, text=':', command=self.browse_y_axis, width=1).pack(side='left')
 
-        ttk.Label(frm, text='Metadata:', width=15).pack(side=tk.LEFT, padx=4)
-        ttk.Entry(frm, textvariable=self.metadata_name, width=20).pack(side=tk.LEFT)
-        ttk.Button(frm, text=':', command=self.browse_metadata, width=1).pack(side=tk.LEFT)
+        ttk.Label(frm, text='Metadata:', width=15).pack(side='left', padx=4)
+        ttk.Entry(frm, textvariable=self.metadata_name, width=20).pack(side='left')
+        ttk.Button(frm, text=':', command=self.browse_metadata, width=1).pack(side='left')
 
         # Range selection
         sec = ttk.LabelFrame(self.root, text='Scan Numbers')
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        sec.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
         self.range = ScanRangeSelector(sec, exp_directory, self.config, metadata_getter=self.metadata_name)
         self.range.exp_folder.set(exp_directory)
@@ -91,29 +91,29 @@ class MultiScanAnalysis:
             self.range.text.insert("1.0", str(scan_numbers))
 
         line = ttk.Frame(self.root)
-        line.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
-        ttk.Button(line, text='Plot', command=self.plot_legend, width=10).pack(side=tk.LEFT)
-        ttk.Button(line, text='Plot lines', command=self.plot_lines, width=10).pack(side=tk.LEFT)
-        ttk.Button(line, text='Plot Meta', command=self.plot_metadata, width=10).pack(side=tk.LEFT)
-        ttk.Button(line, text='Multi-Plot', command=self.multiplot, width=10).pack(side=tk.LEFT)
-        ttk.Button(line, text='Plot 2D', command=self.plot2d, width=10).pack(side=tk.LEFT)
-        ttk.Button(line, text='Plot 3D', command=self.plot3d, width=10).pack(side=tk.LEFT)
-        ttk.Button(line, text='Plot Surf', command=self.plot3d, width=10).pack(side=tk.LEFT)
+        line.pack(side='top', expand=True, pady=8, padx=4)
+        ttk.Button(line, text='Plot', command=self.plot_legend, width=10).pack(side='left')
+        ttk.Button(line, text='Plot lines', command=self.plot_lines, width=10).pack(side='left')
+        ttk.Button(line, text='Plot Meta', command=self.plot_metadata, width=10).pack(side='left')
+        ttk.Button(line, text='Multi-Plot', command=self.multiplot, width=10).pack(side='left')
+        ttk.Button(line, text='Plot 2D', command=self.plot2d, width=10).pack(side='left')
+        ttk.Button(line, text='Plot 3D', command=self.plot3d, width=10).pack(side='left')
+        ttk.Button(line, text='Plot Surf', command=self.plot3d, width=10).pack(side='left')
 
         line = ttk.Frame(self.root)
-        line.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
-        ttk.Button(line, text='Fits', command=self.fitting, width=10).pack(side=tk.LEFT)
-        ttk.Button(line, text='Convert to dat', command=self.convert2dat).pack(side=tk.LEFT)
-        ttk.Button(line, text='XMCD', command=self.xmcd_visualiser, width=10).pack(side=tk.LEFT)
+        line.pack(side='top', expand=True, pady=8, padx=4)
+        ttk.Button(line, text='Fits', command=self.fitting, width=10).pack(side='left')
+        ttk.Button(line, text='Convert to dat', command=self.convert2dat).pack(side='left')
+        ttk.Button(line, text='XMCD', command=self.xmcd_visualiser, width=10).pack(side='left')
 
         # Scripts
         script_names = ('Scripts:',) + tuple(SCRIPTS) + ('Notebooks:',) + tuple(NOTEBOOKS)
         self.scripts = {f"{n:2} {name}": name for n, name in enumerate(script_names)}
-        ttk.Button(line, text='Create', command=self.script_create).pack(side=tk.LEFT, padx=(20, 0))
+        ttk.Button(line, text='Create', command=self.script_create).pack(side='left', padx=(20, 0))
         var = ttk.OptionMenu(line, self.script_name, 'Script', *self.scripts,
                              command=self.script_select)
-        var.pack(side=tk.LEFT, padx=4)
-        ttk.Label(line, textvariable=self.script_desc).pack(side=tk.LEFT)
+        var.pack(side='left', padx=4)
+        ttk.Label(line, textvariable=self.script_desc).pack(side='left')
 
     def browse_datadir(self):
         folder = select_folder(self.root)

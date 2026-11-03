@@ -61,7 +61,7 @@ class FolderTreeViewFrame(CanvasTreeview):
 
         # search label
         frm = ttk.Frame(self.root)
-        frm.pack(fill=tk.X, side=tk.TOP)
+        frm.pack(fill='x', side='top')
         ttk.Label(frm, textvariable=self.search_label, style='smallMsg.TLabel').pack()
 
         # Populate
@@ -75,28 +75,28 @@ class FolderTreeViewFrame(CanvasTreeview):
 
     def ini_folderpath(self):
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
         var = ttk.Button(frm, text='Browse', command=self.browse_folder, width=8)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Button(frm, text=u'\u2302', command=self.home_folder, width=3)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Button(frm, text=u'\u2190', command=self.back_folder, width=3)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Button(frm, text=u'\u2191', command=self.up_folder, width=3)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Entry(frm, textvariable=self.filepath, width=30)
-        var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+        var.pack(side='left', expand=True, fill='both')
         var.bind('<Return>', self.populate_folders)
         var.bind('<KP_Enter>', self.populate_folders)
 
         # var = ttk.Checkbutton(frm, text='Show hidden', variable=self.show_hidden, command=self.populate_folders)
-        # var.pack(side=tk.LEFT)
+        # var.pack(side='left')
 
         var = ttk.Button(frm, text='Options', command=self.file_options)
-        var.pack(side=tk.RIGHT)
+        var.pack(side='right')
         var = ttk.Button(frm, text='Search', command=self.search_options)
-        var.pack(side=tk.RIGHT)
+        var.pack(side='right')
 
     "======================================================"
     "=============== populate functions ==================="
@@ -212,23 +212,23 @@ class FolderTreeViewFrame(CanvasTreeview):
         window, fun_close = create_hover(self.root)
 
         frm = ttk.Frame(window, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        ttk.Label(frm, text='Extension: ').pack(side=tk.LEFT)
-        ttk.OptionMenu(frm, self.extension, self.extension.get(), *self.extensions).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='both')
+        ttk.Label(frm, text='Extension: ').pack(side='left')
+        ttk.OptionMenu(frm, self.extension, self.extension.get(), *self.extensions).pack(side='left')
 
         frm = ttk.Frame(window, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        frm.pack(side='top', fill='both')
         ttk.Checkbutton(
             frm, text='Show hidden files', variable=self.show_hidden, command=self.populate_folders
-        ).pack(side=tk.LEFT)
+        ).pack(side='left')
         
         def close():
             self.update_datasets()
             fun_close()
 
         frm = ttk.Frame(window, borderwidth=10)
-        frm.pack(side=tk.BOTTOM, fill=tk.BOTH)
-        ttk.Button(frm, text='Close', command=close).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        frm.pack(side='bottom', fill='both')
+        ttk.Button(frm, text='Close', command=close).pack(side='left', fill='x', expand=True)
         
         return window
 
@@ -240,11 +240,11 @@ class FolderTreeViewFrame(CanvasTreeview):
         whole_word = tk.BooleanVar(window, False)
 
         frm = ttk.Frame(window, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        ttk.Label(frm, text='Filename: ').pack(side=tk.LEFT)
-        ttk.Entry(frm, textvariable=file_search, width=20).pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, text='Match case: ', variable=match_case).pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, text='Whole word: ', variable=whole_word).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='both')
+        ttk.Label(frm, text='Filename: ').pack(side='left')
+        ttk.Entry(frm, textvariable=file_search, width=20).pack(side='left')
+        ttk.Checkbutton(frm, text='Match case: ', variable=match_case).pack(side='left')
+        ttk.Checkbutton(frm, text='Whole word: ', variable=whole_word).pack(side='left')
 
         def search():
             self._search(
@@ -254,9 +254,9 @@ class FolderTreeViewFrame(CanvasTreeview):
             )
 
         frm = ttk.Frame(window, borderwidth=10)
-        frm.pack(side=tk.BOTTOM, fill=tk.BOTH)
-        ttk.Button(frm, text='Search', command=search).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES, padx=5)
-        ttk.Button(frm, text='Close', command=fun_close).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        frm.pack(side='bottom', fill='both')
+        ttk.Button(frm, text='Search', command=search).pack(side='left', fill='x', expand=True, padx=5)
+        ttk.Button(frm, text='Close', command=fun_close).pack(side='left', fill='x', expand=True)
 
         return window
 
@@ -506,36 +506,36 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
                 )
 
         sec = ttk.LabelFrame(window, text='NeXus Files')
-        sec.pack(side=tk.TOP, fill=tk.BOTH)
+        sec.pack(side='top', fill='both')
 
         frm = ttk.Frame(sec, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
+        frm.pack(side='top', fill='both')
         ttk.Checkbutton(
             frm, text='Read dataset', variable=self.read_datasets
-        ).pack(side=tk.LEFT)
+        ).pack(side='left')
 
         frm = ttk.Frame(sec, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        ttk.Label(frm, text='File:', width=12).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='both')
+        ttk.Label(frm, text='File:', width=12).pack(side='left')
         var = ttk.Entry(frm, textvariable=hdf_filename)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', get_hdf_path)
         var.bind('<KP_Enter>', get_hdf_path)
 
         frm = ttk.Frame(sec, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        ttk.Label(frm, text='Name:', width=12).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='both')
+        ttk.Label(frm, text='Name:', width=12).pack(side='left')
         var = ttk.Entry(frm, textvariable=dataset_name)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', get_hdf_path)
         var.bind('<KP_Enter>', get_hdf_path)
 
         frm = ttk.Frame(sec, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        # ttk.Button(frm, text='NeXus Dataset Path', command=self.select_dataset).pack(side=tk.LEFT)
-        ttk.Label(frm, text='Path:', width=12).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='both')
+        # ttk.Button(frm, text='NeXus Dataset Path', command=self.select_dataset).pack(side='left')
+        ttk.Label(frm, text='Path:', width=12).pack(side='left')
         var = ttk.Entry(frm, textvariable=self.hdf_path)
-        var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+        var.pack(side='left', expand=True, fill='both')
         var.bind('<Return>', self.update_datasets)
         var.bind('<KP_Enter>', self.update_datasets)
 
@@ -551,25 +551,25 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
         ds_whole_word = tk.BooleanVar(window, False)
 
         frm = ttk.Frame(window, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        ttk.Label(frm, text='Filename: ', width=12).pack(side=tk.LEFT)
-        ttk.Entry(frm, textvariable=file_search, width=20).pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, text='Match case: ', variable=match_case).pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, text='Whole word: ', variable=whole_word).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='both')
+        ttk.Label(frm, text='Filename: ', width=12).pack(side='left')
+        ttk.Entry(frm, textvariable=file_search, width=20).pack(side='left')
+        ttk.Checkbutton(frm, text='Match case: ', variable=match_case).pack(side='left')
+        ttk.Checkbutton(frm, text='Whole word: ', variable=whole_word).pack(side='left')
 
         sec = ttk.LabelFrame(window, text='NeXus', borderwidth=4)
-        sec.pack(side=tk.TOP, fill=tk.BOTH)
+        sec.pack(side='top', fill='both')
 
         frm = ttk.Frame(sec, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        ttk.Label(frm, text='Dataset: ', textvariable=self.hdf_path).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='both')
+        ttk.Label(frm, text='Dataset: ', textvariable=self.hdf_path).pack(side='left')
 
         frm = ttk.Frame(sec, borderwidth=2)
-        frm.pack(side=tk.TOP, fill=tk.BOTH)
-        ttk.Label(frm, text='Search: ', width=12).pack(side=tk.LEFT)
-        ttk.Entry(frm, textvariable=dataset_search, width=20).pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, text='Match case: ', variable=ds_match_case).pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, text='Whole word: ', variable=ds_whole_word).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='both')
+        ttk.Label(frm, text='Search: ', width=12).pack(side='left')
+        ttk.Entry(frm, textvariable=dataset_search, width=20).pack(side='left')
+        ttk.Checkbutton(frm, text='Match case: ', variable=ds_match_case).pack(side='left')
+        ttk.Checkbutton(frm, text='Whole word: ', variable=ds_whole_word).pack(side='left')
 
         def search():
             self._search(
@@ -588,10 +588,10 @@ class NexusFolderTreeViewFrame(FolderTreeViewFrame):
             )
 
         frm = ttk.Frame(window, borderwidth=10)
-        frm.pack(side=tk.BOTTOM, fill=tk.BOTH)
-        ttk.Button(frm, text='Dataset\nSearch', command=ds_search).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES, padx=5)
-        ttk.Button(frm, text='Search', command=search).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES, padx=5)
-        ttk.Button(frm, text='Close', command=fun_close).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        frm.pack(side='bottom', fill='both')
+        ttk.Button(frm, text='Dataset\nSearch', command=ds_search).pack(side='left', fill='x', expand=True, padx=5)
+        ttk.Button(frm, text='Search', command=search).pack(side='left', fill='x', expand=True, padx=5)
+        ttk.Button(frm, text='Close', command=fun_close).pack(side='left', fill='x', expand=True)
 
         return window
 

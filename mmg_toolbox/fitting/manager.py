@@ -156,8 +156,7 @@ class ScanFitManager:
         """
         Fit x,y data to a peak model using lmfit
 
-        E.G.:
-          res = self.multi_peak_fit('axes', 'signal', npeaks=2, model='Gauss')
+          res = scan.fit.multi_peak_fit('axes', 'signal', npeaks=2, model='Gauss')
           print(res)
           res.plot()
           val1 = res.p1_amplitude
@@ -237,7 +236,6 @@ class ScanFitManager:
         """
         Fit data from scan against lmfit model
 
-        Example:
             from lmfit.models import GaussianModel, LinearModel
             mod = GaussainModel(prefix='p1_') + LinearModel(prefix='bkg_')
             pars = mod.make_params()

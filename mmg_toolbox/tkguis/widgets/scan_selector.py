@@ -168,6 +168,15 @@ class _ScanSelector(CanvasTreeview):
                 filenames.append(filepath)
         return filenames
 
+    def get_metadata(self) -> list[dict[str, str]]:
+        return [
+            {
+                name: self.tree.set(iid, name)
+                for name in self.metadata_names
+            }
+            for iid in self.tree.selection()
+        ]
+
     def copy_path(self):
         filepath, folderpath = self.get_filepath()
         self.root.clipboard_clear()
@@ -176,6 +185,18 @@ class _ScanSelector(CanvasTreeview):
         else:
             self.root.clipboard_append(folderpath)
 
+    def copy_scan_number(self):
+        scn = next((self.tree.item(iid)['text'] for iid in self.tree.selection()), None)
+        self.root.clipboard_clear()
+        if scn:
+            self.root.clipboard_append(scn)
+
+    def copy_data(self):
+        metadata = next(iter(self.get_metadata()), {})
+        data = next(iter(metadata.values()), '')
+        self.root.clipboard_clear()
+        self.root.clipboard_append(data)
+
     def _create_menu(self, iid: str | int):
 
         menu = tk.Menu(self.root, tearoff=0)
@@ -183,6 +204,9 @@ class _ScanSelector(CanvasTreeview):
 
         filepath = self.tree.set(iid, 'filepath')
         if os.path.isfile(filepath):
+            metadata = next(iter(self.metadata_names))
+            menu.add_command(label="Copy Scan Number", command=self.copy_scan_number)
+            menu.add_command(label=f"Copy {metadata}", command=self.copy_data)
             menu.add_command(label="open Treeview", command=self.open_nexus_treeview)
             menu.add_command(label="open Plot", command=self.open_nexus_plot)
             menu.add_command(label="open Image", command=self.open_nexus_image)
@@ -333,24 +357,24 @@ class FolderScanSelector(_ScanSelector):
 
     def ini_folderpath(self):
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, fill=tk.X)
+        frm.pack(side='top', fill='x')
 
-        ttk.Button(frm, text='Add Folder', command=self.browse_folder).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Search', command=self.search_options).pack(side=tk.RIGHT)
+        ttk.Button(frm, text='Add Folder', command=self.browse_folder).pack(side='left')
+        ttk.Button(frm, text='Search', command=self.search_options).pack(side='right')
 
     def ini_file_select(self):
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, fill=tk.X)
+        frm.pack(side='top', fill='x')
 
         var = ttk.Entry(frm, textvariable=self.select_box, width=12)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind("<Return>", self.select_from_box)
         var.bind('<KP_Enter>', self.select_from_box)
-        ttk.Button(frm, text='-', command=self.select_box_decrease, width=2).pack(side=tk.LEFT)
-        ttk.Button(frm, text='+', command=self.select_box_increase, width=2).pack(side=tk.LEFT)
+        ttk.Button(frm, text='-', command=self.select_box_decrease, width=2).pack(side='left')
+        ttk.Button(frm, text='+', command=self.select_box_increase, width=2).pack(side='left')
 
-        ttk.Button(frm, text='Search', command=self.search_options).pack(side=tk.RIGHT)
-        ttk.Button(frm, text='Add Folder', command=self.browse_folder).pack(side=tk.RIGHT)
+        ttk.Button(frm, text='Search', command=self.search_options).pack(side='right')
+        ttk.Button(frm, text='Add Folder', command=self.browse_folder).pack(side='right')
 
     "======================================================"
     "=============== populate functions ==================="
@@ -440,7 +464,7 @@ class ScanViewer(_ScanSelector):
 
         self.tree.bind("<Button-3>", self.right_click_menu())
 
-        ttk.Button(self.root, text=button_name, command=self.select_scans).pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+        ttk.Button(self.root, text=button_name, command=self.select_scans).pack(side='top', fill='x', expand=True)
 
         self.populate_files("", *scan_files)
 

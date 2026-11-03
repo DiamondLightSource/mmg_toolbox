@@ -23,6 +23,7 @@ class R:
     weights = 'weights'
     yerror = 'yerror'
     yfit = 'yfit'
+    yinit = 'yinit'
     amplitude = 'amplitude'
     center = 'center'
     fwhm = 'fwhm'
@@ -47,6 +48,7 @@ def peak_results(res: ModelResult) -> dict:
         'chisqr': Chi^2 of fit,
         'xdata': x-data used for fit,
         'ydata': y-data used for fit,
+        'yinit': initial guess for fit,
         'yfit': y-fit values,
         'weights': res.weights,
         'yerror': 1 / res.weights if res.weights is not None else 0 * res.data,
@@ -83,6 +85,7 @@ def peak_results(res: ModelResult) -> dict:
         R.weights: res.weights,
         R.yerror: 1 / res.weights if res.weights is not None else 0 * res.data,
         R.yfit: res.best_fit,
+        R.yinit: res.init_fit,
     }
     for comp_prefx, comp in comps.items():
         fit_dict['%sfit' % comp_prefx] = comp

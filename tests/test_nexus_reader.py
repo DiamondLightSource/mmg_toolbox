@@ -16,7 +16,7 @@ def test_read_nexus_file():
     f = DIR + '/i16/1109527.nxs'
     scan = read_nexus_file(f)
     assert isinstance(scan, NexusDataHolder)
-    assert len(scan.eta_fly) == 61
+    assert len(scan.eta_fly_fly) == 61
     assert scan.roi2_sum.max() == 692919
     assert abs(scan.metadata.Tsample-300) < 0.1
     assert scan.scan_number() == 1109527

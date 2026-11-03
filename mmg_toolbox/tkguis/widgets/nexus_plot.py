@@ -12,6 +12,7 @@ from hdfmap.eval_functions import generate_identifier
 
 from mmg_toolbox.utils.env_functions import get_scan_number
 from mmg_toolbox.fitting import multipeakfit, FitResults, find_peaks_str
+from ..misc.styles import create_hover
 from ..misc.logging import create_logger
 from ..misc.config import get_config, C
 from .simple_plot import SimplePlot
@@ -40,10 +41,14 @@ class NexusDefaultPlot(SimplePlot):
         self._fit_result: FitResults | None = None
 
         self.axes_x = tk.StringVar(self.root, 'axes')
+        self.ini_axes_y = tk.StringVar(self.root, 'signal')
         self.axes_y = tk.StringVar(self.root, 'signal')
         self.normalise = tk.BooleanVar(self.root, False)
         self.fix_x = tk.BooleanVar(self.root, False)
         self.fix_y = tk.BooleanVar(self.root, False)
+        self.diff = tk.BooleanVar(self.root, False)
+        self.inverse = tk.BooleanVar(self.root, False)
+        self.log = tk.BooleanVar(self.root, False)
         self.fit_model = tk.StringVar(self.root, 'Gaussian')
         self.max_peaks = tk.IntVar(self.root, 1)
         self.do_fit = tk.BooleanVar(self.root, False)
@@ -93,76 +98,96 @@ class NexusDefaultPlot(SimplePlot):
             self.update_axis_choice()
 
         section = ttk.Frame(self.root)
-        section.pack(side=tk.TOP, expand=tk.NO, fill=tk.BOTH)
+        section.pack(side='top', expand=False, fill='both')
 
         frm = ttk.Frame(section)
-        frm.pack(side=tk.LEFT)
+        frm.pack(side='left')
         line = ttk.Frame(frm)
-        line.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        line.pack(side='top', expand=False, fill='x')
         var = ttk.Label(line, text='X Axes:', width=10)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         combo_x = ttk.Combobox(line, values=axes_options,
                                textvariable=selection_x, width=20)
-        # combo_x.pack(side=tk.LEFT, padx=5)
+        # combo_x.pack(side='left', padx=5)
         # combo_x.bind('<<ComboboxSelected>>', select_x)
         var = ttk.Entry(line, textvariable=self.axes_x, width=30)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
         var = ttk.Checkbutton(line, text='Fix', variable=self.fix_x)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
+        ttk.Button(line, text='Options', command=self.plot_options).pack(side='left', padx=2)
 
         line = ttk.Frame(frm)
-        line.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        line.pack(side='top', expand=False, fill='x')
         var = ttk.Label(line, text='Y Axes:', width=10)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         combo_y = ttk.Combobox(line, values=signal_options,
                                textvariable=selection_y, width=20)
-        # combo_y.pack(side=tk.LEFT, padx=5)
+        # combo_y.pack(side='left', padx=5)
         # combo_y.bind('<<ComboboxSelected>>', select_y)
         var = ttk.Entry(line, textvariable=self.axes_y, width=30)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.update_axis_choice)
         var.bind('<KP_Enter>', self.update_axis_choice)
         var = ttk.Checkbutton(line, text='Fix', variable=self.fix_y)
-        var.pack(side=tk.LEFT)
-        var = ttk.Checkbutton(line, text='Normalise', variable=self.normalise, command=self.normalise_signal)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
+        # var = ttk.Checkbutton(line, text='Normalise', variable=self.normalise, command=self.normalise_signal)
+        # var.pack(side='left')
 
         # Fitting
-        frm = ttk.Frame(section, relief=tk.RIDGE, borderwidth=2)
-        frm.pack(side=tk.LEFT, padx=4)
+        frm = ttk.Frame(section, relief='ridge', borderwidth=2)
+        frm.pack(side='left', padx=4)
         line = ttk.Frame(frm)
-        line.pack(side=tk.TOP, fill=tk.X)
-        ttk.Label(line, text='Max peaks:').pack(side=tk.LEFT)
+        line.pack(side='top', fill='x')
+        ttk.Label(line, text='Max peaks:').pack(side='left')
         var = ttk.Entry(line, textvariable=self.max_peaks, width=2)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', self.perform_fit)
         var.bind('<KP_Enter>', self.perform_fit)
-        ttk.Checkbutton(line, variable=self.do_fit).pack(side=tk.LEFT)
+        ttk.Checkbutton(line, variable=self.do_fit).pack(side='left')
 
         line = ttk.Frame(frm)
-        line.pack(side=tk.TOP, fill=tk.X)
+        line.pack(side='top', fill='x')
         fit_options = ['Line', 'Gaussian', 'Lorentzian', 'pVoight']  # TODO: get this from somewhere else
         var = ttk.Combobox(line, values=fit_options,
                            textvariable=self.fit_model, width=12)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<<ComboboxSelected>>', self.perform_fit)
-        ttk.Button(line, text=':', command=self.fit_results, width=1, padding=0).pack(side=tk.LEFT, padx=1)
+        ttk.Button(line, text=':', command=self.fit_results, width=1, padding=0).pack(side='left', padx=1)
 
         # Fitting
         frm = ttk.Frame(section)
-        frm.pack(side=tk.LEFT, fill=tk.Y, padx=4)
-        ttk.Button(frm, text='Processing', command=self.multiplots).pack(side=tk.TOP, fill=tk.X)
-        ttk.Button(frm, text='Fitting', command=self.peakfiting).pack(side=tk.TOP, fill=tk.X)
+        frm.pack(side='left', fill='y', padx=4)
+        ttk.Button(frm, text='Processing', command=self.multiplots).pack(side='top', fill='x')
+        ttk.Button(frm, text='Fitting', command=self.peakfiting).pack(side='top', fill='x')
 
         # Error line
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, expand=tk.NO, fill=tk.X)
+        frm.pack(side='top', expand=False, fill='x')
         ttk.Label(frm, textvariable=self.error_message, style='error.TLabel').pack()
         return combo_x, combo_y
+
+    def plot_options(self):
+        """A hovering frame with options"""
+        window, fun_close = create_hover(self.root, top_left=(0, 0.1))
+
+        frm = ttk.LabelFrame(window, text='Options', relief='ridge')
+        frm.pack(expand=False, pady=2, padx=5)
+        line = ttk.Frame(frm)
+        line.pack(side='top', pady=2)
+        p = dict(side='top', fill='x', padx=6)
+        ttk.Checkbutton(line, text='Normalise', variable=self.normalise, command=self.update_signal).pack(**p)
+        ttk.Checkbutton(line, text='Log', variable=self.log, command=self.update_signal).pack(**p)
+        ttk.Checkbutton(line, text='Diff', variable=self.diff, command=self.update_signal).pack(**p)
+        ttk.Checkbutton(line, text='Inverse', variable=self.inverse, command=self.update_signal).pack(**p)
+
+        frm = ttk.Frame(window)
+        frm.pack(side='top', fill='x')
+        var = ttk.Button(frm, text='Close', command=fun_close)
+        var.pack(fill='x')
 
     def update_data_from_files(self, *filenames: str, hdf_map: hdfmap.NexusMap | None = None):
         if not filenames:
@@ -182,7 +207,8 @@ class NexusDefaultPlot(SimplePlot):
         if not self.fix_x.get():
             self.axes_x.set(next(iter(axes), f'arange({self.map.scannables_length()})'))
         if not self.fix_y.get():
-            self.axes_y.set(next(iter(signals), f'zeros({self.map.scannables_length()})'))
+            self.ini_axes_y.set(next(iter(signals), f'zeros({self.map.scannables_length()})'))
+            self.update_signal()
         self.update_axis_choice()
         title = self.map.format_hdf(self.map.load_hdf(), self.config.get(C.scan_title, 'title'))
         self.update_labels(title=title)
@@ -256,6 +282,20 @@ class NexusDefaultPlot(SimplePlot):
             self.axes_y.set(signal + norm_by)
         else:
             self.axes_y.set(signal)
+        self.update_axis_choice()
+
+    def update_signal(self, event=None):
+        signal = self.ini_axes_y.get()
+        norm_by = self.config.get(C.normalise_factor, '')
+        if self.normalise.get():
+            signal = f"{signal}{norm_by}"
+        if self.log.get():
+            signal = f"log10({signal})"
+        if self.diff.get():
+            signal = f"gradient({signal})"
+        if self.inverse.get():
+            signal = f"1/{signal}"
+        self.axes_y.set(signal)
         self.update_axis_choice()
 
     def update_axis_choice(self, event=None):
@@ -363,14 +403,14 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
 
     def _axis_listbox(self) -> ttk.Treeview:
         frame = ttk.Frame(self.root, width=150)
-        frame.pack(side=tk.RIGHT, fill=tk.Y)
+        frame.pack(side='right', fill='y')
         frame.pack_propagate(False)
 
         y_scrollbar = ttk.Scrollbar(frame)
         x_scrollbar = ttk.Scrollbar(frame, orient="horizontal")
         listbox = ttk.Treeview(frame, yscrollcommand=y_scrollbar.set,
                                xscrollcommand=x_scrollbar.set, show="tree")
-        listbox.column("#0", width=200, stretch=tk.YES)
+        listbox.column("#0", width=200, stretch=True)
         listbox.bind("<<TreeviewSelect>>", self.select_listbox_items)
         y_scrollbar.configure(command=listbox.yview)
         x_scrollbar.configure(command=listbox.xview)
@@ -390,7 +430,7 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
         # Temporarily unbind TreeviewSelect
         self._pause_selection = True
         for item in first_dataset:
-            iid = self.listbox.insert("", tk.END, text=item)
+            iid = self.listbox.insert("", 'end', text=item)
             if item == auto_signal:
                 self.listbox.selection_add(iid)
                 self.listbox.focus(iid)
@@ -424,7 +464,7 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
             if yaxis == self.listbox.item(item)['text']
         ), None)
         if not iid:
-            iid = self.listbox.insert("", tk.END, text=yaxis)
+            iid = self.listbox.insert("", 'end', text=yaxis)
         self._pause_selection = True  # don't trigger TreeViewSelect
         self.listbox.selection_set(iid)
         self.listbox.see(iid)
@@ -436,7 +476,7 @@ class NexusMultiAxisPlot(NexusDefaultPlot):
         if result is None:
             return
         if label not in (self.listbox.item(iid, 'text') for iid in self.listbox.get_children()):
-            iid = self.listbox.insert("", tk.END, text=label)
+            iid = self.listbox.insert("", 'end', text=label)
         else:
             iid = next(iid for iid in self.listbox.get_children() if self.listbox.item(iid, 'text') == label)
         self.listbox.selection_add(iid)

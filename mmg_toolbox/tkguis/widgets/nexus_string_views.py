@@ -18,17 +18,17 @@ class _StringView:
     def __init__(self, root: tk.Misc):
 
         frm = ttk.Frame(root)
-        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='left', expand=True, fill='both')
 
-        self.text = tk.Text(frm, wrap=tk.NONE)
+        self.text = tk.Text(frm, wrap='none')
 
-        vbar = ttk.Scrollbar(frm, orient=tk.VERTICAL, command=self.text.yview)
-        hbar = ttk.Scrollbar(frm, orient=tk.HORIZONTAL, command=self.text.xview)
+        vbar = ttk.Scrollbar(frm, orient='vertical', command=self.text.yview)
+        hbar = ttk.Scrollbar(frm, orient='horizontal', command=self.text.xview)
         self.text.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
 
-        hbar.pack(side=tk.BOTTOM, fill=tk.X)
-        vbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.text.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        hbar.pack(side='bottom', fill='x')
+        vbar.pack(side='right', fill='y')
+        self.text.pack(side='top', fill='both', expand=True)
 
         if hasattr(root, 'style'):
             update_text_style(self.text, root.style)

@@ -109,43 +109,43 @@ class ImageViewer:
     "======================================================"
 
     def ini_options(self):
-        frm = ttk.LabelFrame(self.root, text='Options', relief=tk.RIDGE)
-        frm.pack(expand=tk.NO, pady=2, padx=5)
+        frm = ttk.LabelFrame(self.root, text='Options', relief='ridge')
+        frm.pack(expand=False, pady=2, padx=5)
 
         var = ttk.Checkbutton(frm, text='Log', variable=self.logplot, command=self.update_image)
-        var.pack(side=tk.LEFT, padx=6)
+        var.pack(side='left', padx=6)
         var = ttk.Checkbutton(frm, text='Diff', variable=self.difplot, command=self.update_image)
-        var.pack(side=tk.LEFT, padx=6)
+        var.pack(side='left', padx=6)
 
         var = ttk.Label(frm, text='Mask <')
-        var.pack(side=tk.LEFT, expand=tk.NO, padx=6)
+        var.pack(side='left', expand=False, padx=6)
         var = ttk.Entry(frm, textvariable=self.mask, width=6)
-        var.pack(side=tk.LEFT, padx=6)
+        var.pack(side='left', padx=6)
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
         var = ttk.OptionMenu(frm, self.colormap, *COLORMAPS, command=self.update_image)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
         var = ttk.Label(frm, text='clim:')
-        var.pack(side=tk.LEFT, expand=tk.NO)
+        var.pack(side='left', expand=False)
         var = ttk.Entry(frm, textvariable=self.cmin, width=6)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
         var = ttk.Entry(frm, textvariable=self.cmax, width=6)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
         var = ttk.Checkbutton(frm, text='Fix', variable=self.fixclim)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
     def ini_slider(self):
         frm = ttk.Frame(self.root)
-        frm.pack(expand=tk.NO, pady=2, padx=5)
+        frm.pack(expand=False, pady=2, padx=5)
 
         var = ttk.OptionMenu(frm, self.view_axis, None, *AXES, command=self.update_axis)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
         def inc():
             self.view_index.set(self.view_index.get() + 1)
@@ -156,25 +156,25 @@ class ImageViewer:
             self.update_image()
 
         var = ttk.Label(frm, text='Index:', width=8)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Button(frm, text='-', command=dec)
-        var.pack(side=tk.LEFT)
-        tkscale = ttk.Scale(frm, from_=0, to=100, variable=self.view_index, orient=tk.HORIZONTAL,
+        var.pack(side='left')
+        tkscale = ttk.Scale(frm, from_=0, to=100, variable=self.view_index, orient='horizontal',
                             command=self.update_image, length=300)
         # var.bind("<ButtonRelease-1>", callback)
-        tkscale.pack(side=tk.LEFT, expand=tk.YES)
+        tkscale.pack(side='left', expand=True)
         var = ttk.Button(frm, text='+', command=inc)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Entry(frm, textvariable=self.view_index, width=6)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind('<Return>', self.update_image)
         var.bind('<KP_Enter>', self.update_image)
 
         # axis mode
         var = ttk.Label(frm, textvariable=self.axis_name)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Label(frm, textvariable=self.axis_value)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         return tkscale
 
     "======================================================"

@@ -7,6 +7,7 @@ import json
 import os
 import re
 import numpy as np
+from scipy.signal import correlate
 from lmfit.model import ModelResult
 from lmfit.models import LinearModel, QuadraticModel, ExponentialModel, StepModel, PolynomialModel
 
@@ -201,7 +202,6 @@ def average_energy_spectra(energy: np.ndarray, *args: tuple[np.ndarray, np.ndarr
     """
     Average energy spectra, interpolating at given energy
 
-    E.G.
         energy = average_energy_scans(en1, en2)
         signal = combine_energy_scans(energy, (en1, sig1), (en2, sig2))
 
@@ -213,6 +213,42 @@ def average_energy_spectra(energy: np.ndarray, *args: tuple[np.ndarray, np.ndarr
     for n, (en, dat) in enumerate(args):
         data[n, :] = np.interp(energy, en, dat)
     return data.mean(axis=0)
+
+
+def find_shifts(*args: tuple[np.ndarray, np.ndarray], differentiate: bool = False) -> list[float]:
+    """
+    Find relative shifts between energy spectra to align on a common energy grid
+
+        shifts = find_shifts((en1, sig1), (en2, sig2))
+        energy = average_energy_scans(en1, en2)
+        signal = combine_energy_scans(energy, (en1+shifts[0], sig1), (en2+shifts[1], sig2))
+
+    :param args: (mes_energy, mes_signal): m pairs of arrays for energy and measurement
+    :param differentiate: (bool) whether to differentiate the signal before cross-correlation
+    :returns shifts: list[m] of energy shifts
+    """
+    i_energy = np.linspace(
+        max(en.min() for (en, sig) in args),
+        min(en.max() for (en, sig) in args),
+        10 * max(len(en) for (en, sig) in args)
+    )
+    en_step = i_energy[1] - i_energy[0]
+    i_signal = [
+        np.interp(i_energy, en, sig)
+        for en, sig in args
+    ]
+    if differentiate:
+        i_signal = [
+            np.gradient(i_sig, i_energy) for i_sig in i_signal
+        ]
+    corr = [
+        correlate(i_signal[0], i_sig, mode='full')
+        for i_sig in i_signal
+    ]
+    return [
+        en_step * (np.argmax(c) - len(i_energy) - 1)
+        for c in corr
+    ]
 
 
 def preedge_signal(energy: np.ndarray, signal: np.ndarray, ev_from_start: float = 5.) -> float:

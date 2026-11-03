@@ -265,13 +265,14 @@ class NexusDetectorImage:
             detector = self.detector_name.get()
             axis_name = self.axis_name.get()
             index = int(self.view_index.get())
+            image_index = self.map.get_image_index(index)
             self.view_index.set(index)
             logger.debug(f"load image: {detector} [{index}] with axis '{axis_name}'")
 
             self.map.set_image_path(self.map.image_data[detector])
             with hdfmap.load_hdf(self.filename) as hdf:
-                image = self.map.get_image(hdf, index)
-                value = self.map.get_data(hdf, axis_name, index=index, default=index)
+                image = self.map.get_image(hdf, image_index)
+                value = self.map.get_data(hdf, axis_name, index=image_index, default=index)
 
             if issubclass(type(image), str):
                 # TIFF image, NXdetector/image_data -> array('file.tif')

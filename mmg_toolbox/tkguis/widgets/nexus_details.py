@@ -43,19 +43,19 @@ class NexusDetails:
 
     def ini_textbox(self, frame: tk.Misc):
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        frm.pack(side='top', fill='both', expand=True)
 
         xfrm = ttk.Frame(frm)
-        xfrm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        xfrm.pack(side='top', expand=True, fill='both')
 
         # reduce text height if screen is small
         text_chars, text_lines = get_text_size(self.root, self.config)
-        text = tk.Text(xfrm, state=tk.DISABLED, wrap=tk.NONE, width=text_chars, height=text_lines)
-        text.pack(fill=tk.BOTH, expand=tk.YES)
+        text = tk.Text(xfrm, state='disabled', wrap='none', width=text_chars, height=text_lines)
+        text.pack(fill='both', expand=True)
         # text.bind("<Double-1>", self.text_double_click)
 
-        var = ttk.Scrollbar(xfrm, orient=tk.HORIZONTAL)
-        var.pack(side=tk.BOTTOM, fill=tk.X)
+        var = ttk.Scrollbar(xfrm, orient='horizontal')
+        var.pack(side='bottom', fill='x')
         var.config(command=text.xview)
         text.configure(xscrollcommand=var.set)
 
@@ -72,44 +72,44 @@ class NexusDetails:
     def ini_terminal(self, frame: tk.Misc):
         # Terminal
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.BOTTOM, fill=tk.X, expand=tk.YES)
+        frm.pack(side='bottom', fill='x', expand=True)
 
-        tfrm = ttk.Frame(frm, relief=tk.RIDGE)
-        tfrm.pack(side=tk.TOP, fill=tk.BOTH)
+        tfrm = ttk.Frame(frm, relief='ridge')
+        tfrm.pack(side='top', fill='both')
 
         text_chars, text_lines = get_text_size(self.root, self.config)
-        terminal = tk.Text(tfrm, state=tk.DISABLED, wrap=tk.NONE, height=3, width=text_chars)
-        terminal.pack(side=tk.LEFT, fill=tk.X, expand=tk.NO)
+        terminal = tk.Text(tfrm, state='disabled', wrap='none', height=3, width=text_chars)
+        terminal.pack(side='left', fill='x', expand=False)
 
-        var = ttk.Scrollbar(tfrm, orient=tk.VERTICAL)
-        var.pack(side=tk.LEFT, fill=tk.Y)
+        var = ttk.Scrollbar(tfrm, orient='vertical')
+        var.pack(side='left', fill='y')
         var.config(command=terminal.yview)
         terminal.configure(yscrollcommand=var.set)
 
-        efrm = ttk.Frame(frm, relief=tk.GROOVE)
-        efrm.pack(side=tk.TOP, fill=tk.BOTH)
+        efrm = ttk.Frame(frm, relief='groove')
+        efrm.pack(side='top', fill='both')
 
         var = ttk.Label(efrm, text='>>')
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Entry(efrm, textvariable=self.terminal_entry)
-        var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+        var.pack(side='left', expand=True, fill='both')
         var.bind('<Return>', self.fun_terminal)
         var.bind('<KP_Enter>', self.fun_terminal)
         var.bind('<Up>', self.fun_terminal_history_up)
         var.bind('<Down>', self.fun_terminal_history_down)
 
         var = ttk.Button(efrm, text='CLS', command=self.fun_terminal_cls)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         return terminal
 
     def ini_notebooks(self, frame: tk.Misc):
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.BOTTOM, fill=tk.X, expand=tk.YES, padx=6)
+        frm.pack(side='bottom', fill='x', expand=True, padx=6)
 
         menu = ttk.OptionMenu(frm, self.notebook)
-        menu.pack(side=tk.LEFT)
-        ttk.Button(frm, text='Open', command=self.run_notebook).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Reprocess', command=self.reprocess_notebook).pack(side=tk.LEFT)
+        menu.pack(side='left')
+        ttk.Button(frm, text='Open', command=self.run_notebook).pack(side='left')
+        ttk.Button(frm, text='Reprocess', command=self.reprocess_notebook).pack(side='left')
         return menu
 
     def update_data_from_file(self, filename: str, hdf_map: hdfmap.NexusMap | None = None):
@@ -130,10 +130,10 @@ class NexusDetails:
         try:
             with hdfmap.load_hdf(self.filename) as hdf:
                 txt = self.map.format_hdf(hdf, self._text_expression)
-            self.textbox.configure(state=tk.NORMAL)
+            self.textbox.configure(state='normal')
             self.textbox.delete('1.0', tk.END)
             self.textbox.insert('1.0', txt)
-            self.textbox.configure(state=tk.DISABLED)
+            self.textbox.configure(state='disabled')
         except Exception as e:
             show_error(f"Error:\n{e}", parent=self.root, raise_exception=False)
 
@@ -201,16 +201,16 @@ class NexusDetails:
         except NameError as ne:
             out = ne
         out_str += f"{out}\n"
-        self.terminal.configure(state=tk.NORMAL)
+        self.terminal.configure(state='normal')
         self.terminal.insert(tk.END, out_str)
         self.terminal.see(tk.END)
-        self.terminal.configure(state=tk.DISABLED)
+        self.terminal.configure(state='disabled')
 
     def fun_terminal_cls(self, event=None):
         # print('deleting')
-        self.terminal.configure(state=tk.NORMAL)
+        self.terminal.configure(state='normal')
         self.terminal.delete('1.0', tk.END)
-        self.terminal.configure(state=tk.DISABLED)
+        self.terminal.configure(state='disabled')
 
     def fun_terminal_history_up(self, event=None):
         if len(self.terminal_history) > self.terminal_history_index:

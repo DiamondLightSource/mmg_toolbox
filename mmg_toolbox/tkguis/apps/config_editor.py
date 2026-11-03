@@ -35,13 +35,13 @@ class ConfigEditor:
 
         topmenu(self.root, menu)
 
-        self.window = ttk.Frame(self.root, borderwidth=20, relief=tk.RAISED)
-        self.window.pack(side=tk.TOP, fill=tk.BOTH)
+        self.window = ttk.Frame(self.root, borderwidth=20, relief='raised')
+        self.window.pack(side='top', fill='both')
 
         frm = ttk.Frame(self.window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
         var = ttk.Label(frm, text='Edit Config. Parameters', style="title.TLabel")
-        var.pack(expand=tk.YES, fill=tk.X, padx=10, pady=10)
+        var.pack(expand=True, fill='x', padx=10, pady=10)
 
         # parameter entry boxes
         self.create_param(C.conf_file, 'Config File:')
@@ -63,13 +63,13 @@ class ConfigEditor:
 
         # Buttons at bottom
         frm = ttk.Frame(self.window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
         var = ttk.Button(frm, text='ROIs', command=self.roi_window)
-        var.pack(side=tk.LEFT, expand=tk.YES)
+        var.pack(side='left', expand=True)
         var = ttk.Button(frm, text='Save', command=self.save_config)
-        var.pack(side=tk.LEFT, expand=tk.YES)
+        var.pack(side='left', expand=True)
         var = ttk.Button(frm, text='Update', command=self.update_config)
-        var.pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        var.pack(side='left', fill='x', expand=True)
 
     def create_param(self, config_name: str, label: str, button=None):
         value = self.config.get(config_name, '')
@@ -79,11 +79,11 @@ class ConfigEditor:
         self.config_getters[config_name] = lambda: get_type(variable.get())
 
         frm = ttk.Frame(self.window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
-        ttk.Label(frm, text=label, width=20).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(frm, textvariable=variable).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        frm.pack(side='top', expand=True, fill='both', padx=10, pady=5)
+        ttk.Label(frm, text=label, width=20).pack(side='left', padx=2)
+        ttk.Entry(frm, textvariable=variable).pack(side='left', fill='x', expand=True)
         if button is not None:
-            ttk.Button(frm, text='...', command=button, width=3).pack(side=tk.LEFT)
+            ttk.Button(frm, text='...', command=button, width=3).pack(side='left')
 
     def create_tuple_param(self, config_name: str, label: str, units: str = ''):
         values = self.config.get(config_name, ())
@@ -105,11 +105,11 @@ class ConfigEditor:
             ])
 
         frm = ttk.Frame(self.window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
-        ttk.Label(frm, text=label, width=20).pack(side=tk.LEFT, padx=2)
+        frm.pack(side='top', expand=True, fill='both', padx=10, pady=5)
+        ttk.Label(frm, text=label, width=20).pack(side='left', padx=2)
         for var in tuple_vars:
-            ttk.Entry(frm, textvariable=var, width=4).pack(side=tk.LEFT)
-        ttk.Label(frm, text=units).pack(side=tk.LEFT, fill=tk.X)
+            ttk.Entry(frm, textvariable=var, width=4).pack(side='left')
+        ttk.Label(frm, text=units).pack(side='left', fill='x')
 
         self.config_setters[config_name] = setter
         self.config_getters[config_name] = getter
@@ -117,15 +117,15 @@ class ConfigEditor:
 
     def create_list_param(self, config_name: str, label: str, *list_names: str):
         frm = ttk.Frame(self.window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
-        ttk.Label(frm, text=label, width=20).pack(side=tk.LEFT, padx=2)
+        frm.pack(side='top', expand=True, fill='both', padx=10, pady=5)
+        ttk.Label(frm, text=label, width=20).pack(side='left', padx=2)
         default = self.config.get(config_name, list_names[0])
         var = tk.StringVar(self.root, default)
         self.config_getters[config_name] = var.get
         self.config_setters[config_name] = lambda name=config_name: var.set(self.config.get(name, ''))
         var2 = tk.StringVar(self.root, default)
         cbox = ttk.Combobox(frm, textvariable=var2, values=list_names)
-        cbox.pack(side=tk.LEFT)
+        cbox.pack(side='left')
         cbox.bind('<<ComboboxSelected>>', lambda e: var.set(var2.get()))
 
     def create_text_param(self, config_name: str, label: str):
@@ -141,17 +141,17 @@ class ConfigEditor:
                 self.config[name] = new_text
 
         frm = ttk.Frame(self.window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
-        ttk.Label(frm, text=label, width=20).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frm, text='Edit', command=button, width=3).pack(side=tk.LEFT)
+        frm.pack(side='top', expand=True, fill='both', padx=10, pady=5)
+        ttk.Label(frm, text=label, width=20).pack(side='left', padx=2)
+        ttk.Button(frm, text='Edit', command=button, width=3).pack(side='left')
 
     def create_bool_params(self, label: str, *params: tuple[str, str]):
         frm = ttk.Frame(self.window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
-        ttk.Label(frm, text=label, width=20).pack(side=tk.LEFT, padx=2)
+        frm.pack(side='top', expand=True, fill='both', padx=10, pady=5)
+        ttk.Label(frm, text=label, width=20).pack(side='left', padx=2)
         for config_name, param_label in params:
             var = tk.BooleanVar(self.root, self.config.get(config_name, False))
-            ttk.Checkbutton(frm, text=param_label, variable=var).pack(side=tk.LEFT)
+            ttk.Checkbutton(frm, text=param_label, variable=var).pack(side='left')
             self.config_getters[config_name] = var.get
             self.config_setters[config_name] = lambda name=config_name: var.set(self.config.get(name, False))
 
@@ -228,18 +228,18 @@ class MetadataListEditor:
 
         metadata_list = self.config.get(C.metadata_list, {})
         self.window = ttk.Frame(self.root)
-        self.window.pack(fill=tk.BOTH, expand=tk.YES)
+        self.window.pack(fill='both', expand=True)
         for name, expression in metadata_list.items():
             self.create_entry(name, expression)
         self.create_entry('', '')
 
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, anchor=tk.W, padx=5)
-        ttk.Button(frm, text='+', command=self.create_entry, width=4).pack(side=tk.LEFT)
+        frm.pack(side='top', anchor='w', padx=5)
+        ttk.Button(frm, text='+', command=self.create_entry, width=4).pack(side='left')
 
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-        ttk.Button(frm, text='Update', command=self.update).pack(fill=tk.X, expand=tk.YES)
+        frm.pack(side='top', fill='both', expand=True)
+        ttk.Button(frm, text='Update', command=self.update).pack(fill='x', expand=True)
 
     def create_entry(self, name: str = '', expression: str = ''):
         name_var = tk.StringVar(self.root, name)
@@ -247,9 +247,9 @@ class MetadataListEditor:
         self.param_list.append((name_var, expression_var))
 
         frm = ttk.Frame(self.window)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH, padx=10, pady=5)
-        ttk.Entry(frm, textvariable=name_var, width=10).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
-        ttk.Entry(frm, textvariable=expression_var, width=40).pack(side=tk.LEFT, fill=tk.X, expand=tk.YES)
+        frm.pack(side='top', expand=True, fill='both', padx=10, pady=5)
+        ttk.Entry(frm, textvariable=name_var, width=10).pack(side='left', fill='x', expand=True)
+        ttk.Entry(frm, textvariable=expression_var, width=40).pack(side='left', fill='x', expand=True)
 
     def update(self):
         metadata_list = {

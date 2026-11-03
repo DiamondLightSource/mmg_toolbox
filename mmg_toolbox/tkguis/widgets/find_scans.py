@@ -31,28 +31,28 @@ class FindScans:
         metadata_list = metadata_list or []
 
         window = tk.Frame(self.root)
-        window.pack(fill=tk.BOTH, expand=tk.YES, padx=2, pady=2)
+        window.pack(fill='both', expand=True, padx=2, pady=2)
 
-        ttk.Label(window, text='Find Scans', style='subtitle.TLabel').pack(side=tk.TOP, pady=5)
-        self.var_sec = ttk.Frame(window, relief=tk.RIDGE, borderwidth=2)
-        self.var_sec.pack(side=tk.TOP, fill=tk.BOTH, padx=2, pady=2)
+        ttk.Label(window, text='Find Scans', style='subtitle.TLabel').pack(side='top', pady=5)
+        self.var_sec = ttk.Frame(window, relief='ridge', borderwidth=2)
+        self.var_sec.pack(side='top', fill='both', padx=2, pady=2)
 
         line = ttk.Frame(self.var_sec)
-        line.pack(side=tk.TOP, fill=tk.X, padx=2, pady=3)
-        ttk.Label(line, text='Name / expression', width=20).pack(side=tk.LEFT, padx=5)
-        ttk.Label(line, text='Value', width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Label(line, text='Tolerance', width=10).pack(side=tk.LEFT, padx=2)
+        line.pack(side='top', fill='x', padx=2, pady=3)
+        ttk.Label(line, text='Name / expression', width=20).pack(side='left', padx=5)
+        ttk.Label(line, text='Value', width=10).pack(side='left', padx=2)
+        ttk.Label(line, text='Tolerance', width=10).pack(side='left', padx=2)
 
         self.add_vars(*metadata_list)
 
         sec = ttk.Frame(self.var_sec)
-        sec.pack(side=tk.BOTTOM, fill=tk.X, padx=2, pady=5)
+        sec.pack(side='bottom', fill='x', padx=2, pady=5)
         ttk.Button(sec, text='Add', command=self.add_vars).pack()
 
         sec = ttk.Frame(window)
-        sec.pack(side=tk.BOTTOM, fill=tk.X, padx=2, pady=5)
-        ttk.Button(sec, text='Find Scans', command=self.find_scans).pack(side=tk.LEFT, padx=3)
-        ttk.Button(sec, text='Close', command=self.close_fun).pack(side=tk.LEFT, padx=3)
+        sec.pack(side='bottom', fill='x', padx=2, pady=5)
+        ttk.Button(sec, text='Find Scans', command=self.find_scans).pack(side='left', padx=3)
+        ttk.Button(sec, text='Close', command=self.close_fun).pack(side='left', padx=3)
 
     def add_vars(self, *metadata_names: str):
         metadata_names = metadata_names + ('', )
@@ -89,16 +89,16 @@ class FindScans:
             var_tol.set('')
 
         line = ttk.Frame(self.var_sec)
-        line.pack(side=tk.TOP, fill=tk.X, padx=2, pady=3)
-        ttk.Button(line, text=':', width=1, command=select).pack(side=tk.LEFT)
+        line.pack(side='top', fill='x', padx=2, pady=3)
+        ttk.Button(line, text=':', width=1, command=select).pack(side='left')
         var = ttk.Entry(line, textvariable=var_name, width=20)
-        var.pack(side=tk.LEFT, padx=5)
+        var.pack(side='left', padx=5)
         var.bind('<Return>', update_val)
-        ttk.Label(line, textvariable=var_lab, width=10, anchor=tk.E).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(line, textvariable=var_val, width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Label(line, text='+/-').pack(side=tk.LEFT)
-        ttk.Entry(line, textvariable=var_tol, width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Button(line, text='X', command=remove, width=1).pack(side=tk.LEFT, padx=5)
+        ttk.Label(line, textvariable=var_lab, width=10, anchor='e').pack(side='left', padx=2)
+        ttk.Entry(line, textvariable=var_val, width=10).pack(side='left', padx=2)
+        ttk.Label(line, text='+/-').pack(side='left')
+        ttk.Entry(line, textvariable=var_tol, width=10).pack(side='left', padx=2)
+        ttk.Button(line, text='X', command=remove, width=1).pack(side='left', padx=5)
         update_val()
 
     def get_parameters(self) -> dict[str, str | float | tuple[float, float]]:

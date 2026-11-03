@@ -4,6 +4,7 @@ Plot Manager for the Scan object
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.collections import QuadMesh
 from ..nexus.nexus_scan import NexusScan
 from .matplotlib import (
     set_plot_defaults, new_plot, plot_line, plot_image, plot_2d_surface,
@@ -123,17 +124,20 @@ class ScanPlotManager:
             plt.colorbar(mesh, ax=axes, label=data['grid_label'])
         return axes
 
-    def image(self, index: int | tuple | slice | None = None, xaxis: str = 'axes',
+    def image(self, index: int | str | None = None, xaxis: str = 'axes',
               axes: plt.Axes | None = None, clim: tuple[float, float] | None = None,
-              cmap: str = DEFAULT_CMAP, colorbar: bool = False, **kwargs) -> plt.Axes:
+              cmap: str = DEFAULT_CMAP, colorbar: bool = False,
+              log: bool = False, rois: bool = False, **kwargs) -> plt.Axes:
         """
         Plot image in matplotlib figure (if available)
-        :param index: int, detector image index, 0-length of scan, if None, use centre index
+        :param index: int, detector image index, 0-length of scan, 'sum' gives sum of stack. If None, use centre index
         :param xaxis: name or address of xaxis dataset
         :param axes: matplotlib axes to plot on (None to create figure)
         :param clim: [min, max] colormap cut-offs (None for auto)
         :param cmap: str colormap name (None for auto)
         :param colorbar: False/ True add colorbar to plot
+        :param log: False/ True plot log10 of the image
+        :param rois: False/ True plot ROIs on the image
         :param kwargs: additional arguments for plot_detector_image
         :return: axes object
         """
@@ -142,6 +146,7 @@ class ScanPlotManager:
 
         # image data
         im = self.scan.image(index)
+        im = np.log10(im + 1) if log else im
         if im is None:
             im = np.zeros((101, 101))
         if index is None or index == 'sum':
@@ -158,16 +163,23 @@ class ScanPlotManager:
                       verticalalignment='center',
                       transform=axes.transAxes)
         if colorbar:
-            plt.colorbar(ax=axes)
+            im = next(c for c in axes.get_children() if isinstance(c, QuadMesh))
+            plt.colorbar(im, ax=axes, label='log10(counts)' if log else 'counts')
         ttl = '%s\n%s [%s] = %s' % (self.scan.title(), xname, index, xvalue)
         axes.set_title(ttl)
+        if rois:
+            rois = self.scan.rois('')
+            for roi in rois:
+                box = self.scan.eval(f"{roi}_box")
+                axes.plot(box[:, 1], box[:, 0], '-', lw=1, label=roi)
+            axes.legend()
         return axes
 
     def image_sum(self, index: int | tuple | slice | str | None = None, sum_axis: int = 0, xaxis: str = 'axes',
                   axes: plt.Axes | None = None, x_label: str | None = None, x_scale: float = 1.0, x_offset: float = 0.0,
                   **kwargs) -> plt.Axes:
         """
-        Plot image in matplotlib figure (if available)
+        Plot image summed along one axis in matplotlib figure (if available)
         :param index: int, detector image index, 0-length of scan, if None, use centre index, if 'sum', sum stack
         :param sum_axis: axis to sum (0 or 1)
         :param xaxis: name or address of axes dataset (for title)

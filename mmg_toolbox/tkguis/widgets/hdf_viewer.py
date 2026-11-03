@@ -52,10 +52,10 @@ class HDFViewer:
         self.ini_browse(self.root)
 
         main = ttk.Frame(self.root)
-        main.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        main.pack(side='top', expand=True, fill='both')
 
         frm = ttk.Frame(main)
-        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='left', expand=True, fill='both')
 
         # Tabs
         self.view_tabs = ttk.Notebook(frm)
@@ -73,7 +73,7 @@ class HDFViewer:
         self.view_tabs.add(tab4, text='Tree String')
         self.view_tabs.add(tab5, text='NeXus2SRS')
         self.view_tabs.add(tab6, text='NXtransformations')
-        self.view_tabs.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        self.view_tabs.pack(side='top', fill='both', expand=True)
         # treeviews
         self.hdf_tree = HdfTreeview(tab1)
         self.nexus = HdfNexusStr(tab2)
@@ -86,7 +86,7 @@ class HDFViewer:
         self.hdf_map.tree.bind('<<TreeviewSelect>>', self.tree_select)
 
         frm = ttk.Frame(main)
-        frm.pack(side=tk.LEFT, expand=tk.NO, fill=tk.BOTH)
+        frm.pack(side='left', expand=False, fill='both')
         # notebook
         tab_detail, tab_search, tab_expr = self.ini_notebook(frm)
 
@@ -109,23 +109,23 @@ class HDFViewer:
 
     def ini_browse(self, frame: tk.Misc):
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
         var = ttk.Button(frm, text='Browse', command=self.select_file, width=10)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
         var = ttk.Entry(frm, textvariable=self.filepath)
-        var.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+        var.pack(side='left', expand=True, fill='both')
         var.bind('<Return>', self.populate_from_file)
         var.bind('<KP_Enter>', self.populate_from_file)
 
         var = ttk.Checkbutton(frm, variable=self.expandall, text='Expand', command=self.check_expand)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
     def ini_notebook(self, frame: tk.Misc) -> tuple[ttk.Frame, ttk.Frame, ttk.Frame]:
 
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        frm.pack(side='top', fill='both', expand=True)
 
         tab_control = ttk.Notebook(frm)
         tab1 = ttk.Frame(tab_control)
@@ -135,62 +135,62 @@ class HDFViewer:
         tab_control.add(tab1, text='Details')
         tab_control.add(tab2, text='Search')
         tab_control.add(tab3, text='Expression')
-        tab_control.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        tab_control.pack(side='top', fill='both', expand=True)
 
         return tab1, tab2, tab3
 
     def ini_details(self, frame: tk.Misc) -> tk.Text:
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='left', expand=True, fill='both')
 
-        text = tk.Text(frm, wrap=tk.NONE, width=DETAILS_TAB_WIDTH)
-        text.pack(fill=tk.BOTH, expand=tk.YES)
+        text = tk.Text(frm, wrap='none', width=DETAILS_TAB_WIDTH)
+        text.pack(fill='both', expand=True)
 
-        var = tk.Scrollbar(frm, orient=tk.HORIZONTAL, command=text.xview)
-        var.pack(side=tk.BOTTOM, fill=tk.X)
+        var = tk.Scrollbar(frm, orient='horizontal', command=text.xview)
+        var.pack(side='bottom', fill='x')
         text.configure(xscrollcommand=var.set)
         return text
 
     def ini_search(self, frame: tk.Misc):
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
+        frm.pack(side='top', expand=True, fill='x')
 
         var = ttk.Entry(frm, textvariable=self.search_box)
-        var.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        var.pack(side='top', expand=True, fill='both')
         # var.bind('<KeyRelease>', self.fun_search)
         var.bind('<Return>', self.fun_search)
         var.bind('<KP_Enter>', self.fun_search)
         var = ttk.Button(frm, text='Search', command=self.fun_search, width=10)
-        var.pack(side=tk.TOP)
+        var.pack(side='top')
 
         line = ttk.Frame(frm)
-        line.pack(side=tk.TOP)
+        line.pack(side='top')
         var = ttk.Checkbutton(line, variable=self.search_matchcase, text='Case')
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var = ttk.Checkbutton(line, variable=self.search_wholeword, text='Word')
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
     def ini_expression(self, frame: tk.Misc) -> tk.Text:
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
         var = ttk.Entry(frm, textvariable=self.expression_box)
-        var.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+        var.pack(side='top', fill='x', expand=True)
         # var.bind('<KeyRelease>', self.fun_expression_reset)
         var.bind('<Return>', self.fun_expression)
         var.bind('<KP_Enter>', self.fun_expression)
 
         var = ttk.Label(frm, textvariable=self.expression_path)
-        var.pack(side=tk.TOP, expand=tk.YES, fill=tk.X)
+        var.pack(side='top', expand=True, fill='x')
 
         var = ttk.Button(frm, text='Evaluate Expression', command=self.fun_expression)
-        var.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+        var.pack(side='top', fill='x', expand=True)
 
-        text = tk.Text(frm, wrap=tk.NONE, width=DETAILS_TAB_WIDTH)
-        text.pack(fill=tk.BOTH, expand=tk.YES)
+        text = tk.Text(frm, wrap='none', width=DETAILS_TAB_WIDTH)
+        text.pack(fill='both', expand=True)
 
-        var = tk.Scrollbar(frm, orient=tk.HORIZONTAL, command=text.xview)
-        var.pack(side=tk.BOTTOM, fill=tk.X)
+        var = tk.Scrollbar(frm, orient='horizontal', command=text.xview)
+        var.pack(side='bottom', fill='x')
         text.configure(xscrollcommand=var.set)
         return text
 

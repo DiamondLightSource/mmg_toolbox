@@ -41,63 +41,63 @@ class ScriptRunner:
         self.file_list = []
 
         sec = ttk.LabelFrame(self.root, text='Folders')
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        sec.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
         frm = ttk.Frame(sec)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        ttk.Label(frm, text='Data Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        ttk.Entry(frm, textvariable=self.exp_folder, width=60).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='x', expand=True, padx=4)
+        ttk.Label(frm, text='Data Dir:', width=15).pack(side='left', padx=4)
+        ttk.Entry(frm, textvariable=self.exp_folder, width=60).pack(side='left')
+        ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side='left')
 
         frm = ttk.Frame(sec)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        ttk.Label(frm, text='Analysis Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        ttk.Entry(frm, textvariable=self.proc_folder, width=60).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Browse', command=self.browse_analysis).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='x', expand=True, padx=4)
+        ttk.Label(frm, text='Analysis Dir:', width=15).pack(side='left', padx=4)
+        ttk.Entry(frm, textvariable=self.proc_folder, width=60).pack(side='left')
+        ttk.Button(frm, text='Browse', command=self.browse_analysis).pack(side='left')
 
         # Metadata selection
         sec = ttk.LabelFrame(self.root, text='Metadata')
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        sec.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
         frm = ttk.Frame(sec)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        ttk.Label(frm, text='Metadata:', width=15).pack(side=tk.LEFT, padx=4)
-        ttk.Entry(frm, textvariable=self.metadata_name, width=60).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Choose', command=self.browse_metadata).pack(side=tk.LEFT)
+        frm.pack(side='top', fill='x', expand=True, padx=4)
+        ttk.Label(frm, text='Metadata:', width=15).pack(side='left', padx=4)
+        ttk.Entry(frm, textvariable=self.metadata_name, width=60).pack(side='left')
+        ttk.Button(frm, text='Choose', command=self.browse_metadata).pack(side='left')
 
         # Range selection
         sec = ttk.LabelFrame(self.root, text='Scan Numbers')
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        sec.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
         self.range = ScanRangeSelector(sec, exp_directory, self.config)
         self.range.exp_folder.set(exp_directory)
 
         # Script Selection
         sec = ttk.LabelFrame(self.root, text='Script')
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        sec.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
         line = ttk.Frame(sec)
-        line.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+        line.pack(side='top', fill='x', expand=True)
         var = ttk.OptionMenu(line, self.script_name, self.script_name.get(), *scripts.SCRIPTS.keys(),
                              command=self.script_select)
-        var.pack(side=tk.LEFT, padx=4)
-        ttk.Label(line, textvariable=self.script_desc).pack(side=tk.LEFT)
+        var.pack(side='left', padx=4)
+        ttk.Label(line, textvariable=self.script_desc).pack(side='left')
 
         sec = ttk.LabelFrame(self.root, text='Notebook')
-        sec.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        sec.pack(side='top', fill='both', expand=True, padx=4, pady=4)
         line = ttk.Frame(sec)
-        line.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
+        line.pack(side='top', fill='x', expand=True)
         var = ttk.OptionMenu(line, self.notebook_name, self.notebook_name.get(), *scripts.NOTEBOOKS.keys(),
                              command=self.notebook_select)
-        var.pack(side=tk.LEFT, padx=4)
-        ttk.Label(line, textvariable=self.notebook_desc).pack(side=tk.LEFT)
+        var.pack(side='left', padx=4)
+        ttk.Label(line, textvariable=self.notebook_desc).pack(side='left')
 
         line = ttk.Frame(self.root)
-        line.pack(side=tk.TOP, fill=tk.X, expand=tk.YES)
-        ttk.Label(line, text='file', width=6).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(line, textvariable=self.output_file, width=60).pack(side=tk.LEFT, padx=2)
-        ttk.Button(line, text='RUN', command=self.run_template).pack(side=tk.LEFT)
-        ttk.Button(line, text='View', command=self.view_script).pack(side=tk.LEFT)
+        line.pack(side='top', fill='x', expand=True)
+        ttk.Label(line, text='file', width=6).pack(side='left', padx=2)
+        ttk.Entry(line, textvariable=self.output_file, width=60).pack(side='left', padx=2)
+        ttk.Button(line, text='RUN', command=self.run_template).pack(side='left')
+        ttk.Button(line, text='View', command=self.view_script).pack(side='left')
 
     def browse_metadata(self):
         from ..apps.namespace_select import create_metadata_selector

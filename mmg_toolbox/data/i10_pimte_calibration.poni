@@ -1,0 +1,14 @@
+# Nota: C-Order, 1 refers to the Y axis, 2 to the X axis
+# Calibration done on Fri Apr 10 16:53:51 2026
+poni_version: 2.1
+Detector: Detector
+Detector_config: {"pixel1": 1.38e-05, "pixel2": 1.38e-05, "orientation": 3, "max_shape": [2048, 2048]}
+Distance: 0.13927055024546964
+Poni1: 0.014132
+Poni2: 0.014132
+Rot1: -0.009001309065011983
+Rot2: -0.8687136661973786
+Rot3: -8.666402718787181e-08
+Wavelength: 8.050921976181835e-10
+# Calibrant: zsm5_calibrant
+# Image: fabio:///dls/science/users/wvx67826/mmg_toolbox/data/zsm5_corrected_E1540.0eV_tth50.00.tiff

@@ -21,21 +21,21 @@ class EditText:
         self.root = create_root(title, parent=parent)
 
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
-        self.text = tk.Text(frm, wrap=tk.NONE, width=textwidth)
-        self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
+        self.text = tk.Text(frm, wrap='none', width=textwidth)
+        self.text.pack(side='left', fill='both', expand=True)
         self.text.insert('1.0', expression)
 
-        var = ttk.Scrollbar(frm, orient=tk.VERTICAL, command=self.text.yview)
-        var.pack(side=tk.LEFT, fill=tk.Y)
+        var = ttk.Scrollbar(frm, orient='vertical', command=self.text.yview)
+        var.pack(side='left', fill='y')
         self.text.configure(yscrollcommand=var.set)
 
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
         var = ttk.Button(self.root, text='Update', command=self.fun_update)
-        var.pack(side=tk.TOP, fill=tk.X)
+        var.pack(side='top', fill='x')
 
     def fun_update(self, event=None):
         """Launches window, returns selection"""

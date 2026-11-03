@@ -256,6 +256,21 @@ def shorten_string(string: str, max_length: int = 100, end_letters: int = 10) ->
     return string[:max_length - end_letters - 5] + ' ... ' + end_string
 
 
+def multiple_replace(replacements: dict[str, str], text: str) -> str:
+    """
+    Replace multiple sub-strings within a string
+
+        replacements = {'replace_me': 'with me'}
+        new_string = multiple_replace(replacements, text)
+
+    :param replacements: dict combining values to replace with values to replace with
+    :param text: string including sub-strings to replace
+    :returns: altered string
+    """
+    regex = re.compile(r"(%s)" % "|".join(map(re.escape, replacements.keys())))
+    return regex.sub(lambda match: replacements[match.group()], text)
+
+
 class DataHolder(dict):
     """
     Convert dict to object that looks like a class object with key names as attributes

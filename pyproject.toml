@@ -9,12 +9,13 @@ dependencies = [
     "numpy",
     "h5py",
     "hdf5plugin",
-    "hdfmap>=1.1.0",
+    "hdfmap>=1.4.0",
     "matplotlib",
     "imageio",
     "scipy",
     "lmfit",
     "stomp.py",
+    "nexus2srs",
 ]
 requires-python = ">=3.10"
 authors = [{ name = "Dan Porter", email = "dan.porter@diamond.ac.uk" }]
@@ -34,34 +35,50 @@ classifiers = [
 [project.optional-dependencies]
 # minimal install
 base = [
-    "numpy",
-    "h5py",
-    "hdf5plugin",
-    "hdfmap>=1.1.0",
-    "matplotlib",
-    "imageio",
-    "lmfit",
+  "numpy",
+  "h5py",
+  "hdf5plugin",
+  "hdfmap>=1.1.0",
+  "matplotlib",
+  "imageio",
+  "lmfit",
+  "scipy",
 ]
-# full install with additional packages
+powder = [
+  "mmg_toolbox[base]",
+  "pyFAI",
+  "fabio",
+]
+
+# full installation with additional packages
 full = [
-    "numpy",
-    "h5py",
-    "hdf5plugin",
-    "hdfmap>=1.1.0",
-    "matplotlib",
-    "imageio",
-    "scipy",
-    "lmfit",
-    "diffcalc-core",
-    "ipython",
-    "jupyter",
-    "nbconvert",
-    "nbformat",
-    "nexpy",
-    "ipywidgets",
-    "kaleido",
-    "plotly",
+  "mmg_toolbox[powder]",
+  "mmg_toolbox[base]",
+  "diffcalc-core",
+  "ipython",
+  "jupyter",
+  "nbconvert",
+  "nbformat",
+  "papermill",
+  "ipywidgets",
+  "kaleido",
+  "plotly",
+  "nexpy",
 ]
+
+dev = [
+    "mmg_toolbox[full]",
+    "pytest",
+    "scipy-stubs>=1.15.3.0",
+    "mkdocs-techdocs-diamond",
+    "mkdocstrings[python]",
+    "ruamel.yaml",
+    "mkdocs-jupyter>=0.26.3",
+]
+
+[project.scripts]
+dataviewer = "mmg_toolbox.tkguis:cli_run"
+create_notebooks = "mmg_toolbox.scripts.experiment_startup:cli_create_notebooks"
 
 [tool.setuptools]
 packages = [
@@ -69,7 +86,10 @@ packages = [
     'mmg_toolbox.beamline_metadata',
     'mmg_toolbox.data',
     'mmg_toolbox.scripts',
+    'mmg_toolbox.scripts.templates',
     'mmg_toolbox.diffraction',
+    'mmg_toolbox.diffraction.powder',
+    'mmg_toolbox.misc',
     'mmg_toolbox.plotting',
     'mmg_toolbox.nexus',
     'mmg_toolbox.utils',
@@ -83,12 +103,9 @@ packages = [
 ]
 
 [tool.setuptools.package-data]
-"mmg_toolbox.data" = ["*.json"]
-"mmg_toolbox.scripts" = ["*.ipynb"]
+"mmg_toolbox.data" = ["*.json", "*.poni"]
+"mmg_toolbox.scripts.templates" = ["*.ipynb", "*.py"]
 
 [tool.setuptools.dynamic]
 version = { attr = "mmg_toolbox.__version__" }
 
-[project.scripts]
-dataviewer = "mmg_toolbox.tkguis:cli_run"
-create_notebooks = "mmg_toolbox.scripts.experiment_startup:cli_create_notebooks"

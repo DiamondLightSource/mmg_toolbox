@@ -6,6 +6,7 @@ import numpy as np
 
 from mmg_toolbox.diffraction import lattice
 from mmg_toolbox.utils import xray_utils, rotations, misc_functions, units
+from mmg_toolbox.utils.surface_grid import coordinates_to_grid
 
 
 def test_wavelength():
@@ -105,3 +106,13 @@ def test_misc_functions():
     # misc_functions.numbers2string()
 
 
+def test_coordinates_to_grid():
+    x_grid, y_grid = np.meshgrid(np.linspace(0, 1, 101), np.linspace(-10, 10, 81))
+    z_grid = np.random.rand(*x_grid.shape)
+
+    x, y, z = coordinates_to_grid(x_grid.flatten(), y_grid.flatten(), z_grid.flatten())
+
+    assert x.shape == y.shape == z.shape == (81, 101)
+    assert x[0, 1] - x[0, 0] > 0
+    assert y[1, 0] - y[0, 0] > 0
+    assert np.prod(x.shape) == x_grid.size

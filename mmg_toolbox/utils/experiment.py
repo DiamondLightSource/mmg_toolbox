@@ -8,10 +8,13 @@ import hdfmap
 
 from ..utils.misc_functions import numbers2string
 from ..utils.env_functions import scan_number_mapping, last_folder_update, get_beamline_from_directory
+from ..utils.surface_grid import coordinates_to_grid, interpolate_to_grid
 from ..beamline_metadata.config import beamline_config, C, add_roi
 from ..nexus.nexus_scan import NexusScan, NexusDataHolder
-from ..nexus.nexus_reader import find_scans
-from ..xas import load_xas_scans, SpectraContainer, find_similar_measurements, average_polarised_scans
+from ..xas import SpectraContainer, find_similar_measurements, average_polarised_scans
+
+# Scan input data types
+ScanFile = str | int | NexusScan | NexusDataHolder
 
 
 class Experiment:
@@ -34,7 +37,7 @@ class Experiment:
 
     def __init__(self, *folder_paths: str, instrument: str | None = None):
         self.folder_paths = [os.path.dirname(f) if os.path.isfile(f) else f for f in folder_paths]
-        self.scan_list = {}
+        self.scan_list: dict[int, str] = {}
         self._scan_list_update = None
         self.instrument = instrument or get_beamline_from_directory(folder_paths[0], None)
         self.config = beamline_config(self.instrument)
@@ -47,7 +50,7 @@ class Experiment:
 
     def __str__(self):
         self._update_scan_list()
-        scan_numbers = self._scan_numbers()
+        scan_numbers = self.all_scan_numbers()
         lines = ['Instrument: ' + self.instrument]
         lines.extend(self.folder_paths)
         if scan_numbers:
@@ -79,10 +82,6 @@ class Experiment:
         self._scan_list_update = max(mod_times)  # datetime.now()?
         self.scan_list.update(scan_number_mapping(*folders))
 
-    def _scan_numbers(self) -> list[int]:
-        self._update_scan_list()
-        return list(self.scan_list.keys())
-
     def add_data_paths(self, *folder_paths: str):
         """Add additional paths"""
         new_paths = list(
@@ -104,74 +103,187 @@ class Experiment:
         self._update_scan_list()
         return list(self.scan_list.values())
 
-    def get_scan_filename(self, scan_file: int | str = -1) -> str:
+    def get_scan_filename(self, scan_file: ScanFile = -1) -> str:
         """Return the full filename of a scan number"""
-        if isinstance(scan_file, int) or scan_file.isdigit():
+        if isinstance(scan_file, (NexusScan, NexusDataHolder)):
+            scan_file = scan_file.filename
+        elif isinstance(scan_file, int) or scan_file.isdigit():
             scan_file = int(scan_file)
-            if scan_file < 1:
-                scan_numbers = self._scan_numbers()
-                return self.scan_list[scan_numbers[scan_file]]
             self._update_scan_list()
             if scan_file in self.scan_list:
+                # scan_file is scan number
                 return self.scan_list[scan_file]
-            scan_numbers = self._scan_numbers()
-            return self.scan_list[scan_numbers[scan_file]]
-
+            elif -len(self.scan_list) < scan_file < len(self.scan_list):
+                # scan_file is index
+                scan_numbers = list(self.scan_list)
+                return self.scan_list[scan_numbers[scan_file]]
+            else:
+                FileNotFoundError(f"scan number {scan_file} not found")
         if os.path.isfile(scan_file):
+            # scan file is filename
             return os.path.abspath(scan_file)
         raise FileNotFoundError(f"scan file {scan_file} not found")
 
-    def scan(self, scan_file: int | str = -1) -> NexusDataHolder:
+    def get_scan_number(self, scan_file: ScanFile = -1) -> int:
+        """Return scan number of file or number"""
+        filename = self.get_scan_filename(scan_file)
+        files = list(self.scan_list.values())
+        index = files.index(filename)
+        return list(self.scan_list)[index]
+
+    def get_nearby_scan_numbers(self, scan_file: ScanFile = -1, before=10, after=10) -> list[int]:
+        """Return scan numbers near the given scan, based on position rather than scan numbers"""
+        scan_number = self.get_scan_number(scan_file)
+        all_scan_numbers = list(self.scan_list)
+        scan_index = all_scan_numbers.index(scan_number)
+        scan_indexes = range(
+            scan_index - before if scan_index > before else 0,
+            scan_index + after if scan_index + after < len(all_scan_numbers) else len(all_scan_numbers) - 1
+        )
+        return [all_scan_numbers[idx] for idx in scan_indexes]
+
+    def scan(self, scan_file: ScanFile = -1) -> NexusDataHolder:
         """read Nexus file as NexusDataHolder"""
         return NexusDataHolder(self.get_scan_filename(scan_file), config=self.config)
 
-    def scans(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None) -> list[NexusScan]:
+    def scans(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None) -> list[NexusScan]:
         """Read Nexus files as lazy NexusScan. All files use the same HdfMap, based on the first scan"""
+        if scan_files and isinstance(scan_files[0], (NexusScan, NexusDataHolder)):
+            return list(scan_files)
         filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
         if not filenames:
-            filenames = list(self.all_scans().values())
+            filenames = self.all_scan_files()
         if filenames and hdf_map is None:
             hdf_map = hdfmap.create_nexus_map(filenames[0])
         return [NexusScan(file, hdf_map, config=self.config) for file in filenames]
 
-    def find_scans(self, *scan_files: int | str,  hdf_map: hdfmap.NexusMap | None = None, first_only: bool = False,
+    def find_scans(self, *scan_files: ScanFile,  hdf_map: hdfmap.NexusMap | None = None, first_only: bool = False,
                    **matches: str | float | tuple[float, float]) -> list[NexusScan]:
         """
         Find scans files with matching metadata
 
             matches = {
-                'name1': 'scan', # matches if 'scan' in file['name1']
-                'name2': value, # matches if file['name2'] ~= value
-                'name3': (value, tol), # matches if abs(file['name3'] - value) < tol
+                'name1': 'energy', # matches if 'scan' in scan('name1')
+                'name2': value, # matches if scan('name2') ~= value
+                'name3': (value, tol), # matches if abs(scan('name3') - value) < tol
             }
-            match_files = find_scans(*filenames, **matches)
+            match_scans = exp.find_scans(*scan_numbers, **matches)
 
-        :param scan_files: set of scan numbers or filenames, if not given will search all scans in folder.
+        :param scan_files: set of scan numbers or filenames, if not given will search all scans in folder. If single value, searches nearby scans.
         :param hdf_map: if given, uses this hdfmap rather than generating one.
         :param first_only: if true, returns on the first result
         :param matches: keyword arguments for matching parameters
-        :returns: list of scan files that match all requirements
+        :returns: list of scan objects that match all requirements
         """
-        filenames = [self.get_scan_filename(scan_file) for scan_file in scan_files]
-        if not filenames:
-            filenames = list(self.all_scans().values())
-        if hdf_map is None:
-            hdf_map = hdfmap.create_nexus_map(filenames[0])
-        matches = find_scans(*filenames, hdf_map=hdf_map, first_only=first_only, **matches)
-        return self.scans(*matches, hdf_map=hdf_map)
+        if len(scan_files) == 0:
+            scan_files = self.all_scan_numbers()
+        if len(scan_files) == 1:
+            scan_files = self.get_nearby_scan_numbers(scan_files[0])
+        scans = self.scans(*scan_files, hdf_map=hdf_map)
 
-    def join_scan_data(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
+        def check(scn: NexusScan):
+            for name, match_value in matches.items():
+                file_value = scn.eval(name)
+                if isinstance(match_value, str):
+                    chk = match_value in file_value
+                elif isinstance(match_value, (float, int)):
+                    chk = abs(match_value - file_value) < 0.01
+                else:
+                    chk = abs(match_value[0] - file_value) < match_value[1]
+                if not chk:
+                    return False
+            return True
+        search = (scan for scan in scans if check(scan))
+
+        if first_only:
+            return [next(search)]
+        return list(search)
+
+    def join_scan_data(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
                        data_fields: list[str] | None = None, default: np.ndarray = np.array([0.0])) -> dict[str, list]:
         """
-        Join data from scans
+        Join data from scans - return list of values from each scan, in dict for each data field
+
+            data = exp.join_scan_data(*scan_files, data_fields=['scan_command', 'Ta'])
+            data['scan_command'] -> ['scan ...', 'scan ...', ...]
+            data['Ta'] -> [10, 20, ...]
+
+        :param scan_files: set of scan numbers or filenames
+        :param hdf_map: if given, uses this hdfmap rather than generating one.
+        :param data_fields: list of data fields
+        :param default: default value
+        :return: dict of data for all files
         """
         scans = self.scans(*scan_files, hdf_map=hdf_map)
         data_fields = [self.config[C.scan_description]] if data_fields is None else data_fields
         data = {name: [] for name in data_fields}
+        expression = ','.join(data_fields)
         for scan in scans:
-            with scan.load_hdf() as hdf:
-                for name in data_fields:
-                    data[name].append(scan.map.eval(hdf, name, default=default))
+            values = scan.eval(expression, default=default)  # use eval to ensure local_data is available
+            for name, value in zip(data_fields, values):
+                data[name].append(value)
+        return data
+
+    def join_scan_arrays(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
+                         data_fields: list[str] | None = None, default: np.ndarray = np.array([0.0])) -> tuple[np.ndarray, ...]:
+        """
+        Join data from scans - return array of values for each scan, for each data field
+
+            cmd, temp = exp.join_scan_arrays(*scan_files, data_fields=['scan_command', 'Ta'])
+
+        :param scan_files: set of scan numbers or filenames
+        :param hdf_map: if given, uses this hdfmap rather than generating one.
+        :param data_fields: list of data fields
+        :param default: default value
+        :return: Numpy arrays
+        """
+        data = self.join_scan_data(*scan_files, hdf_map=hdf_map, data_fields=data_fields, default=default)
+        return tuple(np.array(array) for array in data.values())
+
+    def get_value_changes(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
+                          omit_change: bool = True, sort: bool = True) -> dict[str, np.ndarray]:
+        """
+        Returns dict of all values that changed between scan files
+        Only numeric values are checked.
+
+            data = exp.find_value_changes(*scan_numbers)
+            print('\n'.join(f"{name} : {np.std(array):.2f}" for name, array in data.items()))
+
+        :param scan_files: set of scan numbers or filenames
+        :param hdf_map: if given, uses this hdfmap rather than generating one.
+        :param omit_change: if true, returns only the changed values
+        :param sort: if true, returns only the changed values
+        :return: dict of all values that changed between scan files
+        """
+        scans = self.scans(*scan_files, hdf_map=hdf_map)
+        m = hdf_map or scans[0].map
+        with scans[0].load_hdf() as hdf:
+            parameters = {
+                name: path for name, path in (m.metadata or m.values).items()
+                if (dataset := hdf.get(path)) and np.issubdtype(dataset.dtype, np.number)
+            }
+        # Pre-allocate
+        data = {
+            parameter: np.zeros(len(scans))
+            for parameter in parameters
+        }
+        # Load values
+        for n, scan in enumerate(scans):
+            values = scan.values(*parameters)
+            for name, value in zip(parameters, values):
+                data[name][n] = value
+        # Omit values that don't change
+        if omit_change:
+            data = {
+                parameter: array
+                for parameter, array in data.items()
+                if not all(np.isnan(array)) and (np.nanstd(array) / np.nanmean(array)) > 0.01
+            }
+        # Sort by std
+        if sort:
+            data = dict(
+                sorted(data.items(), key=lambda item: np.nanstd(item[1]), reverse=True)
+            )
         return data
 
     def get_all_data(self, *fields: str, default: np.ndarray = np.array([0.0])) -> dict[str, list]:
@@ -180,21 +292,25 @@ class Experiment:
         """
         return self.join_scan_data(data_fields=list(fields), default=default)
 
-    def generate_mesh(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
-                      axes: str | tuple[str, str] = 'axes', signal: str = 'axes',
-                      values: str | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def generate_mesh(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
+                      axes: str | tuple[str, str] = 'axes', signal: str = 'signal',
+                      values: str | tuple[str, str] | None = None, interpolate: bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Generate 2D mesh from scan or scans
 
+            # to plot grid of eta vs Tsample vs roi2_sum (each scan over eta)
             x, y, z = generate_mesh(*range(-10, 0), axes='eta', signal='roi2_sum', values='Tsample')
             # or, if scan 12345 is a 2D grid scan
             x, y, z = generate_mesh(12345, axes=('sx', 'sy'), signal='roi2_sum')
+            # or, if scans are varying by sx and sy in a grid
+            x, y, z = generate_mesh(*range(0, 25), values=('sx', 'sy'), signal='roi2_sum')
 
         :param scan_files: multiple files or single 2D grid scan
         :param hdf_map: hdfmap.NeXus map, or None to generate
         :param axes: x-axis name, or for grid scans the names of ('xaxis', 'yaxis')
         :param signal: signal name
         :param values: name of the value that changes between multiple files
+        :param interpolate: if true, interpolates between points
         :returns: X, Y, IMAGE rank 2 arrays
         """
         scans = self.scans(*scan_files, hdf_map=hdf_map)
@@ -220,13 +336,25 @@ class Experiment:
                 )
             return x_data, y_data, z_data
         else:
+            try:
+                # 2D grid scan with 2 dimensions changing
+                x_axis, y_axis = values
+                z_axis = signal
+                x_data, y_data, z_data = self.join_scan_arrays(*scans, data_fields=[x_axis, y_axis, z_axis])
+                if interpolate:
+                    return interpolate_to_grid(x_data, y_data, z_data)
+                return coordinates_to_grid(x_data, y_data, z_data)
+            except (ValueError, TypeError):
+                pass
             x_data, y_data, z_data = [], [], []
             for n, scan in enumerate(scans):
                 with scan.load_hdf() as hdf:
                     x = np.reshape(scan.map.eval(hdf, axes, default=0.0), -1)
                     y = np.reshape(scan.map.eval(hdf, signal, default=0.0), -1)
                     val = np.reshape(scan.map.eval(hdf, values, default=0.0), -1) if values is not None else np.array([n])
-                if val.size == 1:
+                if x.size == 1:
+                    x = np.tile(x, val.size)
+                elif val.size == 1:
                     val = np.tile(val, x.size)
                 if y.size != x.size or val.size != x.size:
                     raise Exception(
@@ -244,7 +372,7 @@ class Experiment:
             z_array = np.array([z[:min_len] for z in z_data])
             return x_array, y_array, z_array
 
-    def scan_str(self, scan_file: int | str = 0, metadata_str: str | None = None,
+    def scan_str(self, scan_file: ScanFile = -1, metadata_str: str | None = None,
                  hdf_map: hdfmap.NexusMap | None = None) -> str:
         """Read scan file and return metadata string"""
         if metadata_str is None:
@@ -262,7 +390,7 @@ class Experiment:
         with hdfmap.load_hdf(self.get_scan_filename(scan_file)) as hdf:
             return hdf_map.format_hdf(hdf, metadata_str, raise_errors=True)
 
-    def scans_str(self, *scan_files: int | str, metadata_str: str | None = None,
+    def scans_str(self, *scan_files: ScanFile, metadata_str: str | None = None,
                   hdf_map: hdfmap.NexusMap | None = None) -> list[str]:
         """Return list of string descriptions for multiple files"""
         if metadata_str is None:
@@ -292,13 +420,13 @@ class Experiment:
         number_range = numbers2string(scan_numbers)
         return f"{folder} {number_range} {meta}"
 
-    def generate_scans_title(self, *scan_files: int | str, metadata_str: str | None = None,
+    def generate_scans_title(self, *scan_files: ScanFile, metadata_str: str | None = None,
                              hdf_map: hdfmap.NexusMap | None = None) -> str:
         """Generate title from multiple scan files"""
         scans = self.scans(*scan_files, hdf_map=hdf_map)
         return self._generate_scans_title(*scans, metadata_str=metadata_str)
 
-    def load_xas(self, *scan_files: int | str, sample_name: str | None = '', element_edge: str | None = None,
+    def load_xas(self, *scan_files: ScanFile, sample_name: str | None = '', element_edge: str | None = None,
                  mode: str | list[str] = 'all', dls_loader: bool = False, match_metadata: bool = True,
                  temp_tol: float = 1., field_tol: float = 0.1) -> list[SpectraContainer]:
         """
@@ -316,13 +444,17 @@ class Experiment:
         :param field_tol: Tolerance for field comparison (default: 0.1 T)
         :return: List of SpectraContainer objects containing XAS spectra
         """
-        filenames = [self.get_scan_filename(file) for file in scan_files]
         kwargs = dict(sample_name=sample_name, element_edge=element_edge, mode=mode, dls_loader=dls_loader)
-        if match_metadata and len(scan_files) > 1:
-            return find_similar_measurements(*filenames, temp_tol=temp_tol, field_tol=field_tol, **kwargs)
-        return load_xas_scans(*filenames, **kwargs)
+        spectra = [scan.xas_spectra(**kwargs) for scan in self.scans(*scan_files)]
+        if match_metadata:
+            if len(scan_files) == 1:
+                scan_numbers = self.get_nearby_scan_numbers(scan_files[0])
+                return self.load_xas(*scan_numbers, match_metadata=True, temp_tol=temp_tol, field_tol=field_tol, **kwargs)
+            else:
+                return find_similar_measurements(*spectra, temp_tol=temp_tol, field_tol=field_tol)
+        return spectra
 
-    def xas_polarised_spectra(self, *scan_files: int | str, sample_name: str | None = '',
+    def xas_polarised_spectra(self, *scan_files: ScanFile, sample_name: str | None = '',
                               element_edge: str | None = None, mode: str | list[str] = 'all',
                               dls_loader: bool = False, match_metadata: bool = True,
                               temp_tol: float = 1., field_tol: float = 0.1) -> tuple[SpectraContainer, SpectraContainer]:
@@ -371,3 +503,44 @@ class Experiment:
         """
         add_roi(self.config, name, cen_i, cen_j, wid_i, wid_j, image_name)
 
+    def copy_files(self, new_directory: str, *scan_files: ScanFile,
+                   merge_links: bool = False, merge_compression: str = 'gzip'):
+        """
+        Copy files into a new directory, along with linked data.
+
+        :param new_directory: new directory to copy files to
+        :param scan_files: list of scan files to copy, as filename or scan number.
+        :param merge_links: if True, copies any data from externally linked data files into the new file
+        :param merge_compression: compression algorithm for merged datasets, default is 'gzip'
+        :return: None
+        """
+        scans = self.scans(*scan_files)
+        for scan in scans:
+            scan.copy_file(
+                new_filename=os.path.join(new_directory, os.path.basename(scan.filename)),
+                merge_links=merge_links,
+                copy_linked_files=not merge_links,
+                merge_compression=merge_compression
+            )
+
+    def create_experiment_file(self, name: str | None = None, *scan_files: ScanFile):
+        """
+        Create an experiment file in the current directory
+
+        An experiment file contains links to every scan file
+
+        :param name: name of the output file
+        :param scan_files: list of scan files or scan numbers (blank for all scans)
+        :return:
+        """
+        import h5py
+        from ..nexus.nexus_writer import add_entry_links
+        if name is None:
+            name = os.path.basename(self.folder_paths[0])
+        folder = os.path.dirname(name) or self.folder_paths[0]
+        name, ext = os.path.splitext(name)
+        filename = os.path.join(folder, name + (ext or '.h5'))
+        print(f"Creating experiment file: {filename}")
+        all_scan_files = [scan.filename for scan in self.scans(*scan_files)]
+        with h5py.File(filename, 'w') as f:
+            add_entry_links(f, *all_scan_files)

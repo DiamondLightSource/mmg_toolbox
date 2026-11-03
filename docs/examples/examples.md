@@ -55,7 +55,7 @@ for scan in exp[-5:]:
 
 ### Plotting
 ```python
-from mmg_toolbox import data_file_reader
+from mmg_toolbox import data_file_reader, Experiment
 from mmg_toolbox.plotting.matplotlib import set_plot_defaults
 set_plot_defaults()  # changes the matplotlib defaults to larger fonts, thicker lines etc.
 
@@ -66,4 +66,7 @@ scan.plot.plot(xaxis='axes', yaxis='signal')
 # multi-line plot
 scan.plot.plot(xaxis='axes', yaxis=['signal', 'signal2'])
 
+# Plotting multiple files
+exp = Experiment('/dls/i06/2025/mm1234-1', instrument='i06') 
+exp.plot.multi_lines(*range(12345, 12355), value='Ta')
 ```

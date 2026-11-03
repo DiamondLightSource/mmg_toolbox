@@ -112,15 +112,15 @@ def create_hover(parent: tk.Misc | RootWithStyle, top_left: tuple[float, float] 
 
     :param parent: tk widget or root
     :param top_left: (relx, rely) widget top-left corner relative to parent top-left corner
-    :returns: ttk.Frame object inside tk.TopLevel with no window management
+    :returns: ttk.Frame object inside 'top'Level with no window management
     :returns: function close() -> None (releases widget and destroys hover window)
     """
 
     root = ttk.Frame(parent)
     root.place(relx=top_left[0], rely=top_left[1])
 
-    window = ttk.Frame(root, borderwidth=20, relief=tk.RAISED)
-    window.pack(side=tk.TOP, fill=tk.BOTH)
+    window = ttk.Frame(root, borderwidth=20, relief='raised')
+    window.pack(side='top', fill='both')
 
     def destroy(event=None):
         root.grab_release()

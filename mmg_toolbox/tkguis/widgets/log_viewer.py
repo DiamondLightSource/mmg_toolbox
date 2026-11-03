@@ -86,13 +86,13 @@ def log_tab(root: tk.Misc, log_string: str):
     "----------- Textbox -----------"
 
     txt = ttk.Frame(root)
-    txt.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+    txt.pack(side='top', expand=True, fill='both')
 
     # Scrollbars
-    scroll_x = ttk.Scrollbar(txt, orient=tk.HORIZONTAL)
-    scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
-    scroll_y = ttk.Scrollbar(txt, orient=tk.VERTICAL)
-    scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+    scroll_x = ttk.Scrollbar(txt, orient='horizontal')
+    scroll_x.pack(side='bottom', fill='x')
+    scroll_y = ttk.Scrollbar(txt, orient='vertical')
+    scroll_y.pack(side='right', fill='y')
 
     # TEXT box
     text = tk.Text(
@@ -101,13 +101,13 @@ def log_tab(root: tk.Misc, log_string: str):
         foreground=Colours.normal,
         insertbackground=Colours.normal,
         exportselection=True,
-        relief=tk.FLAT,
+        relief='flat',
         font=FONT,
-        wrap=tk.NONE
+        wrap='none'
     )
-    text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
+    text.pack(side='left', fill='both', expand=True)
     text.insert('1.0', log_string)
-    text.config(state=tk.DISABLED)
+    text.config(state='disabled')
 
     # make scrollbars work
     text.config(xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
@@ -132,12 +132,12 @@ class LogViewerWidget:
         self.search_number = tk.StringVar(self.root, '')
 
         main = ttk.Frame(root)
-        main.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        main.pack(side='top', expand=True, fill='both')
 
         self.ini_search(main)
 
         frm = ttk.Frame(main)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
         # Tabs
         self.view_tabs = ttk.Notebook(frm)
@@ -146,23 +146,23 @@ class LogViewerWidget:
             tab = ttk.Frame(self.view_tabs)
             self.view_tabs.add(tab, text=title)
             self.tab_texts.append(log_tab(tab, '\n'.join(log)))
-        self.view_tabs.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+        self.view_tabs.pack(side='top', fill='both', expand=True)
 
     def ini_search(self, frame: tk.Misc):
         frm = ttk.Frame(frame)
-        frm.pack(side=tk.TOP, anchor=tk.E)
+        frm.pack(side='top', anchor='e')
 
         var = ttk.Entry(frm, textvariable=self.search_box, width=40)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         # var.bind('<KeyRelease>', self.fun_search)
         var.bind('<Return>', self.fun_search)
         var.bind('<KP_Enter>', self.fun_search)
         var = ttk.Button(frm, text='Search', command=self.fun_search, width=10)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
 
-        ttk.Checkbutton(frm, variable=self.search_matchcase, text='Case').pack(side=tk.LEFT)
-        ttk.Checkbutton(frm, variable=self.search_all_dates, text='All Dates').pack(side=tk.LEFT)
-        ttk.Label(frm, textvariable=self.search_number).pack(side=tk.LEFT)
+        ttk.Checkbutton(frm, variable=self.search_matchcase, text='Case').pack(side='left')
+        ttk.Checkbutton(frm, variable=self.search_all_dates, text='All Dates').pack(side='left')
+        ttk.Label(frm, textvariable=self.search_number).pack(side='left')
 
 
     def fun_search(self, event=None):

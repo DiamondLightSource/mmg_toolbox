@@ -91,3 +91,43 @@ def pair_scans(*scans: SpectraContainer) -> list[tuple[SpectraContainer, Spectra
                 pairs.append((scan, scans.pop(n + m + 1)))
                 break
     return pairs
+
+
+def find_similar_measurements(*scans: SpectraContainer,
+                             temp_tol: float = 1., field_tol: float = 0.1) -> list[SpectraContainer]:
+    """
+    Find similar measurements based on energy, temperature and field.
+
+    Each measurement is compared to the first one in the list, using energy, temperature and field tolerances.
+
+    The polarisation is also checked to be similar (lh, lv or cl, cr).
+
+    Scans with different or missing metadata are removed from the list.
+
+    :param scans: list of SpectraContainer objects
+    :param temp_tol: Tolerance for temperature comparison (default: 0.1 K)
+    :param field_tol: Tolerance for field comparison (default: 0.1 T)
+    :return: List of similar measurements
+    """
+    ini_scan = scans[0]
+    element = ini_scan.metadata.element
+    edge = ini_scan.metadata.edge
+    temperature = ini_scan.metadata.temp
+    field_z = abs(ini_scan.metadata.mag_field)  # allow +/- field
+    pol = ini_scan.metadata.pol
+    similar_pols = opposite_polarisations(pol)
+
+    similar = []
+    for scan in scans:
+        m = scan.metadata
+        if (
+            m.element == element and
+            m.edge == edge and
+            abs(m.temp - temperature) < temp_tol and
+            abs(abs(m.mag_field) - field_z) < field_tol and
+            m.pol in similar_pols
+        ):
+            similar.append(scan)
+        else:
+            print(f"Measurement {repr(scan)} is not similar to {repr(ini_scan)}")
+    return similar

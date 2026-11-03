@@ -199,3 +199,8 @@ def replace_scan_number(filename: str, new_number: int) -> str:
     path, filename = os.path.split(filename)
     new_filename = regex_number.sub(str(new_number), filename)
     return os.path.join(path, new_filename)
+
+
+def get_file_time(filename: str) -> datetime.datetime:
+    """Return file modified time"""
+    return datetime.datetime.fromtimestamp(os.path.getmtime(filename))

@@ -5,7 +5,7 @@ Plot Manager for the Experiment object
 import numpy as np
 import matplotlib.pyplot as plt
 import hdfmap
-from ..utils.experiment import Experiment
+from ..utils.experiment import Experiment, ScanFile
 from .matplotlib import (
     set_plot_defaults, generate_subplots, plot_lines, plot_2d_surface, plot_3d_surface, plot_3d_lines,
     FIG_SIZE, FIG_DPI, DEFAULT_CMAP, Axes3D
@@ -32,7 +32,7 @@ class ExperimentPlotManager:
     def __call__(self, *args, **kwargs):
         return self.plot(*args, **kwargs)
 
-    def plot(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
+    def plot(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
              xaxis: str = 'axes', yaxis: str | list[str] = 'signal', axes: plt.Axes | None = None, **kwargs) -> plt.Axes:
         """
         Create matplotlib figure with a line plot from a or several scans
@@ -57,7 +57,7 @@ class ExperimentPlotManager:
         axes.set_title(self.exp.generate_scans_title(*scan_files))
         return axes
 
-    def image(self,  scan_file: int | str = -1, hdf_map: hdfmap.NexusMap | None = None,
+    def image(self,  scan_file: ScanFile = -1, hdf_map: hdfmap.NexusMap | None = None,
               index: int | tuple | slice | None = None, xaxis: str = 'axes',
               axes: plt.Axes | None = None, clim: tuple[float, float] | None = None,
               cmap: str = DEFAULT_CMAP, colorbar: bool = False, **kwargs) -> plt.Axes | None:
@@ -79,7 +79,7 @@ class ExperimentPlotManager:
             return scan.plot.image(index, xaxis, axes, clim, cmap, colorbar, **kwargs)
         return None
 
-    def detail(self, scan_file: int | str = -1, hdf_map: hdfmap.NexusMap | None = None,
+    def detail(self, scan_file: ScanFile = -1, hdf_map: hdfmap.NexusMap | None = None,
                xaxis: str = 'axes', yaxis: str | list[str] = 'signal',
                index: int | tuple | slice | None = None, clim: tuple[float, float] | None = None,
                cmap: str = DEFAULT_CMAP, **kwargs) -> plt.Figure:
@@ -107,8 +107,9 @@ class ExperimentPlotManager:
         lt.set_title(None)
 
         # Top right - image plot
-        scan.plot.image(index, xaxis, cmap=cmap, clim=clim, axes=rt)
-        rt.set_title(None)
+        if scan.map.image_data:
+            scan.plot.image(index, xaxis, cmap=cmap, clim=clim, axes=rt)
+            rt.set_title(None)
 
         # Bottom-Left - details
         details = self.exp.scan_str(scan_file, hdf_map=hdf_map)
@@ -122,7 +123,7 @@ class ExperimentPlotManager:
             rb.text(-0.2, 1, fit_report, ha='left', va='top', multialignment="left", fontsize=12, wrap=True)
         return fig
 
-    def multi_lines(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
+    def multi_lines(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
                     xaxis: str = 'axes', yaxis: str = 'signal', value: str | None = None,
                     axes: plt.Axes | None = None, **kwargs) -> plt.Axes:
         """
@@ -162,7 +163,7 @@ class ExperimentPlotManager:
         plt.colorbar(sm, ax=axes, label=value_label)
         return axes
 
-    def multi_plot(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
+    def multi_plot(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
                    xaxis: str = 'axes', yaxis: str | list[str] = 'signal', value: str | None = None,
                    subplots: tuple[int, int] = (4, 4), **kwargs) ->  list[tuple[plt.Figure, plt.Axes]]:
         """
@@ -190,7 +191,29 @@ class ExperimentPlotManager:
             ax.set_title(ttl_exp)
         return fig_ax
 
-    def surface_2d(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
+    def multi_image(self,  *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
+                    index: int | tuple | slice | None = None, xaxis: str = 'axes',
+                    clim: tuple[float, float] | None = None, cmap: str = DEFAULT_CMAP,
+                    colorbar: bool = False, **kwargs) -> list[tuple[plt.Figure, plt.Axes]]:
+        """
+        Plot scan images in matplotlib figure (if available)
+        :param scan_files: scan number or filename (multiple allowed)
+        :param hdf_map: hdfmap object or None
+        :param index: int, detector image index, 0-length of scan, if None, use centre index
+        :param xaxis: name or address of xaxis dataset
+        :param clim: [min, max] colormap cut-offs (None for auto)
+        :param cmap: str colormap name (None for auto)
+        :param colorbar: False/ True add colorbar to plot
+        :param kwargs: additional arguments for plot_detector_image
+        :return: [(Figure, Axes)] for each scan
+        """
+        fig_axes = generate_subplots(len(scan_files))
+        for scan, (fig, axes) in zip(scan_files, fig_axes):
+            self.image(scan, axes=axes, hdf_map=hdf_map, index=index, xaxis=xaxis,
+                       clim=clim, cmap=cmap, colorbar=colorbar, **kwargs)
+        return fig_axes
+
+    def surface_2d(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
                    xaxis: str = 'axes', signal: str = 'signal', values: str | None = None,
                    axes: plt.Axes | None = None, clim: tuple[float, float] | None = None,
                    axlim: str = 'image', **kwargs) -> plt.Axes:
@@ -226,7 +249,7 @@ class ExperimentPlotManager:
         axes.figure.colorbar(surf, ax=axes, label=signal)
         return axes
 
-    def lines_3d(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
+    def lines_3d(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
                  xaxis: str = 'axes', signal: str = 'signal', values: str | None = None,
                  axes: Axes3D | None = None, legend: bool = False, **kwargs) -> Axes3D:
         """
@@ -265,7 +288,7 @@ class ExperimentPlotManager:
             axes.legend()
         return axes
 
-    def surface_3d(self, *scan_files: int | str, hdf_map: hdfmap.NexusMap | None = None,
+    def surface_3d(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
                    xaxis: str = 'axes', signal: str = 'signal', values: str | None = None,
                    axes: Axes3D | None = None, clim: tuple[float, float] | None = None,
                    axlim: str = 'image', **kwargs) -> Axes3D:
@@ -302,8 +325,8 @@ class ExperimentPlotManager:
         axes.set_zlabel(signal_label)
         return axes
 
-    def metadata(self, *scan_files: int | str, values: str | list[str], hdf_map: hdfmap.NexusMap | None = None,
-                 axes: plt.Axes | None = None) -> plt.Axes:
+    def metadata(self, *scan_files: ScanFile, values: str | list[str], hdf_map: hdfmap.NexusMap | None = None,
+                 axes: plt.Axes | None = None, use_time: bool = False) -> plt.Axes:
         """
         Create matplotlib figure with plot of metadata vs scan number
 
@@ -311,18 +334,19 @@ class ExperimentPlotManager:
         :param values: field name or path of float value to distinguish different scans
         :param hdf_map: hdfmap object or None
         :param axes: matplotlib.axes subplot, or None to create a figure
+        :param use_time: if True, plots scan start_time vs values
         :return: axes object
         """
         scans = self.exp.scans(*scan_files, hdf_map=hdf_map)
         ttl = self.exp.generate_scans_title(*scan_files)
 
         values = [values] if isinstance(values, str) else values
-        data = {
-            name: np.array([scan.values(name) for scan in scans])
-            for name in values
-        }
+        data = self.exp.join_scan_data(*scans, hdf_map=hdf_map, data_fields=values)
 
-        x_data = [scan.scan_number() for scan in scans]
+        if use_time:
+            x_data = [scan.start_end_duration()[0] for scan in scans]
+        else:
+            x_data = [scan.scan_number() for scan in scans]
         if axes is None:
             fig, axes = plt.subplots()
         # TODO: handle 2D grid scans

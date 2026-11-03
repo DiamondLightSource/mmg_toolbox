@@ -94,7 +94,7 @@ class TkFigure:
         self.toolbar = CustomToolbar(self.canvas, frm2)
         self.toolbar.config(background=bg)
         self.toolbar.update()
-        self.toolbar.pack(fill='x')  # , expand=tk.YES)
+        self.toolbar.pack(fill='x')  # , expand=True)
 
     def _update(self):
         self.fig.canvas.draw()
@@ -153,24 +153,24 @@ def ini_image(frame: tk.Misc, figure_size: tuple[int, int] | None = None,
     plot_list: list[plt.Line2D] = []
 
     frm = ttk.Frame(frame)
-    frm.pack(expand=tk.YES, fill=tk.BOTH, pady=2, padx=5)
+    frm.pack(expand=True, fill='both', pady=2, padx=5)
     # frm.configure(bg=bg)
     canvas = FigureCanvasTkAgg(fig, frm)
     # canvas.get_tk_widget().configure(bg=bg)
     canvas.draw()
-    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=5, pady=2)
+    canvas.get_tk_widget().pack(side='top', fill='both', expand=True, padx=5, pady=2)
 
     # Colorbar
     # add_colorbar_clim(canvas, fig, ax1_image, cb1, frame)
 
     # Toolbar
     frm2 = ttk.Frame(frm)
-    frm2.pack(side=tk.TOP, expand=tk.NO, fill=tk.X, padx=5, pady=2)
+    frm2.pack(side='top', expand=False, fill='x', padx=5, pady=2)
     # toolbar = NavigationToolbar2Tk(canvas, frm)
     toolbar = CustomToolbar(canvas, frm2)
     toolbar.config(background=bg)
     toolbar.update()
-    toolbar.pack(fill=tk.X, expand=tk.YES)
+    toolbar.pack(fill='x', expand=True)
     return fig, ax1, plot_list, ax1_image, cb1, toolbar
 
 

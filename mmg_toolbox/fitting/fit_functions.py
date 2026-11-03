@@ -18,25 +18,28 @@ def modelfit(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndarray | None = 
              print_result: bool = False, plot_result: bool = False) -> ModelResult:
     """
     Fit x,y data to a model from lmfit
-    E.G.:
-      res = modelfit(x, y, model='Gauss')
-      print(res.fit_report())
-      res.plot()
-      val = res.params['amplitude'].value
-      err = res.params['amplitude'].stderr
+
+        res = modelfit(x, y, model='Gauss')
+        print(res.fit_report())
+        res.plot()
+        val = res.params['amplitude'].value
+        err = res.params['amplitude'].stderr
 
     Model:
-     from lmfit import models
-     model1 = model.GaussianModel()
-     model2 = model.LinearModel()
-     model = model1 + model2
-     res = model.fit(y, x=x)
+
+        from lmfit import models
+        model1 = model.GaussianModel()
+        model2 = model.LinearModel()
+        model = model1 + model2
+        res = model.fit(y, x=x)
 
     Provide initial guess:
-      res = modelfit(x, y, model=VoightModel(), initial_parameters={'center':1.23})
+
+        res = modelfit(x, y, model=VoightModel(), initial_parameters={'center':1.23})
 
     Fix parameter:
-      res = modelfit(x, y, model=VoightModel(), fix_parameters={'sigma': fwhm/2.3548200})
+
+        res = modelfit(x, y, model=VoightModel(), fix_parameters={'sigma': fwhm/2.3548200})
 
     :param xvals: array(n) position data
     :param yvals: array(n) intensity data
@@ -62,7 +65,10 @@ def modelfit(xvals: np.ndarray, yvals: np.ndarray, yerrors: np.ndarray | None = 
     if model is None:
         model = get_default_model()
 
-    pars = model.make_params()
+    if not initial_parameters and hasattr(model, 'guess'):
+        pars = model.guess(yvals, x=xvals)
+    else:
+        pars = model.make_params()
 
     # user input parameters
     for ipar, ival in initial_parameters.items():

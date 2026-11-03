@@ -81,7 +81,7 @@ class CanvasTreeview:
             canvas.configure(width=width, height=height)
             self.pack_treeview = lambda: canvas.pack()
         else:
-            self.pack_treeview = lambda: canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+            self.pack_treeview = lambda: canvas.pack(side='top', fill='both', expand=True)
         if pack:
             self.pack_treeview()
         canvas.grid_propagate(False)
@@ -95,15 +95,15 @@ class CanvasTreeview:
             tree.column(c[0], stretch=False)
 
         var = ttk.Scrollbar(frm, orient="vertical", command=tree.yview)
-        # var.pack(side=tk.RIGHT, fill=tk.Y)
+        # var.pack(side='right', fill='y')
         var.grid(column=1, row=0, sticky='ns')
         tree.configure(yscrollcommand=var.set)
 
         var = ttk.Scrollbar(frm, orient="horizontal", command=tree.xview)
-        # var.pack(side=tk.BOTTOM, fill=tk.X)
+        # var.pack(side='bottom', fill='x')
         var.grid(column=0, row=1, sticky='ew')
         tree.configure(xscrollcommand=var.set)
-        # tree.pack(side=tk.TOP)
+        # tree.pack(side='top')
         tree.grid(column=0, row=0, sticky='nsew')
         # place the frame inside the canvas as a window and make it resize with the canvas
         _canvas_window = canvas.create_window(0, 0, anchor='nw', window=frm)

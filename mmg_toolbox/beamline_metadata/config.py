@@ -34,7 +34,8 @@ META_LIST = {
 REPLACE_NAMES = {
     # NEW_NAME: EXPRESSION
     '_t': '(count_time|counttime|t?(1.0))',
-    '_cmd': DEFAULT_SCAN_DESCRIPTION.strip('{}'),
+    'count_time': '(count_time|counttime|t?(1.0))',
+    'cmd': DEFAULT_SCAN_DESCRIPTION.strip('{}'),
 }
 
 ROIs: list[tuple[str, str | int, str | int, int, int, str]] = [

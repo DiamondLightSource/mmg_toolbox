@@ -11,10 +11,11 @@ Source          | <https://github.com/DiamondLightSource/mmg_toolbox>
 PyPI            | `pip install mmg_toolbox`
 Documentation   | <https://diamondlightsource.github.io/mmg_toolbox>
 Releases        | <https://github.com/DiamondLightSource/mmg_toolbox/releases>
+Conda           | <https://github.com/conda-forge/hdfmap-feedstock>
 
 
 ### Installation
-*Requires:* Python >=3.10, Numpy, h5py, matplotlib, hdfmap, nexus2srs
+*Requires:* Python >=3.10, Numpy, h5py, scipy, lmfit, matplotlib, hdfmap, nexus2srs
 ```bash
 python -m pip install mmg_toolbox
 ```

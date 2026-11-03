@@ -63,7 +63,9 @@ def set_plot_defaults(rcdefaults=False):
 
 
 def new_plot(projection: str | None = None) -> Axes | Axes3D:
-    """Create a new figure with a single axes"""
+    """
+    Create a new figure with a single axes, specify projection='3d' for 3D axis
+    """
     return plt.figure().add_subplot(projection=projection)
 
 

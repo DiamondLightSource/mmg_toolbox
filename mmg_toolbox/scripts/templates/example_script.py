@@ -4,7 +4,7 @@
 """
 
 import matplotlib.pyplot as plt
-import hdfmap
+from mmg_toolbox import data_file_reader
 
 filenames = [
     {{filepaths}}
@@ -13,11 +13,9 @@ filenames = [
 fig, ax = plt.subplots()
 
 for file in filenames:
-    m = hdfmap.NexusMap()
-    with hdfmap.load_hdf(file) as nxs:
-        m.populate(nxs)
-        data = m.get_plot_data(nxs)
-        label = m.format_hdf(nxs, "{filename}: {__axes}")
+    scan = data_file_reader(file, '{{beamline}}')
+    data = scan.get_plot_data('{{x-axis}}', '{{y-axis}}')
+    label = scan.label()
     ax.plot(data['xdata'], data['ydata'], label=label)
 
 ax.set_xlabel(data['xlabel'])

@@ -134,22 +134,22 @@ class PeakFitAnalysis:
 
         # ---Middle section---
         middle = ttk.Frame(self.root)
-        middle.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        middle.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
         # Left side - scan selection
         left = ttk.LabelFrame(middle, text='Scan Numbers')
-        left.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
+        left.pack(side='left', fill='y', padx=2, pady=2)
 
         self.scans = ScanPeakTreeview(left)
         self.scans.bind_select(self.select_scan)
 
         # Right side
         right = ttk.Frame(middle)
-        right.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
+        right.pack(side='left', fill='y', padx=2, pady=2)
 
         # Plot
         frm = ttk.Frame(right)
-        frm.pack(side=tk.TOP, fill=tk.BOTH, padx=2, pady=2)
+        frm.pack(side='top', fill='both', padx=2, pady=2)
 
         self.plot = SimplePlot(frm, [], [], x_axis, y_axis, config=self.config)
         self.data_line, = self.plot.plot([], [], 'bo-', label='Data')
@@ -159,17 +159,17 @@ class PeakFitAnalysis:
 
         # Fit parameters
         frm = ttk.Frame(right)
-        frm.pack(side=tk.TOP, fill=tk.BOTH, padx=2, pady=2)
+        frm.pack(side='top', fill='both', padx=2, pady=2)
 
         self.ini_parameters(frm)
 
         # ---Bottom---
         bottom = ttk.Frame(self.root)
-        bottom.pack(side=tk.TOP, expand=tk.YES, pady=8, padx=4)
-        ttk.Button(bottom, text='Plot All', command=self.fit_plots).pack(side=tk.LEFT)
-        ttk.Button(bottom, text='Plot Fit results', command=self.fit_all).pack(side=tk.LEFT)
+        bottom.pack(side='top', expand=True, pady=8, padx=4)
+        ttk.Button(bottom, text='Plot All', command=self.fit_plots).pack(side='left')
+        ttk.Button(bottom, text='Plot Fit results', command=self.fit_all).pack(side='left')
         options = ['All'] + FIT_PARAMETERS
-        ttk.Combobox(bottom, textvariable=self.plot_option, values=options).pack(side=tk.LEFT, padx=2)
+        ttk.Combobox(bottom, textvariable=self.plot_option, values=options).pack(side='left', padx=2)
 
         # ---Start---
         if scan_numbers:
@@ -178,120 +178,120 @@ class PeakFitAnalysis:
 
     def ini_top_section(self, root: tk.Misc):
         # top = ttk.LabelFrame(root, text='Folders')
-        # top.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        # top.pack(side='top', fill='both', expand=True, padx=4, pady=4)
         #
         # frm = ttk.Frame(top)
-        # frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        # ttk.Label(frm, text='Data Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        # ttk.Entry(frm, textvariable=self.exp_folder, width=60).pack(side=tk.LEFT)
-        # ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side=tk.LEFT)
+        # frm.pack(side='top', fill='x', expand=True, padx=4)
+        # ttk.Label(frm, text='Data Dir:', width=15).pack(side='left', padx=4)
+        # ttk.Entry(frm, textvariable=self.exp_folder, width=60).pack(side='left')
+        # ttk.Button(frm, text='Browse', command=self.browse_datadir).pack(side='left')
         #
         # frm = ttk.Frame(top)
-        # frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        # ttk.Label(frm, text='Analysis Dir:', width=15).pack(side=tk.LEFT, padx=4)
-        # ttk.Entry(frm, textvariable=self.proc_folder, width=60).pack(side=tk.LEFT)
-        # ttk.Button(frm, text='Browse', command=self.browse_analysis).pack(side=tk.LEFT)
+        # frm.pack(side='top', fill='x', expand=True, padx=4)
+        # ttk.Label(frm, text='Analysis Dir:', width=15).pack(side='left', padx=4)
+        # ttk.Entry(frm, textvariable=self.proc_folder, width=60).pack(side='left')
+        # ttk.Button(frm, text='Browse', command=self.browse_analysis).pack(side='left')
 
         # Axis + Metadata selection
         top = ttk.LabelFrame(root, text='Axes')
-        top.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        top.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
         frm = ttk.Frame(top)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
-        ttk.Label(frm, text='X:', width=2).pack(side=tk.LEFT, padx=2)
+        frm.pack(side='top', fill='x', expand=True, padx=4)
+        ttk.Label(frm, text='X:', width=2).pack(side='left', padx=2)
         var = ttk.Entry(frm, textvariable=self.x_axis, width=20)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind("<Return>", self.plot_scan)
         var.bind("<KP_Enter>", self.plot_scan)
-        ttk.Button(frm, text=':', command=self.browse_x_axis, width=1, padding=0).pack(side=tk.LEFT)
+        ttk.Button(frm, text=':', command=self.browse_x_axis, width=1, padding=0).pack(side='left')
 
-        ttk.Label(frm, text='Y:', width=2).pack(side=tk.LEFT, padx=4)
+        ttk.Label(frm, text='Y:', width=2).pack(side='left', padx=4)
         var = ttk.Entry(frm, textvariable=self.y_axis, width=20)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind("<Return>", self.plot_scan)
         var.bind("<KP_Enter>", self.plot_scan)
-        ttk.Button(frm, text=':', command=self.browse_y_axis, width=1, padding=0).pack(side=tk.LEFT)
+        ttk.Button(frm, text=':', command=self.browse_y_axis, width=1, padding=0).pack(side='left')
 
-        ttk.Label(frm, text='Metadata:', width=15).pack(side=tk.LEFT, padx=4)
+        ttk.Label(frm, text='Metadata:', width=15).pack(side='left', padx=4)
         var = ttk.Entry(frm, textvariable=self.metadata_name, width=20)
-        var.pack(side=tk.LEFT)
+        var.pack(side='left')
         var.bind("<Return>", self.update_scans)
         var.bind("<KP_Enter>", self.update_scans)
-        ttk.Button(frm, text=':', command=self.browse_metadata, width=1, padding=0).pack(side=tk.LEFT)
-        ttk.Button(frm, text='Update', command=self.update_scans, padding=1).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(frm, text=':', command=self.browse_metadata, width=1, padding=0).pack(side='left')
+        ttk.Button(frm, text='Update', command=self.update_scans, padding=1).pack(side='right', padx=5)
 
         # Model selection
         frm = ttk.LabelFrame(root, text='Fit Options')
-        frm.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES, padx=4, pady=4)
+        frm.pack(side='top', fill='both', expand=True, padx=4, pady=4)
 
-        ttk.Label(frm, text='N Peaks:', width=8).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(frm, textvariable=self.all_n_peaks, width=3).pack(side=tk.LEFT)
+        ttk.Label(frm, text='N Peaks:', width=8).pack(side='left', padx=2)
+        ttk.Entry(frm, textvariable=self.all_n_peaks, width=3).pack(side='left')
 
-        ttk.Label(frm, text='Power:', width=8).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frm, text='?', command=self.help_power, width=2, padding=0).pack(side=tk.LEFT)
-        ttk.Entry(frm, textvariable=self.all_peak_power, width=3).pack(side=tk.LEFT)
+        ttk.Label(frm, text='Power:', width=8).pack(side='left', padx=2)
+        ttk.Button(frm, text='?', command=self.help_power, width=2, padding=0).pack(side='left')
+        ttk.Entry(frm, textvariable=self.all_peak_power, width=3).pack(side='left')
 
-        ttk.Label(frm, text='Distance:', width=8).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frm, text='?', command=self.help_peak_distance, width=2, padding=0).pack(side=tk.LEFT)
-        ttk.Entry(frm, textvariable=self.all_peak_distance, width=3).pack(side=tk.LEFT)
+        ttk.Label(frm, text='Distance:', width=8).pack(side='left', padx=2)
+        ttk.Button(frm, text='?', command=self.help_peak_distance, width=2, padding=0).pack(side='left')
+        ttk.Entry(frm, textvariable=self.all_peak_distance, width=3).pack(side='left')
 
-        ttk.Label(frm, text='Model:', width=12).pack(side=tk.LEFT, padx=4)
-        ttk.Combobox(frm, textvariable=self.all_model, values=list(PEAK_MODELS)).pack(side=tk.LEFT, padx=2)
+        ttk.Label(frm, text='Model:', width=12).pack(side='left', padx=4)
+        ttk.Combobox(frm, textvariable=self.all_model, values=list(PEAK_MODELS)).pack(side='left', padx=2)
 
-        ttk.Label(frm, text='Background:', width=12).pack(side=tk.LEFT, padx=4)
-        ttk.Combobox(frm, textvariable=self.all_background, values=list(BACKGROUND_MODELS)).pack(side=tk.LEFT, padx=2)
+        ttk.Label(frm, text='Background:', width=12).pack(side='left', padx=4)
+        ttk.Combobox(frm, textvariable=self.all_background, values=list(BACKGROUND_MODELS)).pack(side='left', padx=2)
 
     def ini_parameters(self, root: tk.Misc):
         frm = ttk.Frame(root)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4, pady=2)
+        frm.pack(side='top', fill='x', expand=True, padx=4, pady=2)
         left = ttk.Frame(frm)
-        left.pack(side=tk.LEFT)
+        left.pack(side='left')
         line = ttk.Frame(left)
-        line.pack(side=tk.TOP)
-        ttk.Checkbutton(line, variable=self.scan_use_scan, command=self.update_model).pack(side=tk.LEFT)
-        ttk.Label(line, textvariable=self.scan_title).pack(side=tk.LEFT, fill=tk.X, padx=5, pady=2)
-        ttk.Label(left, textvariable=self.scan_label, width=20).pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
+        line.pack(side='top')
+        ttk.Checkbutton(line, variable=self.scan_use_scan, command=self.update_model).pack(side='left')
+        ttk.Label(line, textvariable=self.scan_title).pack(side='left', fill='x', padx=5, pady=2)
+        ttk.Label(left, textvariable=self.scan_label, width=20).pack(side='top', fill='x', padx=5, pady=2)
         right = ttk.Frame(frm)
-        right.pack(side=tk.LEFT)
-        ttk.Button(right, text='Fit', command=self.perform_fit).pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=2)
-        ttk.Button(right, text='Results', command=self.display_results).pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=2)
+        right.pack(side='left')
+        ttk.Button(right, text='Fit', command=self.perform_fit).pack(side='left', fill='y', padx=5, pady=2)
+        ttk.Button(right, text='Results', command=self.display_results).pack(side='left', fill='y', padx=5, pady=2)
 
         frm = ttk.Frame(root)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4, pady=2)
-        opt = ttk.Frame(frm, relief=tk.GROOVE)
-        opt.pack(side=tk.LEFT, padx=5, pady=4)
-        ttk.Label(opt, text='N Peaks:', width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(opt, textvariable=self.scan_n_peaks, width=3).pack(side=tk.LEFT)
-        ttk.Checkbutton(opt, variable=self.scan_use_peaks, command=self.update_model, padding=0).pack(side=tk.LEFT, padx=2)
+        frm.pack(side='top', fill='x', expand=True, padx=4, pady=2)
+        opt = ttk.Frame(frm, relief='groove')
+        opt.pack(side='left', padx=5, pady=4)
+        ttk.Label(opt, text='N Peaks:', width=10).pack(side='left', padx=2)
+        ttk.Entry(opt, textvariable=self.scan_n_peaks, width=3).pack(side='left')
+        ttk.Checkbutton(opt, variable=self.scan_use_peaks, command=self.update_model, padding=0).pack(side='left', padx=2)
 
-        opt = ttk.Frame(frm, relief=tk.GROOVE)
-        opt.pack(side=tk.LEFT, padx=5, pady=4)
-        ttk.Label(opt, text='Power:', width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(opt, textvariable=self.scan_peak_power, width=3).pack(side=tk.LEFT)
-        ttk.Checkbutton(opt, variable=self.scan_use_power, command=self.update_model, padding=0).pack(side=tk.LEFT, padx=2)
+        opt = ttk.Frame(frm, relief='groove')
+        opt.pack(side='left', padx=5, pady=4)
+        ttk.Label(opt, text='Power:', width=10).pack(side='left', padx=2)
+        ttk.Entry(opt, textvariable=self.scan_peak_power, width=3).pack(side='left')
+        ttk.Checkbutton(opt, variable=self.scan_use_power, command=self.update_model, padding=0).pack(side='left', padx=2)
 
-        opt = ttk.Frame(frm, relief=tk.GROOVE)
-        opt.pack(side=tk.LEFT, padx=5, pady=4)
-        ttk.Label(opt, text='Distance:', width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Entry(opt, textvariable=self.scan_peak_distance, width=3).pack(side=tk.LEFT)
+        opt = ttk.Frame(frm, relief='groove')
+        opt.pack(side='left', padx=5, pady=4)
+        ttk.Label(opt, text='Distance:', width=10).pack(side='left', padx=2)
+        ttk.Entry(opt, textvariable=self.scan_peak_distance, width=3).pack(side='left')
 
         frm = ttk.Frame(root)
-        frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4, pady=2)
-        ttk.Label(frm, text='Model:').pack(side=tk.LEFT, padx=4)
-        ttk.Combobox(frm, textvariable=self.scan_model, values=list(PEAK_MODELS), width=10).pack(side=tk.LEFT, padx=2)
+        frm.pack(side='top', fill='x', expand=True, padx=4, pady=2)
+        ttk.Label(frm, text='Model:').pack(side='left', padx=4)
+        ttk.Combobox(frm, textvariable=self.scan_model, values=list(PEAK_MODELS), width=10).pack(side='left', padx=2)
 
-        ttk.Label(frm, text='Background:').pack(side=tk.LEFT, padx=4)
+        ttk.Label(frm, text='Background:').pack(side='left', padx=4)
         ttk.Combobox(frm, textvariable=self.scan_background, values=list(BACKGROUND_MODELS),
-                     width=10).pack(side=tk.LEFT, padx=2)
+                     width=10).pack(side='left', padx=2)
 
         frm = ttk.Frame(root)
-        frm.pack(side=tk.TOP, padx=4, pady=2)
-        ttk.Button(frm, text='Select Region', command=self.select_region).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frm, text='Mask Region', command=self.select_mask).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frm, text='Reset', command=self.reset_mask).pack(side=tk.LEFT, padx=2)
+        frm.pack(side='top', padx=4, pady=2)
+        ttk.Button(frm, text='Select Region', command=self.select_region).pack(side='left', padx=2)
+        ttk.Button(frm, text='Mask Region', command=self.select_mask).pack(side='left', padx=2)
+        ttk.Button(frm, text='Reset', command=self.reset_mask).pack(side='left', padx=2)
 
         # frm = ttk.Frame(root)
-        # frm.pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=4)
+        # frm.pack(side='top', fill='x', expand=True, padx=4)
         # parameters
         # TODO: add parameters
 

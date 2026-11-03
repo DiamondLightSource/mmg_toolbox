@@ -19,18 +19,18 @@ class WindowSize:
         self.root = create_root('Size Widget', parent=parent)
 
         frm = ttk.LabelFrame(self.root, text='Size')
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
-        self.text = tk.Text(frm, wrap=tk.NONE, width=100, height=10)
-        self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
+        self.text = tk.Text(frm, wrap='none', width=100, height=10)
+        self.text.pack(side='left', fill='both', expand=True)
 
         frm = ttk.Frame(self.root)
-        frm.pack(side=tk.TOP, expand=tk.YES, fill=tk.BOTH)
+        frm.pack(side='top', expand=True, fill='both')
 
         var = ttk.Button(self.root, text='Update', command=self.fun_update)
-        var.pack(side=tk.TOP, fill=tk.X)
+        var.pack(side='top', fill='x')
         var = ttk.Button(self.root, text='Close', command=self.root.destroy)
-        var.pack(side=tk.TOP, fill=tk.X)
+        var.pack(side='top', fill='x')
 
     def fun_update(self, event=None):
         """Launches window, returns selection"""

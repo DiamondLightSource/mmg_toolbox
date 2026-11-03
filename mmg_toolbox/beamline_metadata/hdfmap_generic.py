@@ -2,6 +2,8 @@
 Generic metadata from NeXus files for use by HdfMap
 """
 
+ROI_SUFFIXES = ['_total', '_max', '_min', '_mean', '_rmbkg', '_box', '_bkg_box']
+
 class HdfMapNexus:
     """HdfMap Eval commands for any nexus file"""
     instrument = 'NXinstrument_name?("beamline")'
@@ -25,7 +27,7 @@ class HdfMapMMGMetadata(HdfMapNexus):
     energy = '(fastEnergy|pgm_energy|energye|energyh|incident_energy|energy)'
     pol = 'polarisation?("lh")'
     pol_angle = 'linear_arbitrary_angle?(0.0)'
-    count_time = 'count_time?(1.)'  # TODO: check this
+    count_time = '(count_time|counttime|t?(1.0))'
 
 
 class HdfMapXASMetadata(HdfMapMMGMetadata):

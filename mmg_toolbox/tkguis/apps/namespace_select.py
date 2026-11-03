@@ -35,7 +35,7 @@ def create_metadata_selector(hdf_map: hdfmap.NexusMap,
         ])
         root.destroy()
 
-    ttk.Button(root, text='Select', command=select).pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=5)
+    ttk.Button(root, text='Select', command=select).pack(side='top', fill='x', expand=True, padx=5)
 
     root.wait_window()
     return output_names
@@ -66,7 +66,7 @@ def create_scannable_selector(hdf_map: hdfmap.NexusMap,
         root.destroy()
 
     widget.tree.bind("<Double-1>", select)
-    ttk.Button(root, text='Select', command=select).pack(side=tk.TOP, fill=tk.X, expand=tk.YES, padx=5)
+    ttk.Button(root, text='Select', command=select).pack(side='top', fill='x', expand=True, padx=5)
 
     root.wait_window()
     return output_names
