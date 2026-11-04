@@ -3156,6 +3156,8 @@ dev = [
     { name = "lmfit" },
     { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "matplotlib", version = "3.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "mkdocs-jupyter", version = "0.26.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "mkdocs-jupyter", version = "0.27.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "mkdocs-techdocs-diamond" },
     { name = "mkdocstrings", extra = ["python"] },
     { name = "nbconvert" },
@@ -3224,14 +3226,6 @@ powder = [
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "mkdocs-jupyter", version = "0.26.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "mkdocs-jupyter", version = "0.27.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "mkdocs-techdocs-diamond" },
-    { name = "mkdocstrings", extra = ["python"] },
-]
-
 [package.metadata]
 requires-dist = [
     { name = "diffcalc-core", marker = "extra == 'full'" },
@@ -3252,6 +3246,7 @@ requires-dist = [
     { name = "lmfit", marker = "extra == 'base'" },
     { name = "matplotlib" },
     { name = "matplotlib", marker = "extra == 'base'" },
+    { name = "mkdocs-jupyter", marker = "extra == 'dev'", specifier = ">=0.26.3" },
     { name = "mkdocs-techdocs-diamond", marker = "extra == 'dev'" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'dev'" },
     { name = "mmg-toolbox", extras = ["base"], marker = "extra == 'full'" },
@@ -3275,13 +3270,6 @@ requires-dist = [
     { name = "stomp-py" },
 ]
 provides-extras = ["base", "powder", "full", "dev"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mkdocs-jupyter", specifier = ">=0.26.3" },
-    { name = "mkdocs-techdocs-diamond", specifier = ">=1.0.2" },
-    { name = "mkdocstrings", extras = ["python"], specifier = ">=0.28.3" },
-]
 
 [[package]]
 name = "mplcursors"

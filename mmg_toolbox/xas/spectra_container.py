@@ -559,10 +559,13 @@ class SpectraContainerSubtraction(SpectraContainer):
         report += spectra.sum_rules_report(n_holes, self.metadata.element, split_energy)
         return report
 
-    def create_sum_rules_figure(self, **kwargs) -> plt.Figure:
+    def create_sum_rules_figure(self, split_energy: float | int | None = None,
+                                edges: dict[str, float | int] | None = None, **kwargs) -> plt.Figure:
         """
         Create matplotlib figure of subtraction plots showing different integration regions
 
+        :param split_energy: energy half-way between two edges
+        :param edges: dictionary of edges as {'edge': energy_ev}
         :param kwargs: kwargs to pass to plt.figure
         :return: matplotlib Figure
         """
@@ -578,7 +581,7 @@ class SpectraContainerSubtraction(SpectraContainer):
 
         for n, (mode, spectra) in enumerate(self.spectra.items()):
             self.add_edge_lines(axes[1, n])
-            spectra.plot_sum_rules(ax=axes[1, n])
+            spectra.plot_sum_rules(ax=axes[1, n], split_energy=split_energy, edges=edges)
             axes[1, n].set_ylabel(self.name)
             idx = abs(spectra.signal).argmax()
             x, y = spectra.energy[idx], spectra.signal[idx]

@@ -491,7 +491,7 @@ class SpectraSubtraction(Spectra):
         energy = self.energy
         difference = self.signal
         # average = self.average_subtracted_spectra().signal
-        edges = self.edges()
+        edges = edges or self.edges()
         if split_energy is None and len(edges) == 1:
             split_energy = energy.max()
         split_energy = split_energy or self.get_split_energy(edges)
