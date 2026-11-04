@@ -148,7 +148,7 @@ if __name__ == '__main__':
     docs = DOCS / 'description'
     examples = ROOT / 'examples'
     examples_docs = DOCS / 'examples/index.md'
-    yaml = DOCS / 'mkdocs.yml'
+    yaml = ROOT / 'mkdocs.yml'
     examples_url = 'https://github.com/DiamondLightSource/mmg_toolbox/blob/main/examples/'
     print(ROOT, ROOT.is_dir())
     print(DOCS, DOCS.is_dir())
