@@ -50,7 +50,7 @@ def write_markdown(md_filename: str, script_path: str, package_path: str):
     print('Writing markdown file:', md_filename)
 
 
-def create_md_files(root_dir: str, docs_dir, yaml_file='mkdocs.yml'):
+def create_md_files(root_dir: str, docs_dir: str, yaml_file: str ='mkdocs.yml'):
 
     def _recursor(top_dir: str) -> list[dict | str]:
         md_group_files = []
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     print(ROOT, ROOT.is_dir())
     print(DOCS, DOCS.is_dir())
     print(yaml, yaml.is_file())
-    create_md_files(str(SRC), docs, str(yaml))
+    create_md_files(str(SRC), str(docs), str(yaml))
     # create examples file
     create_examples_index_md(str(examples), str(examples_docs), examples_url)
     # copy notebook files & update examples yaml
