@@ -133,15 +133,25 @@ def update_yaml_examples_notebooks(yaml_file: str, notebooks: dict[str, str]):
         docs_file = docs_examples_dir / filename
         if docs_file.is_file():
             print(f"Found {filename} in {docs_examples_dir}")
-            notebook_paths.append({name: str(docs_file)})
         elif (examples_dir / filename).is_file():
             copyfile(examples_dir / filename, docs_file)
             print(f"Copied {filename} to {docs_examples_dir}")
-            notebook_paths.append({name: str(docs_file)})
+        else:
+            print(f"WARNING: notebook not found: {filename}")
+            continue
+        notebook_paths.append({
+            name: docs_file.relative_to(DOCS).as_posix()
+        })
     nav[i]['Examples'].extend(notebook_paths)
 
     with open(yaml_file, 'w') as f:
         _yaml.dump(yml_obj, f)
+
+
+def print_tree(path: Path):
+    for p in sorted(path.rglob("*")):
+        depth = len(p.relative_to(path).parts) - 1
+        print("  " * depth + "|-- " + p.name)
 
 
 if __name__ == '__main__':
@@ -159,3 +169,12 @@ if __name__ == '__main__':
     # copy notebook files & update examples yaml
     update_yaml_examples_notebooks(str(yaml), NOTEBOOKS)
 
+    ## Log the results ##
+    # Display the yaml
+    print('\nYaml file: ', yaml)
+    with open(yaml, 'r') as f:
+        print(f.read())
+
+    # Display the file system
+    print('\n\nDocs Tree: ', DOCS.absolute())
+    print_tree(DOCS)
