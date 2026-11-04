@@ -35,7 +35,6 @@ nav:
     - Getting Started: examples/examples.md
     - Peak Fitting: examples/peak_fitting.md
     - XAS and XMCD: examples/xas_and_xmcd.md
-    - UB Matrices: examples/notebook_i16_ub_matrix.ipynb
   - Code Description:
     - description/index.md
     - beamline_metadata:
