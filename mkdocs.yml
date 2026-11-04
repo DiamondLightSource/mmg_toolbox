@@ -13,7 +13,8 @@ plugins:
         python:
           options:
             docstring_style: sphinx
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      ignore_h1_titles: true
 
 markdown_extensions:
   - pymdownx.highlight:
