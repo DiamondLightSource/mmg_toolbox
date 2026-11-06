@@ -5,9 +5,11 @@ Plot Manager for the Scan object
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import QuadMesh
+from mpl_toolkits.mplot3d import Axes3D
+
 from ..nexus.nexus_scan import NexusScan
 from .matplotlib import (
-    set_plot_defaults, new_plot, plot_line, plot_image, plot_2d_surface,
+    set_plot_defaults, new_plot, plot_line, plot_image, plot_2d_surface, plot_3d_lines,
     FIG_SIZE, FIG_DPI, DEFAULT_CMAP
 )
 
@@ -122,6 +124,37 @@ class ScanPlotManager:
         axes.set_title(data['title'])
         if colorbar:
             plt.colorbar(mesh, ax=axes, label=data['grid_label'])
+        return axes
+
+    def plot3d(self, xaxis: str = 'axes0', yaxis: str = 'axes1', zaxis: str = 'signal',
+               axes: plt.Axes | None = None, **kwargs) -> Axes3D:
+        """
+        Create matplotlib figure with 3D plot, for 2D grid scans
+
+        :param xaxis: str name or address of array to plot on x-axis
+        :param yaxis: str name or address of array to plot on y-axis
+        :param zaxis: str name or address of array to plot on z-axis
+        :param axes: matplotlib axes to plot on (None to create figure)
+        :param axes: matplotlib.axes subplot, or None to create a figure
+        :param kwargs: given directly to plt.pcolormesh(..., *args, **kwars)
+        :return: axes object
+        """
+        if len(self.scan.map.scannables_shape()) != 2:
+            raise ValueError(f"Scan {repr(self.scan)} has shape {self.scan.map.scannables_shape()} inconsistent with map2d")
+        data = self.scan.get_plot_data(xaxis, yaxis, z_axis=zaxis)
+
+        axes = new_plot('3d') if axes is None else axes
+        lines = plot_3d_lines(
+            axes=axes,
+            xdata=data['grid_xdata'],
+            ydata=data['grid_ydata'],
+            zdata=data['grid_data'],
+            **kwargs
+        )
+        axes.set_xlabel(data['grid_xlabel'])
+        axes.set_ylabel(data['grid_ylabel'])
+        axes.set_zlabel(data['grid_label'])
+        axes.set_title(data['title'])
         return axes
 
     def image(self, index: int | str | None = None, xaxis: str = 'axes',
@@ -304,4 +337,47 @@ class ScanPlotManager:
         axes.set_title(self.scan.title())
         return axes
 
+    def axes_labels(self, axes: plt.Axes | None = None, x_label: bool | str | None = True,
+                    y_label: bool | str | None = True, z_label: bool | str | None = True,
+                    title: bool | str | None = True, legend: bool | None = True):
+        """
+        Set the axes labels using default or specified labels
 
+        Each axis can be one of three values:
+
+            - True: Use the default label for the axis (default)
+            - 'expression': convert expression into the axis name (defaults are replaced with actual names)
+            - None: axis is not updated
+
+        :param axes: matplotlib Axes object
+        :param x_label: x-axis label
+        :param y_label: y-axis label
+        :param z_label: z-axis label (if available)
+        :param title: axis title
+        :param legend: True/False - add legend
+        """
+        # TODO: create and set self._x_label etc on every plot call, the use this as the default
+        if axes is None:
+            axes = plt.gca()
+
+        def update(fn, value, default):
+            if value:  # True or str
+                if not isinstance(value, str): # True
+                    value = default
+                fn(self.scan.replace_default_names(value))
+
+        update(axes.set_title, title, self.scan.title())
+
+        if z_label and isinstance(axes, Axes3D):
+            # assume 3D plot with set_zlabel
+            update(axes.set_xlabel, x_label, 'axes0')
+            update(axes.set_ylabel, y_label, 'axes1')
+            update(axes.set_zlabel, z_label, 'signal')
+        else:
+            update(axes.set_xlabel, x_label, 'axes')
+            update(axes.set_ylabel, y_label, 'signal')
+
+        if legend:
+            handles, labels = axes.get_legend_handles_labels()
+            if handles:
+                axes.legend()

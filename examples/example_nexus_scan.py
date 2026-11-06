@@ -10,5 +10,6 @@ scan = data_file_reader('/dls/science/groups/das/ExampleData/i16/azimuths/110874
 print(scan)
 
 scan.plot.plot()
+scan.plot.axes_labels(x_label='eta [Deg]', y_label='signal / norm')
 scan.plot.show()
 

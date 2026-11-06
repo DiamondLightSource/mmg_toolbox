@@ -86,3 +86,7 @@ def test_scan_plot():
     scan = data_file_reader(FILES_DICT['i16 merlin 2d delta gam calibration'])
     ax = scan.plot.map2d('delta', 'gamma')
     assert assert_plot(ax)
+    ax = scan.plot.plot3d('delta', 'gamma', 'signal')
+    scan.plot.axes_labels(ax)
+    assert assert_plot(ax)
+    # plt.show()
