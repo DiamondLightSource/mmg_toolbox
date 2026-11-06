@@ -3,13 +3,8 @@ Main MMG Runscript
 """
 
 import sys
-from . import start_gui
-
 
 if __name__ == '__main__':
-    if 'gui' in sys.argv:
-        start_gui()
-
     # Start up interactive console
     import sys
     import numpy as np
@@ -20,7 +15,7 @@ if __name__ == '__main__':
     {mmg.version_info()}
     By Dan Porter, Diamond Light Source Ltd.
     
-    See help(mmg) for info, or mmg.start_gui() to get started!
+    See help(mmg) for info, or scan = mmg.data_file_reader('file.nxs') to get started!
     """)
 
 

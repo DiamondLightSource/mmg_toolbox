@@ -11,19 +11,14 @@ from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 from mmg_toolbox.scripts.experiment_startup import create_notebooks
 
 __version__ = '0.7.1'
-__date__ = '17/09/2026'
+__date__ = '13/10/2026'
 __author__ = 'Dan Porter'
 
-__all__ = ['start_gui', 'version_info', 'title', 'module_info',
+__all__ = ['version_info', 'title', 'module_info',
            'data_file_reader', 'Experiment', 'NexusScan', 'NexusDataHolder',
            'get_dls_visits', 'get_dls_visits_str', 'find_scan_files', 'scan_number_mapping',
            'metadata', 'xas_metadata', 'nexus_metadata',
            'create_notebooks']
-
-
-def start_gui(*args: str):
-    from mmg_toolbox.tkguis import run
-    run(*args)
 
 
 def version_info():
@@ -53,10 +48,5 @@ def module_info():
         out += '\n    hdfmap version: %s (%s)' % (hdfmap.__version__, hdfmap.__date__)
     except ImportError:
         out += '\n    hdfmap version: Not available'
-    try:
-        import tkinter
-        out += '\n   tkinter version: %s' % tkinter.TkVersion
-    except ImportError:
-        out += '\ntkinter version: Not available'
     out += '\n'
     return out
