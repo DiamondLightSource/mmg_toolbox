@@ -35,6 +35,7 @@ FILES = [
     (DIR + 'i10/i10-1-37439.nxs', 'i10-1 Fe L3,2 -1T nc'),
     (DIR + 'i06/i06-1-302762.nxs', 'i06 scan'),
     (DIR + 'i06/i06-1-366107.nxs', 'i06 hkl scan'),
+    (DIR + 'i06/i06-1-164261.nxs', 'i06 medipix zacscan'),
     (DIR + 'i06/i06-1-372210.nxs', 'i06-1 zacscan'),
     (DIR + 'i06/i06-1-353228.nxs', 'i06-1 xmcd_processor dummy'),
     (DIR + 'i06/i06-1-353227.nxs', 'i06-1 xmcd_processor scan2'),
