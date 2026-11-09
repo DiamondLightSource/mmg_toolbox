@@ -344,15 +344,17 @@ class ExperimentPlotManager:
         data = self.exp.join_scan_data(*scans, hdf_map=hdf_map, data_fields=values)
 
         if use_time:
+            x_label = 'Time'
             x_data = [scan.start_end_duration()[0] for scan in scans]
         else:
+            x_label = 'Scan number'
             x_data = [scan.scan_number() for scan in scans]
         if axes is None:
             fig, axes = plt.subplots()
-        # TODO: handle 2D grid scans
+
         for name in data:
             axes.plot(x_data, data[name], '-o', label=name)
-        axes.set_xlabel('Scan number')
+        axes.set_xlabel(x_label)
         axes.legend()
         axes.set_title(ttl)
         return axes
