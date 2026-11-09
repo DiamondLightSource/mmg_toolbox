@@ -20,7 +20,7 @@ NOTEBOOKS = {
     'MultiPeakFit': 'example_multipeakfit.ipynb',
     'ROI Peak Fitting': 'example_roi_peak_fitting.ipynb',
     'XMCD': 'example_xmcd.ipynb',
-    'MSMapper': 'example_msmapper.ipynb',
+    # 'MSMapper': 'example_msmapper.ipynb',  # too large
 }
 
 # Function to check if a directory is a Python package
