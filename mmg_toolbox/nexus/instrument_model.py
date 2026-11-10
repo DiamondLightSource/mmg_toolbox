@@ -270,25 +270,31 @@ class NXInstrumentModel:
         kf = detector_module.pixel_wavevector(point, wavelength)
         return kf - ki
 
-    def hkl(self, point: Pixel = (0, 0, 0)):
+    def hkl(self, point: Pixel = (0, 0, 0)) -> tuple[float, float, float]:
         """
-        return wavevector transfer, Q, of pixel coordinate
+        return hkl coordinate of pixel coordinate
         :param point: (n, i, j) == (frame, slow_axis_pixel, fast_axis_pixel)
-        :return: [x, y, z] in inverse Angstrom
+        :return: [h, k, l]
         """
         n, i, j = point
         q = self.detector_q(point)
+
+        # Z is the multiplied transformation matrices from each
+        # diffractometer circle - Z = MU * ETA * CHI * PHI
         if len(self.sample.transforms) > 1:
             z = self.sample.transforms[n][:3, :3]
         else:
-            z = self.sample.transforms[0][:3, :3]  # if sample tranformations aren't stored on every angle
+            z = self.sample.transforms[0][:3, :3]  # if sample transformations aren't stored on every angle
         ub = 2 * np.pi * self.sample.ub_matrix
 
         inv_ub = np.linalg.inv(ub)
         inv_z = np.linalg.inv(z)
 
-        hphi = np.dot(inv_z, q)
-        return np.dot(inv_ub, hphi).T
+        # hkl = Q / Z*U*B
+        # Formula's from You paper
+        hphi = np.dot(inv_z, q)  # 14
+        h, k, l = np.dot(inv_ub, hphi).T.tolist()  # 16
+        return h, k, l
 
     def hkl2q(self, hkl: tuple[float, float, float] | np.ndarray):
         """
@@ -297,6 +303,82 @@ class NXInstrumentModel:
         :return: Q position in inverse Angstroms
         """
         return self.sample.hkl2q(hkl)
+
+    def pixel2hkl(self, frame: int, pixel_i: int | float, pixel_j: int | float) -> tuple[float, float, float]:
+        """
+        Convert pixel coordinates to hkl
+        :param frame: integer detector frame number
+        :param pixel_i: slow axis pixel index
+        :param pixel_j: fast axis pixel index
+        :return: (h, k, l)
+        """
+        return self.hkl((frame, pixel_i, pixel_j))
+
+    def detector_frame_hkl(self, frame: int | None = None) -> np.ndarray:
+        """
+        Return list of coordinates in hkl for the boundary of the detector
+
+        :param frame: int frame number, of None to use the middle frame.
+        :return: array([[h, k, l]])
+        """
+        n_frames, ii, jj = self.shape()
+        if frame is None:
+            frame = n_frames // 2
+
+        slow = np.arange(ii, dtype=int)
+        fast = np.arange(jj, dtype=int)
+        side1 = np.zeros((ii, 3), dtype=int)
+        side2 = np.zeros((jj, 3), dtype=int)
+        side3 = np.zeros((ii, 3), dtype=int)
+        side4 = np.zeros((jj, 3), dtype=int)
+        side1[:, 0] = frame
+        side2[:, 0] = frame
+        side3[:, 0] = frame
+        side4[:, 0] = frame
+        side1[:, 1] = slow
+        side2[:, 2] = fast
+        side3[:, 1] = slow
+        side4[:, 2] = fast
+        side3[:, 2] = jj
+        side4[:, 1] = ii
+        border_idx = np.vstack([side1, side2, side3, side4])
+        return np.array([self.hkl(point) for point in border_idx])
+
+    def frame_pixels_hkl(self, frame: int | None = None) -> np.ndarray:
+        """
+        Convert all pixel coordinates for a detector frame to
+
+        Returns an array of hkl coordinates with length i * j,
+        where i and j are the number of detector pixels along
+        the slow and fast axis, respectively.
+
+        :param frame: int frame number, of None to use the middle frame.
+        :return: array([[h, k, l]])
+        """
+        n_frames, ii, jj = self.shape()
+        if frame is None:
+            frame = n_frames // 2
+
+        iii, jjj = np.meshgrid(np.arange(ii), np.arange(jj))
+        hkl = np.array([
+            self.hkl((frame, ix, jx))
+            for ix, jx in zip(iii.flatten(), jjj.flatten())
+        ])
+        return hkl
+
+    def all_pixels_hkl(self) -> np.ndarray:
+        """
+        Convert all pixel coordinates for the detector to hkl
+
+        Returns an array of hkl coordinates with length n * i * j,
+        where n is the number of detector frames, i and j are the
+        number of detector pixels along the slow and fast axis,
+        respectively.
+
+        :return: array([[h, k, l]])
+        """
+        n_frames, ii, jj = self.shape()
+        return np.vstack([self.frame_pixels_hkl(n) for n in range(n_frames)])
 
     def plot_instrument(self, axes: Axes3D):
         instrument_name = get_dataset_value('name', self.instrument, 'no name')
@@ -359,7 +441,7 @@ class NXInstrumentModel:
         axes.set_xlabel(r'Qx [$\AA^{-1}$]', labelpad=20)
         axes.set_ylabel(r'Qz [$\AA^{-1}$]', labelpad=20)
         axes.set_zlabel(r'Qy [$\AA^{-1}$]', labelpad=20)
-        axes.set_title(f"Wavevectors\nHKL: {np.array_str(hkl, precision=2, suppress_small=True)}")
+        axes.set_title(f"Wavevectors\nHKL: {np.array_str(np.array(hkl), precision=2, suppress_small=True)}")
         axes.set_aspect('equal')
 
     def plot_hkl(self, axes: Axes3D):
