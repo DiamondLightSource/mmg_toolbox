@@ -10,7 +10,7 @@ import numpy as np
 from mmg_toolbox.nexus import nexus_names as nn
 from mmg_toolbox.nexus.nexus_functions import nx_find, get_dataset_value
 from mmg_toolbox.nexus.nexus_transformations import nx_direction, nx_transformations_max_size, \
-    nx_transformations_matrix, nx_transform_vector
+    nx_transformations_matrix, nx_transform_vector, generate_nxtranformations_string
 from mmg_toolbox.utils.rotations import norm_vector, transform_by_t_matrix
 from mmg_toolbox.utils.xray_utils import photon_energy, photon_wavelength
 from mmg_toolbox.diffraction.lattice import wavevector, bmatrix
@@ -70,6 +70,7 @@ class NXSsample:
         self.unit_cell = get_dataset_value(nn.NX_SAMPLE_UC, self.sample, np.array([1., 1, 1, 90, 90, 90]))
         self.orientation_matrix = get_dataset_value(nn.NX_SAMPLE_OM, self.sample, np.eye(3))
         self.ub_matrix = get_dataset_value(nn.NX_SAMPLE_UB, self.sample, bmatrix(*self.unit_cell))
+        self.string = generate_nxtranformations_string(self.sample)
 
         self.size = nx_transformations_max_size(path, hdf_file)
         self.transforms = [
@@ -77,8 +78,28 @@ class NXSsample:
             for n in range(self.size)
         ]  # list of 4x4 transformation matrices
 
+        # I16 specific UB matrix from DiffCalc
+        self._diffcalc_ub: np.ndarray | None = None
+        if isinstance(hdf_file.get('/entry/instrument/xtlinfo_extra/UB11'), h5py.Dataset):
+            diffcalc_ub = np.zeros([3, 3])
+            for n in range(3):
+                for m in range(3):
+                    diffcalc_ub[n, m] = hdf_file[f'/entry/instrument/xtlinfo_extra/UB{n + 1}{m + 1}'][...]
+            diffcalc2nexus = [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
+            diffcalc_ub_tr = (diffcalc2nexus @ diffcalc_ub) / (2 * np.pi)
+            self._diffcalc_ub = diffcalc_ub_tr
+
     def __repr__(self):
-        return f"NXSsample({self.sample})"
+        return f"NXSsample('{self.path}')"
+
+    def compare_diffcalc_ub(self) -> float:
+        """Compare difference between UB from sample/ub_matrix and from DifCalc"""
+        return np.sum(np.square(self.ub_matrix - self._diffcalc_ub))
+
+    def use_diffcalc_ub(self):
+        """Use UB matrix from DiffCalc if available"""
+        if self._diffcalc_ub is not None:
+            self.ub_matrix = self._diffcalc_ub
 
     def hkl2q(self, hkl: tuple[float, float, float] | np.ndarray, index: int = 0) -> np.ndarray:
         """
@@ -112,7 +133,7 @@ class NXDetectorModule:
 
         self.size = nx_transformations_max_size(self.module_offset_path, hdf_file)
         self.offset_transforms = [
-            nx_transformations_matrix(self.module_offset_path, n, hdf_file)
+            nx_transformations_matrix(self.module_offset_path, n, hdf_file)  # multiplies sequence of operations
             for n in range(self.size)
         ]  # list of 4x4 transformation matrices
         self.fast_transforms = [
@@ -123,9 +144,10 @@ class NXDetectorModule:
             nx_transformations_matrix(self.slow_pixel_direction_path, n, hdf_file)
             for n in range(self.size)
         ]  # list of 4x4 transformation matrices
+        self.string = generate_nxtranformations_string(self.module)
 
     def __repr__(self):
-        return f"NXDetectorModule({self.module})"
+        return f"NXDetectorModule('{self.path}')"
 
     def shape(self) -> Shape:
         """
@@ -196,6 +218,7 @@ class NXDetector:
         self.detector = hdf_file[path]
         self.size = nx_transformations_max_size(path, hdf_file)
         self.position = nx_transform_vector((0, 0, 0), path, self.size // 2, hdf_file).squeeze()
+        self.string = generate_nxtranformations_string(self.detector)
 
         self.modules = [
             NXDetectorModule(f"{self.path}/{p}", hdf_file)
@@ -204,7 +227,7 @@ class NXDetector:
         ]
 
     def __repr__(self):
-        return f"NXDetector({self.detector}) with {len(self.modules)} modules"
+        return f"NXDetector('{self.path}') with {len(self.modules)} modules"
 
 
 class NXInstrumentModel:
@@ -239,9 +262,10 @@ class NXInstrumentModel:
         self.sample = NXSsample(sample_obj.name, hdf_file)
         beam_obj = nx_find(sample_obj, nn.NX_BEAM)
         self.beam = NXBeam(beam_obj.name, hdf_file)
+        self.string = generate_nxtranformations_string(self.entry)
 
     def __repr__(self):
-        return f"NXInstrumentModel({self.file})"
+        return f"NXInstrumentModel('{self.file.filename}')"
 
     def _first_detector(self):
         return self.detectors[0].modules[0]

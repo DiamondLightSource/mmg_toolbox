@@ -291,16 +291,25 @@ class NxTransformationChain:
         return transform_by_t_matrix(vec, self.t_matrix())
 
 
-def generate_nxtranformations_string(filename: str) -> str:
+def get_transformations(nxs: h5py.Group, index: int = 0) -> list[NxTransformationChain]:
+    """
+    Return list of NXTransformations objects from NeXus file or group
+
+    :param nxs: NeXus/ HDF5 File or Group
+    :param index: Index of operation (scan point)
+    :return: list of NxTransformation objects
+    """
+    datasets = nx_find_all(nxs, nn.NX_DEPON)
+    return [NxTransformationChain(dataset.parent, index) for dataset in datasets]
+
+
+def generate_nxtranformations_string(nxs: h5py.Group) -> str:
     """
     return a string describing all the transformation chains in the NeXus file
     """
     out_str = "######################## NXtransformations ##########################\n"
-    with hdfmap.load_hdf(filename) as nxs:
-        datasets = nx_find_all(nxs, nn.NX_DEPON)
-        for dataset in datasets:
-            chain = NxTransformationChain(dataset.parent, 0)
-            out_str += str(chain) + '\n\n'
+    transforms = get_transformations(nxs, 0)
+    out_str += '\n\n'.join(str(chain) for chain in transforms)
     return out_str
 
 
