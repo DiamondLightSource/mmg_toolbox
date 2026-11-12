@@ -294,19 +294,22 @@ class NXInstrumentModel:
         kf = detector_module.pixel_wavevector(point, wavelength)
         return kf - ki
 
-    def hkl(self, point: Pixel = (0, 0, 0)) -> tuple[float, float, float]:
+    def _hkl(self, frame: int, *ij: tuple[float, float]) -> np.ndarray:
         """
         return hkl coordinate of pixel coordinate
-        :param point: (n, i, j) == (frame, slow_axis_pixel, fast_axis_pixel)
-        :return: [h, k, l]
+        :param frame: frame number
+        :param ij: tuple (slow_axis_pixel, fast_axis_pixel)
+        :return: array([[h, k, l]]) with length of number of ij tuples
         """
-        n, i, j = point
-        q = self.detector_q(point)
+        q = np.array([  # this can't be vectorised further easily
+            self.detector_q((frame, i, j))
+            for i, j in ij
+        ])
 
         # Z is the multiplied transformation matrices from each
         # diffractometer circle - Z = MU * ETA * CHI * PHI
         if len(self.sample.transforms) > 1:
-            z = self.sample.transforms[n][:3, :3]
+            z = self.sample.transforms[frame][:3, :3]
         else:
             z = self.sample.transforms[0][:3, :3]  # if sample transformations aren't stored on every angle
         ub = 2 * np.pi * self.sample.ub_matrix
@@ -316,8 +319,17 @@ class NXInstrumentModel:
 
         # hkl = Q / Z*U*B
         # Formula's from You paper
-        hphi = np.dot(inv_z, q)  # 14
-        h, k, l = np.dot(inv_ub, hphi).T.tolist()  # 16
+        hphi = np.dot(inv_z, np.transpose(q))  # 14
+        hkl = np.transpose(np.dot(inv_ub, hphi))  # 16
+        return hkl
+
+    def hkl(self, point: Pixel = (0, 0, 0)) -> tuple[float, float, float]:
+        """
+        return hkl coordinate of pixel coordinate
+        :param point: (n, i, j) == (frame, slow_axis_pixel, fast_axis_pixel)
+        :return: [h, k, l]
+        """
+        h, k, l = self._hkl(point[0], (point[1], point[2]))[0]
         return h, k, l
 
     def hkl2q(self, hkl: tuple[float, float, float] | np.ndarray):
@@ -338,7 +350,7 @@ class NXInstrumentModel:
         """
         return self.hkl((frame, pixel_i, pixel_j))
 
-    def detector_frame_hkl(self, frame: int | None = None) -> np.ndarray:
+    def detector_border_hkl(self, frame: int | None = None) -> np.ndarray:
         """
         Return list of coordinates in hkl for the boundary of the detector
 
@@ -349,28 +361,29 @@ class NXInstrumentModel:
         if frame is None:
             frame = n_frames // 2
 
-        slow = np.arange(ii, dtype=int)
-        fast = np.arange(jj, dtype=int)
-        side1 = np.zeros((ii, 3), dtype=int)
-        side2 = np.zeros((jj, 3), dtype=int)
-        side3 = np.zeros((ii, 3), dtype=int)
-        side4 = np.zeros((jj, 3), dtype=int)
-        side1[:, 0] = frame
-        side2[:, 0] = frame
-        side3[:, 0] = frame
-        side4[:, 0] = frame
-        side1[:, 1] = slow
-        side2[:, 2] = fast
-        side3[:, 1] = slow
-        side4[:, 2] = fast
-        side3[:, 2] = jj
-        side4[:, 1] = ii
-        border_idx = np.vstack([side1, side2, side3, side4])
-        return np.array([self.hkl(point) for point in border_idx])
+        side1 = np.column_stack((
+            np.arange(ii),
+            np.zeros(ii, dtype=int),
+        ))
+        side2 = np.column_stack((
+            np.zeros(jj, dtype=int),
+            np.arange(jj),
+        ))
+        side3 = np.column_stack((
+            np.arange(ii),
+            np.full(ii, jj - 1),
+        ))
+        side4 = np.column_stack((
+            np.full(jj, ii - 1),
+            np.arange(jj),
+        ))
+
+        border_idx = np.vstack((side1, side2, side3, side4))
+        return self._hkl(frame, *border_idx)
 
     def frame_pixels_hkl(self, frame: int | None = None) -> np.ndarray:
         """
-        Convert all pixel coordinates for a detector frame to
+        Convert all pixel coordinates for a detector frame to hkl coordinates
 
         Returns an array of hkl coordinates with length i * j,
         where i and j are the number of detector pixels along
@@ -384,10 +397,8 @@ class NXInstrumentModel:
             frame = n_frames // 2
 
         iii, jjj = np.meshgrid(np.arange(ii), np.arange(jj))
-        hkl = np.array([
-            self.hkl((frame, ix, jx))
-            for ix, jx in zip(iii.flatten(), jjj.flatten())
-        ])
+        ij = np.column_stack((iii.flatten(), jjj.flatten()))
+        hkl = self._hkl(frame, *ij)
         return hkl
 
     def all_pixels_hkl(self) -> np.ndarray:
@@ -398,6 +409,8 @@ class NXInstrumentModel:
         where n is the number of detector frames, i and j are the
         number of detector pixels along the slow and fast axis,
         respectively.
+
+        Warning - this function is quite slow due to the large array it creates.
 
         :return: array([[h, k, l]])
         """
