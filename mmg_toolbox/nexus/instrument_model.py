@@ -10,7 +10,7 @@ import numpy as np
 from mmg_toolbox.nexus import nexus_names as nn
 from mmg_toolbox.nexus.nexus_functions import nx_find, get_dataset_value
 from mmg_toolbox.nexus.nexus_transformations import nx_direction, nx_transformations_max_size, \
-    nx_transformations_matrix, nx_transform_vector
+    nx_transformations_matrix, nx_transform_vector, generate_nxtranformations_string
 from mmg_toolbox.utils.rotations import norm_vector, transform_by_t_matrix
 from mmg_toolbox.utils.xray_utils import photon_energy, photon_wavelength
 from mmg_toolbox.diffraction.lattice import wavevector, bmatrix
@@ -70,6 +70,7 @@ class NXSsample:
         self.unit_cell = get_dataset_value(nn.NX_SAMPLE_UC, self.sample, np.array([1., 1, 1, 90, 90, 90]))
         self.orientation_matrix = get_dataset_value(nn.NX_SAMPLE_OM, self.sample, np.eye(3))
         self.ub_matrix = get_dataset_value(nn.NX_SAMPLE_UB, self.sample, bmatrix(*self.unit_cell))
+        self.string = generate_nxtranformations_string(self.sample)
 
         self.size = nx_transformations_max_size(path, hdf_file)
         self.transforms = [
@@ -77,8 +78,28 @@ class NXSsample:
             for n in range(self.size)
         ]  # list of 4x4 transformation matrices
 
+        # I16 specific UB matrix from DiffCalc
+        self._diffcalc_ub: np.ndarray | None = None
+        if isinstance(hdf_file.get('/entry/instrument/xtlinfo_extra/UB11'), h5py.Dataset):
+            diffcalc_ub = np.zeros([3, 3])
+            for n in range(3):
+                for m in range(3):
+                    diffcalc_ub[n, m] = hdf_file[f'/entry/instrument/xtlinfo_extra/UB{n + 1}{m + 1}'][...]
+            diffcalc2nexus = [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
+            diffcalc_ub_tr = (diffcalc2nexus @ diffcalc_ub) / (2 * np.pi)
+            self._diffcalc_ub = diffcalc_ub_tr
+
     def __repr__(self):
-        return f"NXSsample({self.sample})"
+        return f"NXSsample('{self.path}')"
+
+    def compare_diffcalc_ub(self) -> float:
+        """Compare difference between UB from sample/ub_matrix and from DifCalc"""
+        return np.sum(np.square(self.ub_matrix - self._diffcalc_ub))
+
+    def use_diffcalc_ub(self):
+        """Use UB matrix from DiffCalc if available"""
+        if self._diffcalc_ub is not None:
+            self.ub_matrix = self._diffcalc_ub
 
     def hkl2q(self, hkl: tuple[float, float, float] | np.ndarray, index: int = 0) -> np.ndarray:
         """
@@ -112,7 +133,7 @@ class NXDetectorModule:
 
         self.size = nx_transformations_max_size(self.module_offset_path, hdf_file)
         self.offset_transforms = [
-            nx_transformations_matrix(self.module_offset_path, n, hdf_file)
+            nx_transformations_matrix(self.module_offset_path, n, hdf_file)  # multiplies sequence of operations
             for n in range(self.size)
         ]  # list of 4x4 transformation matrices
         self.fast_transforms = [
@@ -123,9 +144,10 @@ class NXDetectorModule:
             nx_transformations_matrix(self.slow_pixel_direction_path, n, hdf_file)
             for n in range(self.size)
         ]  # list of 4x4 transformation matrices
+        self.string = generate_nxtranformations_string(self.module)
 
     def __repr__(self):
-        return f"NXDetectorModule({self.module})"
+        return f"NXDetectorModule('{self.path}')"
 
     def shape(self) -> Shape:
         """
@@ -196,6 +218,7 @@ class NXDetector:
         self.detector = hdf_file[path]
         self.size = nx_transformations_max_size(path, hdf_file)
         self.position = nx_transform_vector((0, 0, 0), path, self.size // 2, hdf_file).squeeze()
+        self.string = generate_nxtranformations_string(self.detector)
 
         self.modules = [
             NXDetectorModule(f"{self.path}/{p}", hdf_file)
@@ -204,7 +227,7 @@ class NXDetector:
         ]
 
     def __repr__(self):
-        return f"NXDetector({self.detector}) with {len(self.modules)} modules"
+        return f"NXDetector('{self.path}') with {len(self.modules)} modules"
 
 
 class NXInstrumentModel:
@@ -239,9 +262,10 @@ class NXInstrumentModel:
         self.sample = NXSsample(sample_obj.name, hdf_file)
         beam_obj = nx_find(sample_obj, nn.NX_BEAM)
         self.beam = NXBeam(beam_obj.name, hdf_file)
+        self.string = generate_nxtranformations_string(self.entry)
 
     def __repr__(self):
-        return f"NXInstrumentModel({self.file})"
+        return f"NXInstrumentModel('{self.file.filename}')"
 
     def _first_detector(self):
         return self.detectors[0].modules[0]
@@ -270,25 +294,43 @@ class NXInstrumentModel:
         kf = detector_module.pixel_wavevector(point, wavelength)
         return kf - ki
 
-    def hkl(self, point: Pixel = (0, 0, 0)):
+    def _hkl(self, frame: int, *ij: tuple[float, float]) -> np.ndarray:
         """
-        return wavevector transfer, Q, of pixel coordinate
-        :param point: (n, i, j) == (frame, slow_axis_pixel, fast_axis_pixel)
-        :return: [x, y, z] in inverse Angstrom
+        return hkl coordinate of pixel coordinate
+        :param frame: frame number
+        :param ij: tuple (slow_axis_pixel, fast_axis_pixel)
+        :return: array([[h, k, l]]) with length of number of ij tuples
         """
-        n, i, j = point
-        q = self.detector_q(point)
+        q = np.array([  # this can't be vectorised further easily
+            self.detector_q((frame, i, j))
+            for i, j in ij
+        ])
+
+        # Z is the multiplied transformation matrices from each
+        # diffractometer circle - Z = MU * ETA * CHI * PHI
         if len(self.sample.transforms) > 1:
-            z = self.sample.transforms[n][:3, :3]
+            z = self.sample.transforms[frame][:3, :3]
         else:
-            z = self.sample.transforms[0][:3, :3]  # if sample tranformations aren't stored on every angle
+            z = self.sample.transforms[0][:3, :3]  # if sample transformations aren't stored on every angle
         ub = 2 * np.pi * self.sample.ub_matrix
 
         inv_ub = np.linalg.inv(ub)
         inv_z = np.linalg.inv(z)
 
-        hphi = np.dot(inv_z, q)
-        return np.dot(inv_ub, hphi).T
+        # hkl = Q / Z*U*B
+        # Formula's from You paper
+        hphi = np.dot(inv_z, np.transpose(q))  # 14
+        hkl = np.transpose(np.dot(inv_ub, hphi))  # 16
+        return hkl
+
+    def hkl(self, point: Pixel = (0, 0, 0)) -> tuple[float, float, float]:
+        """
+        return hkl coordinate of pixel coordinate
+        :param point: (n, i, j) == (frame, slow_axis_pixel, fast_axis_pixel)
+        :return: [h, k, l]
+        """
+        h, k, l = self._hkl(point[0], (point[1], point[2]))[0]
+        return h, k, l
 
     def hkl2q(self, hkl: tuple[float, float, float] | np.ndarray):
         """
@@ -297,6 +339,83 @@ class NXInstrumentModel:
         :return: Q position in inverse Angstroms
         """
         return self.sample.hkl2q(hkl)
+
+    def pixel2hkl(self, frame: int, pixel_i: int | float, pixel_j: int | float) -> tuple[float, float, float]:
+        """
+        Convert pixel coordinates to hkl
+        :param frame: integer detector frame number
+        :param pixel_i: slow axis pixel index
+        :param pixel_j: fast axis pixel index
+        :return: (h, k, l)
+        """
+        return self.hkl((frame, pixel_i, pixel_j))
+
+    def detector_border_hkl(self, frame: int | None = None) -> np.ndarray:
+        """
+        Return list of coordinates in hkl for the boundary of the detector
+
+        :param frame: int frame number, of None to use the middle frame.
+        :return: array([[h, k, l]])
+        """
+        n_frames, ii, jj = self.shape()
+        if frame is None:
+            frame = n_frames // 2
+
+        side1 = np.column_stack((
+            np.arange(ii),
+            np.zeros(ii, dtype=int),
+        ))
+        side2 = np.column_stack((
+            np.zeros(jj, dtype=int),
+            np.arange(jj),
+        ))
+        side3 = np.column_stack((
+            np.arange(ii),
+            np.full(ii, jj - 1),
+        ))
+        side4 = np.column_stack((
+            np.full(jj, ii - 1),
+            np.arange(jj),
+        ))
+
+        border_idx = np.vstack((side1, side2, side3, side4))
+        return self._hkl(frame, *border_idx)
+
+    def frame_pixels_hkl(self, frame: int | None = None) -> np.ndarray:
+        """
+        Convert all pixel coordinates for a detector frame to hkl coordinates
+
+        Returns an array of hkl coordinates with length i * j,
+        where i and j are the number of detector pixels along
+        the slow and fast axis, respectively.
+
+        :param frame: int frame number, of None to use the middle frame.
+        :return: array([[h, k, l]])
+        """
+        n_frames, ii, jj = self.shape()
+        if frame is None:
+            frame = n_frames // 2
+
+        iii, jjj = np.meshgrid(np.arange(ii), np.arange(jj))
+        ij = np.column_stack((iii.flatten(), jjj.flatten()))
+        hkl = self._hkl(frame, *ij)
+        return hkl
+
+    def all_pixels_hkl(self) -> np.ndarray:
+        """
+        Convert all pixel coordinates for the detector to hkl
+
+        Returns an array of hkl coordinates with length n * i * j,
+        where n is the number of detector frames, i and j are the
+        number of detector pixels along the slow and fast axis,
+        respectively.
+
+        Warning - this function is quite slow due to the large array it creates.
+
+        :return: array([[h, k, l]])
+        """
+        n_frames, ii, jj = self.shape()
+        return np.vstack([self.frame_pixels_hkl(n) for n in range(n_frames)])
 
     def plot_instrument(self, axes: Axes3D):
         instrument_name = get_dataset_value('name', self.instrument, 'no name')
@@ -359,7 +478,7 @@ class NXInstrumentModel:
         axes.set_xlabel(r'Qx [$\AA^{-1}$]', labelpad=20)
         axes.set_ylabel(r'Qz [$\AA^{-1}$]', labelpad=20)
         axes.set_zlabel(r'Qy [$\AA^{-1}$]', labelpad=20)
-        axes.set_title(f"Wavevectors\nHKL: {np.array_str(hkl, precision=2, suppress_small=True)}")
+        axes.set_title(f"Wavevectors\nHKL: {np.array_str(np.array(hkl), precision=2, suppress_small=True)}")
         axes.set_aspect('equal')
 
     def plot_hkl(self, axes: Axes3D):

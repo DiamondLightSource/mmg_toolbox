@@ -16,7 +16,7 @@ SRC = ROOT / 'mmg_toolbox'
 NOTEBOOKS = {
     # NAME: FILENAME
     'Scans': 'example_scans_and_plots.ipynb',
-    'UB Matrices': 'notebook_i16_ub_matrix.ipynb',
+    'UB Matrices': 'example_i16_ub_matrix.ipynb',
     'MultiPeakFit': 'example_multipeakfit.ipynb',
     'ROI Peak Fitting': 'example_roi_peak_fitting.ipynb',
     'XMCD': 'example_xmcd.ipynb',

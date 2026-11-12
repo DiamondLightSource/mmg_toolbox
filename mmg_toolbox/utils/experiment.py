@@ -122,6 +122,10 @@ class Experiment:
         if os.path.isfile(scan_file):
             # scan file is filename
             return os.path.abspath(scan_file)
+        for folder in self.folder_paths:
+            filename = os.path.join(folder, scan_file)
+            if os.path.isfile(filename):
+                return os.path.abspath(filename)
         raise FileNotFoundError(f"scan file {scan_file} not found")
 
     def get_scan_number(self, scan_file: ScanFile = -1) -> int:
