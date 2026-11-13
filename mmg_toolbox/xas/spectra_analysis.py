@@ -316,36 +316,6 @@ def fit_spectra_exp_background(energy: np.ndarray, signal: np.ndarray, *step_ene
 --- SUM RULES ---
 """
 
-# TODO: remove, replace with Element
-def d_electron_count(element: str) -> float:
-    """Return the number of electrons in the d-orbital for a given element"""
-    match = regex_oxidation.match(element)
-    if not match:
-        raise ValueError('Invalid element: {}'.format(element))
-    element, oxidation, sign = match.groups()
-    if element not in NEUTRAL_D_ELECTRONS:
-        raise ValueError('Unknown d electrons in element: {}'.format(element))
-    if sign == '+':
-        oxidation_value = int(oxidation or 1)
-    elif sign == '-':
-        oxidation_value = -int(oxidation or 1)
-    else:
-        oxidation_value = 0
-    neutral_d = NEUTRAL_D_ELECTRONS[element]
-
-    # Oxidation removes s electrons first, then d electrons
-    # All these metals have 2 s-electrons in the neutral state
-    s_removed = min(oxidation_value, 2)
-    d_removed = max(0, oxidation_value - 2)
-    d_electrons = max(0, neutral_d - d_removed)
-    return d_electrons
-
-
-def d_electron_holes(element: str) -> float:
-    """Return the number of holes in the d-orbital for a given element"""
-    return 10 - d_electron_count(element)
-
-
 def orbital_angular_momentum(energy: np.ndarray, average: np.ndarray,
                              difference: np.ndarray, nholes: float) -> float:
     """
