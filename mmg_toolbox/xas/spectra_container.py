@@ -13,11 +13,12 @@ from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mmg_toolbox.plotting.matplotlib import new_plot, plot_line
+from mmg_toolbox.plotting.matplotlib import new_plot
 from mmg_toolbox.utils.polarisation import pol_subtraction_label, PolLabels
 from mmg_toolbox.xas import spectra_analysis as spa
 from mmg_toolbox.xas.spectra import Spectra, SpectraSubtraction
 from mmg_toolbox.xas.metadata import XasMetadata, merge_xas_metadata
+from mmg_toolbox.xas.absorption_edges import PREFERRED_EDGES, MultiEdge, Edge, Element
 
 
 class SpectraContainer:
@@ -44,16 +45,19 @@ class SpectraContainer:
     """
 
     def __init__(self, name: str, spectra: dict[str, Spectra | SpectraSubtraction],
-                 *parents: SpectraContainer, metadata: XasMetadata = None):
+                 *parents: SpectraContainer, metadata: XasMetadata | None = None):
         self.name = name
         self.process_label = next(iter(spectra.values())).process_label
         self.parents = parents
         self.spectra = spectra
+        self.tey = spectra.get('tey', None)
+        self.tfy = spectra.get('tfy', None)
         if metadata is None:
             m, s = next(iter(spectra.items()))
-            element, edge = spa.energy_range_edge_label(s.energy.min(), s.energy.max())
+            # element, edge = spa.energy_range_edge_label(s.energy.min(), s.energy.max())
+            edges = MultiEdge.from_spectra(s.energy, s.signal)
             metadata = XasMetadata(energy=s.energy, raw_signals={'tey': s.signal}, monitor=np.ones_like(s.signal),
-                                   default_mode=m, element=element, edge=edge)
+                                   default_mode=m, element=edges.element.symbol, edge=edges.symbol)
         self.metadata = metadata
 
     def __repr__(self):
@@ -65,7 +69,7 @@ class SpectraContainer:
                 f"{self.metadata.start_date_iso}\n" +
                 f"{self.metadata.cmd}\n" +
                 f"mode: '{self.metadata.default_mode}', signals: {list(self.spectra)}\n" +
-                f"E = {np.mean(self.metadata.energy):.2f} eV -> {self.metadata.element} {self.metadata.edge}\n" +
+                f"E = {float(np.mean(self.metadata.energy)):.2f} eV -> {self.metadata.element} {self.metadata.edge}\n" +
                 f"   --- Sample: {self.metadata.sample_name} ---\n" +
                 f"T = {self.metadata.temp:.2f} K\n" +
                 f"B = {self.metadata.mag_field:.2f} T\n" +
@@ -118,13 +122,13 @@ class SpectraContainer:
             f"B={round(self.metadata.mag_field, 5):+.3g}T"
         )
 
-    def find_edges(self, search_edges: list[str] | None = spa.SEARCH_EDGES) -> dict[str, float]:
+    def find_edges(self, search_edges: tuple[str, ...] | None = PREFERRED_EDGES) -> list[Edge]:
         """Return list of edges within the energy range"""
-        return next(iter(self.spectra.values())).edges(search_edges=search_edges)
+        return next(iter(self.spectra.values())).all_edges(search_edges=search_edges)
 
-    def get_edges(self) -> dict[str, float]:
+    def get_edges(self) -> MultiEdge:
         """Return list of edges from metadata"""
-        return spa.get_edge_energies(self.metadata.element + self.metadata.edge)
+        return MultiEdge.from_symbol(self.metadata.element + self.metadata.edge)
 
     def get_arrays(self, mode: str | None = None) -> tuple[np.ndarray, np.ndarray]:
         """Return energy, signal arrays of chosen mode"""
@@ -202,9 +206,9 @@ class SpectraContainer:
 
     def add_edge_lines(self, ax: plt.Axes):
         """Add absorption edge lines to a plot"""
-        for edge_label, energy in self.get_edges().items():
-            ax.axvline(energy, color='k', alpha=0.3)
-            ax.text(energy, 0.9, edge_label, color='k', alpha=0.3,
+        for edge in self.get_edges():
+            ax.axvline(edge.energy, color='k', alpha=0.3)
+            ax.text(edge.energy, 0.9, repr(edge), color='k', alpha=0.3,
                     ha='right', va='top', transform=ax.get_xaxis_transform())
 
     def plot(self, mode: str | None = None, *args,
@@ -324,14 +328,14 @@ class SpectraContainer:
         """Prepare args, kwargs for processing"""
         edges = self.get_edges()
         if name == 'double_edge_step':
-            l3 = next((val for key, val in edges.items() if 'l3' in key.lower()), None)
-            l2 = next((val for key, val in edges.items() if 'l2' in key.lower()), None)
+            l3 = edges.edge_energy('L3')
+            l2 = edges.edge_energy('L2')
             if l3 and 'l3_energy' not in kwargs:
                 kwargs['l3_energy'] = l3
             if l2 and 'l2_energy' not in kwargs:
                 kwargs['l2_energy'] = l2
         elif (name == 'poly_edges' or name == 'exp_edges') and not args:
-            args = tuple(edges.values())
+            args = tuple(edges.energies())
         return args, kwargs
 
     def divide_by_background(self, name='flat', *args, **kwargs) -> SpectraContainer:
@@ -494,12 +498,12 @@ class SpectraContainerSubtraction(SpectraContainer):
         scan_nos = list(self.get_raw_metadata('scan_no').values())
         return (
             f"{min(scan_nos)}-{max(scan_nos)} {self.process_label} " +
-            f"{self.metadata.element}{self.metadata.edge} " +
+            f"{self.metadata.element} {self.metadata.edge} " +
             f"T={round(self.metadata.temp, 1):.3g}K " + static
         )
 
     def set_sum_rule_parameters(self, n_holes: float | None = None, split_energy: float | None = None):
-        self.n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
+        self.n_holes = Element(self.metadata.element).d_holes() if n_holes is None else n_holes
         spectra = self.spectra[self.metadata.default_mode]
         self.split_energy = spectra.get_split_energy() if split_energy is None else split_energy
 
@@ -512,7 +516,7 @@ class SpectraContainerSubtraction(SpectraContainer):
             for mode in self.spectra.keys()
         }
         return {
-            mode: abs(spectra.signal).max() / float(parent[mode])
+            mode: float(abs(spectra.signal).max()) / float(parent[mode])
             for mode, spectra in self.spectra.items()
         }
 
@@ -549,7 +553,7 @@ class SpectraContainerSubtraction(SpectraContainer):
         mode = mode or self.metadata.default_mode
         spectra = self.spectra[mode]
         try:
-            n_holes = spa.d_electron_holes(self.metadata.element) if n_holes is None else n_holes
+            n_holes = Element(self.metadata.element).d_holes()
         except ValueError:
             return f"=== Sum Rules not available for element {self.metadata.element} ===\n"
         report = "=== Sum Rules === \n"
@@ -560,12 +564,12 @@ class SpectraContainerSubtraction(SpectraContainer):
         return report
 
     def create_sum_rules_figure(self, split_energy: float | int | None = None,
-                                edges: dict[str, float | int] | None = None, **kwargs) -> plt.Figure:
+                                edges: MultiEdge | None = None, **kwargs) -> plt.Figure:
         """
         Create matplotlib figure of subtraction plots showing different integration regions
 
         :param split_energy: energy half-way between two edges
-        :param edges: dictionary of edges as {'edge': energy_ev}
+        :param edges: MultiEdge object
         :param kwargs: kwargs to pass to plt.figure
         :return: matplotlib Figure
         """

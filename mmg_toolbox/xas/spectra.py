@@ -19,6 +19,7 @@ import h5py
 
 from mmg_toolbox.nexus import nexus_writer as nw
 from mmg_toolbox.xas import spectra_analysis as spa
+from mmg_toolbox.xas.absorption_edges import find_spectra_edge, PREFERRED_EDGES, MultiEdge, xray_edges_in_range, Edge
 
 
 # Build database of spectra functions from spectra_analysis.py
@@ -86,11 +87,12 @@ class Spectra:
     def __repr__(self):
         return f"Spectra('{self.label}', '{self.mode}', energy=array{self.energy.shape}, signal=array{self.signal.shape}, process_label='{self.process_label}')"
 
-    def edge_label(self, edges=spa.SEARCH_EDGES) -> tuple[str, str]:
-        return spa.energy_range_edge_label(self.energy.min(), self.energy.max(), search_edges=edges)
+    def all_edges(self, search_edges: tuple[str, ...] | None = PREFERRED_EDGES) -> list[Edge]:
+        """Return a list of Edges within the energy range"""
+        return xray_edges_in_range(self.energy.min(), self.energy.max(), search_edges=search_edges)
 
-    def edges(self, search_edges: list[str] | None = spa.SEARCH_EDGES) -> dict[str, float]:
-        return spa.xray_edges_in_range(self.energy.min(), self.energy.max(), search_edges=search_edges)
+    def edges(self, search_edges: tuple[str, ...] | None = PREFERRED_EDGES) -> MultiEdge:
+        return find_spectra_edge(self.energy, self.signal, search_edges)
 
     def energy_index(self, energy: float) -> int:
         """Return the array index closes to the energy value"""
@@ -244,7 +246,7 @@ class Spectra:
         process += f"args: {str(args)}\n"
         process += f"kwargs: {str(kwargs)}\n"
         process += f"\nFit Report:\n{fit.fit_report() if fit is not None else 'None'}\n"
-        process += f"\nResults:\n <bkg> = {np.mean(bkg):.3f}{bkg.shape}\nsignal = signal / bkg\n"
+        process += f"\nResults:\n <bkg> = {float(np.mean(bkg)):.3f}{bkg.shape}\nsignal = signal / bkg\n"
         parameters = {'name': name} | kwargs
         return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode, parameters=parameters)
@@ -266,7 +268,7 @@ class Spectra:
         process += f"args: {str(args)}\n"
         process += f"kwargs: {str(kwargs)}\n"
         process += f"\nFit Report:\n{fit.fit_report() if fit is not None else 'None'}\n"
-        process += f"\nResults:\n <bkg> = {np.mean(bkg):.3f}\n  norm = {norm:.3f}\nsignal = (signal - bkg) / norm\n"
+        process += f"\nResults:\n <bkg> = {float(np.mean(bkg)):.3f}\n  norm = {norm:.3f}\nsignal = (signal - bkg) / norm\n"
         parameters = {'name': name} | kwargs
         return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode, parameters=parameters)
@@ -291,7 +293,7 @@ class Spectra:
         process += f"Edges:\n {edge_str}"
         process += f"\nFit Report:\n{fit.fit_report() if fit is not None else 'None'}\n"
         process += f"\nResults:\n  <bkg> = {np.mean(bkg)}\n  norm = {jump}\nsignal = (signal - bkg) / norm\n"
-        parameters = {'peak_width_ev': peak_width_ev, edges: edges}
+        parameters = {'peak_width_ev': peak_width_ev, 'edges': edges}
         return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode, parameters=parameters)
 
@@ -445,20 +447,14 @@ class SpectraSubtraction(Spectra):
         average = spectra1 + spectra2
         return average
 
-    def get_split_energy(self, edges: dict[str, float] | None = None) -> float:
+    def get_split_energy(self, edges: MultiEdge | None = None) -> float:
         """return the energy half-way between two edges"""
         if edges is None:
             edges = self.edges()
-        if len(edges) != 2:
-            # expand L/M edges
-            expand_edges = spa.get_edge_energies(next(iter(edges), '')[:-1])
-            if len(expand_edges) != 2:
-                raise ValueError(f'2 Edges are required: {list(edges)}')
-            edges = expand_edges
-        return sum(edges.values()) / len(edges)
+        return edges.split_energy()
 
     def calculate_sum_rules(self, n_holes: float, split_energy: float | None = None,
-                            edges: dict[str, float] | None = None) -> tuple[float, float]:
+                            edges: MultiEdge | None = None) -> tuple[float, float]:
         """
         Calculate sum rules of XMCD spectra from integration
 
@@ -484,7 +480,7 @@ class SpectraSubtraction(Spectra):
         return orb, spin
 
     def plot_sum_rules(self, ax: Axes | None = None, *args, split_energy: float | None = None,
-                       edges: dict[str, float] | None = None, **kwargs) -> list[plt.Line2D]:
+                       edges: MultiEdge | None = None, **kwargs) -> list[plt.Line2D]:
         """
         Create plots of spectra highlighting integration for sum rules
         """
@@ -492,8 +488,6 @@ class SpectraSubtraction(Spectra):
         difference = self.signal
         # average = self.average_subtracted_spectra().signal
         edges = edges or self.edges()
-        if split_energy is None and len(edges) == 1:
-            split_energy = energy.max()
         split_energy = split_energy or self.get_split_energy(edges)
         split_index = np.argmin(np.abs(energy - split_energy))
 
@@ -504,7 +498,7 @@ class SpectraSubtraction(Spectra):
         return lines
 
     def plot_sum_rules_ratio(self, ax: Axes | None = None, *args, split_energy: float | None = None,
-                             edges: dict[str, float] | None = None, **kwargs) -> list[plt.Line2D]:
+                             edges: MultiEdge | None = None, **kwargs) -> list[plt.Line2D]:
         """
         Create plots of spectra highlighting integration for sum rules, showing relative signal vs parents
         """
@@ -522,7 +516,8 @@ class SpectraSubtraction(Spectra):
         ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=ratio))
         return lines
 
-    def sum_rules_report(self, n_holes: float, element: str = '', split_energy: float | None = None) -> str:
+    def sum_rules_report(self, n_holes: float, element: str = '', split_energy: float | None = None,
+                         edges: MultiEdge | None = None) -> str:
         """
         Calculate sum rules of XMCD spectra and return report
 
@@ -532,8 +527,10 @@ class SpectraSubtraction(Spectra):
         :param n_holes: number of holes in absorbing ion
         :param element: element symbol
         :param split_energy: energy half-way between two edges
+        :param edges: MultiEdge object
         :returns: str
         """
+        split_energy = split_energy or self.get_split_energy(edges)
         orb, spin = self.calculate_sum_rules(n_holes, split_energy=split_energy)
         report = (f"{element} n_holes = {n_holes}, energy split = {split_energy} eV\n" +
                   f"L = {orb:.3f} μB\nS = {spin:.3f} μB")

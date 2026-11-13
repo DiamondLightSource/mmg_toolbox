@@ -16,7 +16,7 @@ from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 from mmg_toolbox.beamline_metadata.hdfmap_generic import ROI_SUFFIXES
 
-from .spectra_analysis import energy_range_edge_label, nearest_edge_label
+from .absorption_edges import MultiEdge
 from .spectra import Spectra
 from .spectra_container import SpectraContainer, SpectraContainerSubtraction
 from .metadata import XasMetadata
@@ -54,10 +54,13 @@ def create_xas_scan(name, energy: np.ndarray, monitor: np.ndarray, raw_signals: 
     # Check spectra
     if default_mode not in raw_signals:
         raise KeyError(f"mode '{default_mode}' is not available in {list(raw_signals.keys())}")
+    # Find absorption edge
     if element_edge is None:
-        element, edge = energy_range_edge_label(energy.min(), energy.max())
+        edges = MultiEdge.from_spectra(energy, raw_signals[default_mode])
     else:
-        element, edge = element_edge.replace(', ', ',').split()
+        edges = MultiEdge.from_symbol(element_edge)
+    element = edges.element.symbol
+    edge = edges.symbol
 
     for detector, array in raw_signals.items():
         if len(array) != len(energy):
@@ -501,12 +504,6 @@ def load_from_i16_vortex(filename: str, sample_name: str | None = None,
             mode_spec = {
                 'xes': spectrum
             }
-            if element_edge is None:
-                # find edge around peak max
-                peak_energy = float(energy[np.argmax(spectrum)])
-                element, edge = nearest_edge_label(peak_energy)
-                element_edge = f"{element} {edge}"
-                print(f"Element edge: {element_edge} found at peak energy {peak_energy} eV")
         else:
             raise Exception(f"No energy spectra found in scan {filename}")
 

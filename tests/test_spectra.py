@@ -56,7 +56,7 @@ def test_spectra_container():
     spectra = {mode: Spectra(energy, signal, label='test', mode=mode) for mode in ['tey', 'tfy']}
     container = SpectraContainer('test', spectra)
     s = str(container)
-    assert 'E = 714.95 eV -> Fe L3, L2' in s
+    assert 'E = 714.95 eV -> Fe L3,2' in s
     assert len(container.spectra) == 2
 
     edges = container.get_edges()
@@ -163,14 +163,14 @@ def test_average_polarised_scans():
     assert xmcd.spectra['tey'].signal.max() == approx(0.145, abs=0.001)
     assert 'xmcd' == xmcd.name
     assert 'xmcd' in xmcd.analysis_steps_str()
-    assert xmcd.label() == '37436-37439 xmcd FeL3, L2 T=10K B=+0T'
+    assert xmcd.label() == '37436-37439 xmcd Fe L3,2 T=10K B=+0T'
     assert xmcd.parents[0].parents[0].parents[0].parents[0].parents == ()
     assert xmcd.get_raw_filename() == FILES_DICT['i10-1 Fe L3,2 +1T pc']
     orbital, spin = xmcd.calculate_sum_rules()
     assert orbital == approx(-0.088, abs=0.001)
     assert spin == approx(0.008, abs=0.001)
     report = xmcd.sum_rules_report()
-    assert ' n_holes = 4, energy split = None eV\nL = -0.088 μB\nS = 0.008 μB' in report
+    assert ' n_holes = 4, energy split = 713.5 eV\nL = -0.088 μB\nS = 0.008 μB' in report
 
     # Test align
     pol1_a = pol1.align_spectra()
@@ -356,3 +356,12 @@ def test_i06_result():
     scan = data_file_reader(inpath)
     xas_scan = scan.xas_spectra(dls_loader=True)
     assert True
+
+
+@only_dls_file_system
+def test_sm_edges():
+    inpath = "/dls/science/groups/das/ExampleData/i10-1/sm_edge/i10-1-77203.nxs"
+    scan = data_file_reader(inpath)
+    xas_scan = scan.xas_spectra(dls_loader=True)
+    assert xas_scan.metadata.element == 'Sm'
+    assert xas_scan.metadata.edge == 'M5,4'
