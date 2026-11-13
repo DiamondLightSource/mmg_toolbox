@@ -219,11 +219,12 @@ class Experiment:
         :return: dict of data for all files
         """
         scans = self.scans(*scan_files, hdf_map=hdf_map)
-        data_fields = [self.config[C.scan_description]] if data_fields is None else data_fields
+        data_fields = [self.config[C.default_metadata]] if data_fields is None else data_fields
         data = {name: [] for name in data_fields}
-        expression = ','.join(data_fields)
+        expression = ','.join(data_fields)  # ensures file is only opened once
         for scan in scans:
             values = scan.eval(expression, default=default)  # use eval to ensure local_data is available
+            values = (values, ) if not isinstance(values, (list, tuple)) else values
             for name, value in zip(data_fields, values):
                 data[name].append(value)
         return data

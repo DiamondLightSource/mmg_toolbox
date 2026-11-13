@@ -5,9 +5,11 @@ Plot Manager for the Scan object
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import QuadMesh
+from mpl_toolkits.mplot3d import Axes3D
+
 from ..nexus.nexus_scan import NexusScan
 from .matplotlib import (
-    set_plot_defaults, new_plot, plot_line, plot_image, plot_2d_surface,
+    set_plot_defaults, new_plot, plot_line, plot_image, plot_2d_surface, plot_3d_lines,
     FIG_SIZE, FIG_DPI, DEFAULT_CMAP
 )
 
@@ -32,6 +34,9 @@ class ScanPlotManager:
     def __init__(self, scan: NexusScan):
         self.scan = scan
         self.show = plt.show
+        self._x_axis: str | None = None
+        self._y_axis: str | None = None
+        self._z_axis: str | None = None
 
     def __call__(self, *args, **kwargs) -> plt.Axes:
         if self.scan.map.scannables_length() == 1 and self.scan.map.image_data:
@@ -40,7 +45,13 @@ class ScanPlotManager:
             return self.map2d(*args, **kwargs)
         return self.plot(*args, **kwargs)
 
-    def plotline(self, xaxis: str = 'axes', yaxis: str = 'signal', *args, **kwargs) -> list[plt.Line2D]:
+    def _set_axes(self, x_axis: str | None = None, y_axis: str | None = None, z_axis: str | None = None):
+        self._x_axis = x_axis
+        self._y_axis = y_axis
+        self._z_axis = z_axis
+
+    def plotline(self, xaxis: str = 'axes', yaxis: str = 'signal',
+                 *args, axes: plt.Axes | None, **kwargs) -> list[plt.Line2D]:
         """
         Plot scanned datasets on matplotlib axes subplot
 
@@ -55,8 +66,9 @@ class ScanPlotManager:
 
         if 'label' not in kwargs:
             kwargs['label'] = self.scan.label()
-        axes = kwargs.pop('axes') if 'axes' in kwargs else new_plot()
+        axes = new_plot() if axes is None else axes
         lines = plot_line(axes, data['x'], data['y'], None, *args, **kwargs)
+        self._set_axes(data['xlabel'], data['ylabel'])
         return lines
 
     def plot(self, xaxis: str = 'axes', yaxis: str | list[str] = 'signal', *args,
@@ -78,6 +90,7 @@ class ScanPlotManager:
         plot_line(axes, data['xdata'], data['ydata'], None, *args, **kwargs)
 
         # Add labels
+        self._set_axes(data['xlabel'], data['ylabel'])
         axes.set_xlabel(data['xlabel'])
         axes.set_title(data['title'])
         if len(yaxis) == 1:
@@ -120,8 +133,41 @@ class ScanPlotManager:
         axes.set_xlabel(data['grid_xlabel'])
         axes.set_ylabel(data['grid_ylabel'])
         axes.set_title(data['title'])
+        self._set_axes(data['grid_xlabel'], data['grid_ylabel'])
         if colorbar:
             plt.colorbar(mesh, ax=axes, label=data['grid_label'])
+        return axes
+
+    def plot3d(self, xaxis: str = 'axes0', yaxis: str = 'axes1', zaxis: str = 'signal',
+               axes: plt.Axes | None = None, **kwargs) -> Axes3D:
+        """
+        Create matplotlib figure with 3D plot, for 2D grid scans
+
+        :param xaxis: str name or address of array to plot on x-axis
+        :param yaxis: str name or address of array to plot on y-axis
+        :param zaxis: str name or address of array to plot on z-axis
+        :param axes: matplotlib axes to plot on (None to create figure)
+        :param axes: matplotlib.axes subplot, or None to create a figure
+        :param kwargs: given directly to plt.pcolormesh(..., *args, **kwars)
+        :return: axes object
+        """
+        if len(self.scan.map.scannables_shape()) != 2:
+            raise ValueError(f"Scan {repr(self.scan)} has shape {self.scan.map.scannables_shape()} inconsistent with map2d")
+        data = self.scan.get_plot_data(xaxis, yaxis, z_axis=zaxis)
+
+        axes = new_plot('3d') if axes is None else axes
+        lines = plot_3d_lines(
+            axes=axes,
+            xdata=data['grid_xdata'],
+            ydata=data['grid_ydata'],
+            zdata=data['grid_data'],
+            **kwargs
+        )
+        axes.set_xlabel(data['grid_xlabel'])
+        axes.set_ylabel(data['grid_ylabel'])
+        axes.set_zlabel(data['grid_label'])
+        axes.set_title(data['title'])
+        self._set_axes(data['grid_xlabel'], data['grid_ylabel'], data['grid_label'])
         return axes
 
     def image(self, index: int | str | None = None, xaxis: str = 'axes',
@@ -167,6 +213,7 @@ class ScanPlotManager:
             plt.colorbar(im, ax=axes, label='log10(counts)' if log else 'counts')
         ttl = '%s\n%s [%s] = %s' % (self.scan.title(), xname, index, xvalue)
         axes.set_title(ttl)
+        self._set_axes('Pixel x', 'Pixel y')
         if rois:
             rois = self.scan.rois('')
             for roi in rois:
@@ -217,6 +264,7 @@ class ScanPlotManager:
         ttl = '%s\n%s [%s] = %s' % (self.scan.title(), xname, index, xvalue)
         axes.set_title(ttl)
         axes.set_xlabel(x_label)
+        self._set_axes(x_label, 'Intensity')
         return axes
 
     def detail(self, xaxis: str = 'axes', yaxis: str | list[str] = 'signal',
@@ -302,6 +350,52 @@ class ScanPlotManager:
         axes.set_xlabel('Log$_{10}$ Pixel Intensity')
         axes.set_ylabel('N')
         axes.set_title(self.scan.title())
+        self._set_axes('Log$_{10}$ Pixel Intensity', 'N')
         return axes
 
+    def axes_labels(self, axes: plt.Axes | None = None, x_label: bool | str | None = True,
+                    y_label: bool | str | None = True, z_label: bool | str | None = True,
+                    title: bool | str | None = True, legend: bool | None = True):
+        """
+        Set the axes labels using default or specified labels
 
+        Each axis can be one of three values:
+
+            - True: Use the last plotted axes or the default one
+            - 'expression': convert expression into the axis name (defaults are replaced with actual names)
+            - None: axis is not updated
+
+        :param axes: matplotlib Axes object
+        :param x_label: x-axis label
+        :param y_label: y-axis label
+        :param z_label: z-axis label (if available)
+        :param title: axis title
+        :param legend: True/False - add legend
+        """
+        if axes is None:
+            axes = plt.gca()
+
+        def update(fn, value, default):
+            if value:  # True or str
+                if not isinstance(value, str): # True
+                    value = default
+                fn(self.scan.replace_default_names(value))
+
+        if title:
+            if not isinstance(title, str):
+                title = self.scan.title()
+            axes.set_title(title)
+
+        if z_label and isinstance(axes, Axes3D):
+            # assume 3D plot with set_zlabel
+            update(axes.set_xlabel, x_label, self._x_axis or 'axes0')
+            update(axes.set_ylabel, y_label, self._y_axis or 'axes1')
+            update(axes.set_zlabel, z_label, self._z_axis or 'signal')
+        else:
+            update(axes.set_xlabel, x_label, self._x_axis or 'axes')
+            update(axes.set_ylabel, y_label, self._y_axis or 'signal')
+
+        if legend:
+            handles, labels = axes.get_legend_handles_labels()
+            if handles:
+                axes.legend()

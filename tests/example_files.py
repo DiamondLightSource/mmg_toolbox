@@ -13,6 +13,7 @@ FILES = [
     (DIR + 'i16/1109527.nxs', 'i16 pilatus eta scan, new nexus format'),
     (DIR + 'i16/1116988.nxs', 'i16 pilatus eta scan, new nexus format2'),
     (DIR + 'i16/1144224.nxs', 'i16 pilatus 2d sx sy scan, new nexus format'),
+    (DIR + 'i16/1162333.nxs', 'i16 pilatus 2d delta gam calibration Nov 26'),
     (DIR + 'i16/1146115.nxs', 'i16 xsp3 x scan'),
     (DIR + 'i16/1146116.nxs', 'i16 xsp3 energy scan lh'),
     (DIR + 'i16/1146118.nxs', 'i16 xsp3 energy scan lv'),
