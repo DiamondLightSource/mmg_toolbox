@@ -50,7 +50,8 @@ class ScanPlotManager:
         self._y_axis = y_axis
         self._z_axis = z_axis
 
-    def plotline(self, xaxis: str = 'axes', yaxis: str = 'signal', *args, **kwargs) -> list[plt.Line2D]:
+    def plotline(self, xaxis: str = 'axes', yaxis: str = 'signal',
+                 *args, axes: plt.Axes | None, **kwargs) -> list[plt.Line2D]:
         """
         Plot scanned datasets on matplotlib axes subplot
 
@@ -65,7 +66,7 @@ class ScanPlotManager:
 
         if 'label' not in kwargs:
             kwargs['label'] = self.scan.label()
-        axes = kwargs.pop('axes') if 'axes' in kwargs else new_plot()
+        axes = new_plot() if axes is None else axes
         lines = plot_line(axes, data['x'], data['y'], None, *args, **kwargs)
         self._set_axes(data['xlabel'], data['ylabel'])
         return lines
@@ -380,7 +381,10 @@ class ScanPlotManager:
                     value = default
                 fn(self.scan.replace_default_names(value))
 
-        update(axes.set_title, title, self.scan.title())
+        if title:
+            if not isinstance(title, str):
+                title = self.scan.title()
+            axes.set_title(title)
 
         if z_label and isinstance(axes, Axes3D):
             # assume 3D plot with set_zlabel

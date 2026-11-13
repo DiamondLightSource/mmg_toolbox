@@ -38,6 +38,19 @@ def test_find_scans():
 
 
 @only_dls_file_system
+def test_join_scan_data():
+    exp = Experiment(DIR + '/i16/cm37262-1')
+    data = exp.join_scan_data(*range(1033447, 1033453), data_fields=['Tsample', 'cmd'], default=300)
+    print(data)
+    assert len(data) == 2
+    assert len(data['Tsample']) == 6
+    assert np.all(np.array(data['Tsample']) < 300)
+
+    array, = exp.join_scan_arrays(*range(1033447, 1033453), data_fields=['Tsample'], default=300)
+    assert array.shape == (6, )
+
+
+@only_dls_file_system
 def test_get_value_changes():
     exp = Experiment(DIR + '/i16/cm37262-1')
     scans = exp.scans(*range(1033447, 1033453))

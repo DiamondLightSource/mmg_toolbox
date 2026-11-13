@@ -28,9 +28,27 @@ class ExperimentPlotManager:
 
     def __init__(self, experiment: Experiment):
         self.exp = experiment
+        self._x_axis: str | None = None
+        self._y_axis: str | None = None
+        self._z_axis: str | None = None
+        self._title: str | None = None
 
     def __call__(self, *args, **kwargs):
         return self.plot(*args, **kwargs)
+
+    def _set_axes(self, x_axis: str | None = None, y_axis: str | None = None,
+                  z_axis: str | None = None, title: str | None = None):
+        self._x_axis = x_axis
+        self._y_axis = y_axis
+        self._z_axis = z_axis
+        self._title = title
+
+    def _set_axes_from_scans(self, *scans: ScanFile):
+        if scans and hasattr(scans[0], 'plot'):
+            self._x_axis = scans[0].plot._x_axis
+            self._y_axis = scans[0].plot._y_axis
+            self._z_axis = scans[0].plot._z_axis
+            self._title = self.exp.generate_scans_title(*scans)
 
     def plot(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
              xaxis: str = 'axes', yaxis: str | list[str] = 'signal', axes: plt.Axes | None = None, **kwargs) -> plt.Axes:
@@ -54,7 +72,9 @@ class ExperimentPlotManager:
             scan.plot.plot(xaxis, yaxis, axes=axes, **kwargs)
         if len(scan_files) > 1:
             axes.legend(scan_files)
-        axes.set_title(self.exp.generate_scans_title(*scan_files))
+        self._set_axes_from_scans(*scans)
+        if self._title:
+            axes.set_title(self._title)
         return axes
 
     def image(self,  scan_file: ScanFile = -1, hdf_map: hdfmap.NexusMap | None = None,
@@ -76,7 +96,9 @@ class ExperimentPlotManager:
         """
         scan = self.exp.scans(scan_file, hdf_map=hdf_map)[0]
         if scan.map.image_data:
-            return scan.plot.image(index, xaxis, axes, clim, cmap, colorbar, **kwargs)
+            ax = scan.plot.image(index, xaxis, axes, clim, cmap, colorbar, **kwargs)
+            self._set_axes_from_scans(scan)
+            return ax
         return None
 
     def detail(self, scan_file: ScanFile = -1, hdf_map: hdfmap.NexusMap | None = None,
@@ -104,6 +126,7 @@ class ExperimentPlotManager:
 
         # Top left - line plot
         scan.plot(xaxis, yaxis, axes=lt, **kwargs)
+        self._set_axes_from_scans(scan)
         lt.set_title(None)
 
         # Top right - image plot
@@ -155,10 +178,12 @@ class ExperimentPlotManager:
             fig, axes = plt.subplots()
         lines, sm = plot_lines(axes, *plot_data, **kwargs)
 
+        # TODO: replace generate_ides with the scan equivalent
         x_lab, y_lab, value_label = hdf_map.generate_ids(xaxis, yaxis, value, modify_missing=False)
         axes.set_xlabel(x_lab)
         axes.set_ylabel(y_lab)
         axes.set_title(self.exp.generate_scans_title(*scan_files, hdf_map=hdf_map))
+        self._set_axes_from_scans(*scans)
 
         plt.colorbar(sm, ax=axes, label=value_label)
         return axes
@@ -189,6 +214,7 @@ class ExperimentPlotManager:
             val = scan.format("\n%s = {%s}" % (value, value)) if value is not None else ""
             ttl_exp = scan.title() + val
             ax.set_title(ttl_exp)
+        self._set_axes_from_scans(*scans)
         return fig_ax
 
     def multi_image(self,  *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
@@ -241,12 +267,14 @@ class ExperimentPlotManager:
         if axes is None:
             fig, axes = plt.subplots()
         surf = plot_2d_surface(axes=axes, image=z, xdata=x, ydata=y, clim=clim, axlim=axlim, **kwargs)
-        axes.set_title(self.exp.generate_scans_title(*scan_files))
+        ttl = self.exp.generate_scans_title(*scan_files)
+        axes.set_title(ttl)
 
         x_lab, y_lab, value_label = hdf_map.generate_ids(xaxis, signal, values, modify_missing=False)
         axes.set_xlabel(x_lab)
         axes.set_ylabel(value_label)
         axes.figure.colorbar(surf, ax=axes, label=signal)
+        self._set_axes(x_lab, y_lab, signal, ttl)
         return axes
 
     def lines_3d(self, *scan_files: ScanFile, hdf_map: hdfmap.NexusMap | None = None,
@@ -278,12 +306,14 @@ class ExperimentPlotManager:
             fig = plt.figure()
             axes = fig.add_subplot(111, projection='3d')
         plot_3d_lines(axes, data[signal], data[xaxis], data.get(values, None), labels=labels, **kwargs)
-        axes.set_title(self.exp.generate_scans_title(*scan_files))
+        ttl = self.exp.generate_scans_title(*scan_files)
+        axes.set_title(ttl)
 
         x_lab, signal_label, value_label = hdf_map.generate_ids(xaxis, signal, values, modify_missing=False)
         axes.set_xlabel(x_lab)
         axes.set_ylabel(value_label)
         axes.set_zlabel(signal_label)
+        self._set_axes(x_lab, value_label, signal_label, ttl)
         if legend:
             axes.legend()
         return axes
@@ -317,24 +347,29 @@ class ExperimentPlotManager:
             fig = plt.figure()
             axes = fig.add_subplot(111, projection='3d')
         plot_3d_surface(axes=axes, image=z, xdata=x, ydata=y, clim=clim, axlim=axlim, **kwargs)
-        axes.set_title(self.exp.generate_scans_title(*scan_files))
+        ttl = self.exp.generate_scans_title(*scan_files)
+        axes.set_title(ttl)
 
         x_lab, signal_label, value_label = hdf_map.generate_ids(xaxis, signal, values, modify_missing=False)
         axes.set_xlabel(x_lab)
         axes.set_ylabel(value_label)
         axes.set_zlabel(signal_label)
+        self._set_axes(x_lab, value_label, signal_label, ttl)
         return axes
 
     def metadata(self, *scan_files: ScanFile, values: str | list[str], hdf_map: hdfmap.NexusMap | None = None,
-                 axes: plt.Axes | None = None, use_time: bool = False) -> plt.Axes:
+                 axes: plt.Axes | None = None, use_time: bool = False, x_axis: str | None = None) -> plt.Axes:
         """
         Create matplotlib figure with plot of metadata vs scan number
+
+            exp.plot.metadata(*range(-10, 0), values='Tsample', use_time=True)
 
         :param scan_files: scan number or filename (multiple allowed)
         :param values: field name or path of float value to distinguish different scans
         :param hdf_map: hdfmap object or None
         :param axes: matplotlib.axes subplot, or None to create a figure
         :param use_time: if True, plots scan start_time vs values
+        :param x_axis: str name or path of array to plot on x-axis (overridden by use_time)
         :return: axes object
         """
         scans = self.exp.scans(*scan_files, hdf_map=hdf_map)
@@ -346,6 +381,9 @@ class ExperimentPlotManager:
         if use_time:
             x_label = 'Time'
             x_data = [scan.start_end_duration()[0] for scan in scans]
+        elif x_axis:
+            x_label = x_axis
+            x_data,  = self.exp.join_scan_arrays(*scans, hdf_map=hdf_map, data_fields=[x_axis])
         else:
             x_label = 'Scan number'
             x_data = [scan.scan_number() for scan in scans]
@@ -357,4 +395,50 @@ class ExperimentPlotManager:
         axes.set_xlabel(x_label)
         axes.legend()
         axes.set_title(ttl)
+        self._set_axes(x_label, 'metadata', title=ttl)
         return axes
+
+    def axes_labels(self, axes: plt.Axes | None = None, x_label: bool | str | None = True,
+                    y_label: bool | str | None = True, z_label: bool | str | None = True,
+                    title: bool | str | None = True, legend: bool | None = True):
+        """
+        Set the axes labels using default or specified labels
+
+        Each axis can be one of three values:
+
+            - True: Use the last plotted axes or the default one
+            - 'expression': convert expression into the axis name (defaults are replaced with actual names)
+            - None: axis is not updated
+
+        :param axes: matplotlib Axes object
+        :param x_label: x-axis label
+        :param y_label: y-axis label
+        :param z_label: z-axis label (if available)
+        :param title: axis title
+        :param legend: True/False - add legend
+        """
+        if axes is None:
+            axes = plt.gca()
+
+        def update(fn, value, default):
+            if value:  # True or str
+                if not isinstance(value, str): # True
+                    value = default
+                fn(value)
+
+        update(axes.set_title, title, self._title)
+
+        if z_label and isinstance(axes, Axes3D):
+            # assume 3D plot with set_zlabel
+            update(axes.set_xlabel, x_label, self._x_axis or 'axes0')
+            update(axes.set_ylabel, y_label, self._y_axis or 'axes1')
+            update(axes.set_zlabel, z_label, self._z_axis or 'signal')
+        else:
+            update(axes.set_xlabel, x_label, self._x_axis or 'axes')
+            update(axes.set_ylabel, y_label, self._y_axis or 'signal')
+
+        if legend:
+            handles, labels = axes.get_legend_handles_labels()
+            if handles:
+                axes.legend()
+
