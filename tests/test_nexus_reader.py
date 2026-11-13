@@ -82,6 +82,7 @@ def test_find_scans():
     assert len(found_files) == 2
 
 
+@only_dls_file_system
 def test_i16_2d_nov26():
     file = DIR + '/i16/1162333.nxs'
     scan, = read_nexus_files(file)
