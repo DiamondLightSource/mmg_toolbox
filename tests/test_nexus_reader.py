@@ -81,3 +81,12 @@ def test_find_scans():
     found_files = find_scans(*files, **match)
     assert len(found_files) == 2
 
+
+def test_i16_2d_nov26():
+    file = DIR + '/i16/1162333.nxs'
+    scan, = read_nexus_files(file)
+    data = scan.get_plot_data()
+    assert data['grid_xlabel'] == 'gam'
+    assert data['grid_ylabel'] == 'delta'
+    assert data['grid_label'] == 'filepath'
+    assert data['grid_data'].shape == (10, 6)

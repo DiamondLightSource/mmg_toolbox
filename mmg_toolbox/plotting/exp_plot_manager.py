@@ -178,7 +178,6 @@ class ExperimentPlotManager:
             fig, axes = plt.subplots()
         lines, sm = plot_lines(axes, *plot_data, **kwargs)
 
-        # TODO: replace generate_ides with the scan equivalent
         x_lab, y_lab, value_label = hdf_map.generate_ids(xaxis, yaxis, value, modify_missing=False)
         axes.set_xlabel(x_lab)
         axes.set_ylabel(y_lab)
