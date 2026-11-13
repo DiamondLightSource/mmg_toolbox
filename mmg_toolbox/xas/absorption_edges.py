@@ -169,7 +169,7 @@ class Element:
     def _edges(self) -> dict[str, dict[str, str | float]]:
         return {name: edge for name, edge in _get_edges().items() if name.startswith(self.symbol)}
 
-    def edges(self) -> list[Edge]:
+    def edges(self) -> list['Edge']:
         return [Edge(edge) for edge in self._edges()]
 
     def is_d(self) -> bool:
