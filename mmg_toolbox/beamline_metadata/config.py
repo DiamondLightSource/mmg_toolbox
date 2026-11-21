@@ -38,8 +38,8 @@ REPLACE_NAMES = {
     'cmd': DEFAULT_SCAN_DESCRIPTION.strip('{}'),
 }
 
-ROIs: list[tuple[str, str | int, str | int, int, int, str]] = [
-    # (name, cen_i, cen_j, wid_i, wid_j, det_name)
+ROIs: list[tuple[str, str | int, str | int, int, int, str, bool, int, int]] = [
+    # (name, cen_i, cen_j, wid_i, wid_j, det_name, peak_search, peak_rgn_i, peak_rgn_j)
 ]
 
 CONFIG = {
@@ -97,7 +97,7 @@ BEAMLINE_CONFIG = {
         C.normalise_factor: '/Transmission/count_time/(rc/300.)',
         C.metadata_string: BEAMLINE_META['i16'],
         C.roi: [
-            ('pilroi1', 'pil3_centre_j', 'pil3_centre_i', 30, 30, 'pil3_100k'),
+            ('pilroi1', 'pil3_centre_j', 'pil3_centre_i', 30, 30, 'pil3_100k', False, 101, 101),
         ],
         C.default_metadata: 'Tsample',
     },
@@ -122,7 +122,9 @@ def beamline_config(beamline: str | None = None) -> dict:
 
 
 def add_roi(config: dict, name: str, cen_i: int | str, cen_j: int | str,
-            wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE'):
+            wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE',
+            peak_search: bool = False, peak_region_i: int | None = None,
+            peak_region_j: int | None = None):
     """
     Create an image ROI (region of interest) and update the config
 
@@ -133,8 +135,11 @@ def add_roi(config: dict, name: str, cen_i: int | str, cen_j: int | str,
     :param wid_i: full width along first dimension, in pixels
     :param wid_j: full width along second dimension, in pixels
     :param image_name: string name of the image
+    :param peak_search: bool, if True uses peak search to determine centre.
+    :param peak_region_i: peak region width along first dimension, in pixels
+    :param peak_region_j: peak region width along second dimension, in pixels
     """
-    roi = (name, cen_i, cen_j, wid_i, wid_j, image_name)
+    roi = (name, cen_i, cen_j, wid_i, wid_j, image_name, peak_search, peak_region_i, peak_region_j)
     current_roi_list = config.get(C.roi, [])
     names = [c_roi[0] for c_roi in current_roi_list]
     if name in names:

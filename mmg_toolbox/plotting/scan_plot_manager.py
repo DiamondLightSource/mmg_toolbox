@@ -267,6 +267,43 @@ class ScanPlotManager:
         self._set_axes(x_label, 'Intensity')
         return axes
 
+    def roi(self, roi_name: str, **kwargs) -> plt.Figure:
+        """
+        Create matplotlib figure with plot of a detector ROI and integrated area
+        :param roi_name: name of ROI to plot
+        :param kwargs: additional arguments for matplotlib.subplots
+        :return: matplotlib figure
+        """
+        if roi_name not in self.scan.rois(''):
+            raise Exception(f'ROI "{roi_name}" not found in scan')
+
+        axes_values, axes_name = self.scan.get_plot_axis('axes')
+        roi_total = self.scan.eval(f"{roi_name}_total")
+        roi_box = self.scan.eval(f"{roi_name}_box")
+        if f"{roi_name}_pos" in self.scan.map.alternate_names:
+            pi, pj, pk = self.scan.eval(f"{roi_name}_pos")
+        else:
+            pi = np.argmax(roi_total)
+            pj, pk = np.mean(roi_box, axis=1)
+        det_image = self.scan.image(pi)
+        roi_image = self.scan.eval(f"{roi_name}[{pi}]")
+
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, **kwargs)
+        plot_image(ax1, det_image)
+        ax1.plot(roi_box[:, 1], roi_box[:, 0], label=roi_name)
+        detector = self.scan.replace_default_names('IMAGE')
+        ax1.set_title(detector)
+
+        plot_image(ax2, roi_image)
+        ax2.plot([pk], [pj], '+', markersize=10, color='black')
+        ax2.set_title(roi_name)
+
+        ax3.plot(axes_values, roi_total, label=f"{roi_name}_total")
+        ax3.set_xlabel(axes_name)
+        ax3.set_ylabel(roi_name)
+        fig.suptitle(self.scan.title())
+        return fig
+
     def detail(self, xaxis: str = 'axes', yaxis: str | list[str] = 'signal',
                index: int | tuple | slice | None = None, clim: tuple[float, float] | None = None,
                cmap: str = DEFAULT_CMAP, **kwargs) -> plt.Figure:

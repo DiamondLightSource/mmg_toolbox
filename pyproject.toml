@@ -9,13 +9,14 @@ dependencies = [
     "numpy",
     "h5py",
     "hdf5plugin",
-    "hdfmap>=1.4.0",
+    "hdfmap>=1.4.1",
     "matplotlib",
     "imageio",
     "scipy",
     "lmfit",
     "stomp.py",
     "nexus2srs",
+    "ipykernel>=7.3.0",
 ]
 requires-python = ">=3.10"
 authors = [{ name = "Dan Porter", email = "dan.porter@diamond.ac.uk" }]
@@ -102,4 +103,7 @@ packages = [
 
 [tool.setuptools.dynamic]
 version = { attr = "mmg_toolbox.__version__" }
+
+[tool.uv.sources]
+hdfmap = { path = "../hdfmap", editable = true }
 
