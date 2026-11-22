@@ -11,7 +11,7 @@ from mmg_toolbox.beamline_metadata import metadata, xas_metadata, nexus_metadata
 from mmg_toolbox.scripts.experiment_startup import create_notebooks
 
 __version__ = '0.7.1'
-__date__ = '13/10/2026'
+__date__ = '22/11/2026'
 __author__ = 'Dan Porter'
 
 __all__ = ['version_info', 'title', 'module_info',

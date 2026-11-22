@@ -1677,8 +1677,7 @@ wheels = [
 
 [[package]]
 name = "hdfmap"
-version = "1.4.0"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "../hdfmap" }
 dependencies = [
     { name = "asteval" },
     { name = "h5py" },
@@ -1687,9 +1686,13 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/dd/5b/c3fce38f85f8bc974eaeb322e31c37ccc9c2c9647eb5a1e63cb17e9af5b4/hdfmap-1.4.0.tar.gz", hash = "sha256:14f649b09d943768ae6a831dcc468d0f265537f6d765ba7f6be9ada3a07c7cba", size = 69714, upload-time = "2026-08-29T16:33:59.133Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/c8/720d9d6c963d87fb58c9562fecab8fbeaa0104acc963e6fa8c311427a5cf/hdfmap-1.4.0-py3-none-any.whl", hash = "sha256:c2e0721bd9f0ae9ad7d2fb5121aea3b958311d2431921b6907046a71d0b1ca27", size = 54213, upload-time = "2026-08-29T16:33:57.905Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "asteval" },
+    { name = "h5py" },
+    { name = "hdf5plugin" },
+    { name = "numpy" },
 ]
 
 [[package]]
@@ -3111,6 +3114,7 @@ dependencies = [
     { name = "hdf5plugin" },
     { name = "hdfmap" },
     { name = "imageio" },
+    { name = "ipykernel" },
     { name = "lmfit" },
     { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "matplotlib", version = "3.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -3234,10 +3238,11 @@ requires-dist = [
     { name = "h5py", marker = "extra == 'base'" },
     { name = "hdf5plugin" },
     { name = "hdf5plugin", marker = "extra == 'base'" },
-    { name = "hdfmap", specifier = ">=1.4.0" },
-    { name = "hdfmap", marker = "extra == 'base'", specifier = ">=1.1.0" },
+    { name = "hdfmap", editable = "../hdfmap" },
+    { name = "hdfmap", marker = "extra == 'base'", editable = "../hdfmap" },
     { name = "imageio" },
     { name = "imageio", marker = "extra == 'base'" },
+    { name = "ipykernel", specifier = ">=7.3.0" },
     { name = "ipython", marker = "extra == 'full'" },
     { name = "ipywidgets", marker = "extra == 'full'" },
     { name = "jupyter", marker = "extra == 'full'" },
