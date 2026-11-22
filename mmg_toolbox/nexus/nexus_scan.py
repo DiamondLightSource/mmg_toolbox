@@ -40,7 +40,7 @@ class NexusScan(NexusLoader):
         >>> result = scan.fit.multi_peak_fit()
         >>> print(scan)  # print scan default metadata
         >>> print(scan.info())  # print scan namespace
-        >>> scan.map.add_roi('name', ...)  # add ROI to namespace
+        >>> scan.add_roi('name', ...)  # add ROI to namespace
         >>> scan.image(0)  # return first detector image as array
         >>> scan.volume()  # return image stack
         >>> data = scan.get_plot_data()  # return dict of plot data

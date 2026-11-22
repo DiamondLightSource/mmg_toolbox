@@ -24,7 +24,7 @@ fig = processed_spectrum.create_figure()
 ### Incident Energy Scan with Vortex ###
 scan, = exp.scans(1146116)
 # Add ROI window - xsp3 has 2 channels, 4096 bins. create window around bin 915 == 9150 eV
-scan.map.add_roi('new_window', 1, 915, 2, 100, 'xsp3')
+scan.add_roi('new_window', 1, 915, 2, 100, 'xsp3')
 spectrum = scan.xas_spectra()
 
 fig2 = spectrum.create_figure()  # show the different Windows

@@ -13,8 +13,8 @@ scan = data_file_reader('scan_file.nxs')
 # Define ROI
 # scans with the pilatus have shape (n, i, j), where n in the number of points,
 # i is the fast (short) axis and j is the slow (long axis)
-# see help(scan.map.add_roi)
-scan.map.add_roi(
+# see help(scan.add_roi)
+scan.add_roi(
     name='nroi1',
     cen_i='pil3_centre_j',  # pil3_centre_j is a value inside the NeXus file defining the detector centre
     cen_j='pil3_centre_i',  # can also be given as integers

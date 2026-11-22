@@ -341,7 +341,7 @@ def test_i16_vortex_spectra_with_roi():
     # energy scan
     f1 = FILES_DICT['i16 xsp3 energy scan lh']
     scan = data_file_reader(f1)
-    scan.map.add_roi('new_window', 1, 915, 2, 100, 'xsp3')
+    scan.add_roi('new_window', 1, 915, 2, 100, 'xsp3')
     assert 'new_window_total' in scan.rois()
     spectra = scan.xas_spectra()
     assert 'new_window' in spectra.spectra
