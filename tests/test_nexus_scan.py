@@ -208,6 +208,7 @@ def test_scan_roi():
     # assert False
 
 
+@only_dls_file_system
 def test_scan_peak_roi():
     f = DIR + '/i16/1109527.nxs'
     scan = NexusScan(f)
