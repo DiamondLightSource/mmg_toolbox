@@ -483,7 +483,9 @@ class Experiment:
         return average_polarised_scans(*spectra)
 
     def add_roi(self, name: str, cen_i: int | str, cen_j: int | str,
-                wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE'):
+                wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE',
+                peak_search: bool = False, peak_region_i: int | None = None,
+                peak_region_j: int | None = None):
         """
         Add an image ROI (region of interest) to scans
         The ROI operates on the default IMAGE dataset, loading only the required region from the file.
@@ -504,8 +506,12 @@ class Experiment:
         :param wid_i: full width along first dimension, in pixels
         :param wid_j: full width along second dimension, in pixels
         :param image_name: string name of the image
+        :param peak_search: bool, if True uses peak search to determine centre.
+        :param peak_region_i: peak region width along first dimension, in pixels
+        :param peak_region_j: peak region width along second dimension, in pixels
         """
-        add_roi(self.config, name, cen_i, cen_j, wid_i, wid_j, image_name)
+        add_roi(self.config, name, cen_i, cen_j, wid_i, wid_j, image_name,
+                peak_search, peak_region_i, peak_region_j)
 
     def copy_files(self, new_directory: str, *scan_files: ScanFile,
                    merge_links: bool = False, merge_compression: str = 'gzip'):

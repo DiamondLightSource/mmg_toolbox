@@ -177,3 +177,58 @@ def test_copy_file():
     os.remove('test_copy_1109527_merge.nxs')
     os.remove('1109527-pilatus3_100k.hdf')
     os.remove('test_copy_1109527.nxs')
+
+
+@only_dls_file_system
+def test_scan_roi():
+    f = DIR + '/i16/1109527.nxs'
+    scan = NexusScan(f)
+
+    scan.add_roi('new_roi', 'pil3_centre_j', 'pil3_centre_i', 30, 40)
+    rois_list = scan.rois()
+    assert rois_list == ['new_roi_total']
+    roi = scan('new_roi')
+    assert roi.shape == (61, 30, 40)
+    roi_total, roi_max, roi_min, roi_mean = scan('new_roi_total, new_roi_max, new_roi_min, new_roi_mean')
+    assert roi_total.shape == roi_max.shape == roi_min.shape == roi_mean.shape == (61, )
+    roi_bkg, roi_rmbkg = scan('new_roi_bkg, new_roi_rmbkg')
+    assert roi_rmbkg[0] < roi_total[0]
+    assert roi_rmbkg.max() > 0
+    assert roi_bkg.shape == roi_rmbkg.shape == (61,)
+    roi_box, roi_bkg_box = scan('new_roi_box, new_roi_bkg_box')
+    assert roi_box.shape == roi_bkg_box.shape == (5, 2)
+
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.plot(roi_total, label='total')
+    # plt.plot(roi_rmbkg, label='rmbkg')
+    # plt.plot(roi_bkg, label='bkg')
+    # plt.legend()
+    # plt.show()
+    # assert False
+
+
+@only_dls_file_system
+def test_scan_peak_roi():
+    f = DIR + '/i16/1109527.nxs'
+    scan = NexusScan(f)
+
+    scan.add_peak_roi('pkroi', 30, 40)
+    rois_list = scan.rois()
+    print(rois_list)
+    assert rois_list == ['pkroi_total']
+    roi = scan('pkroi')
+    assert roi.shape == (61, 30, 40)
+    i, j, k = scan('pkroi_pos')
+    assert (i, j, k) == (33, 103, 238)
+    roi_total, roi_bkg, roi_rmbkg = scan('pkroi_total, pkroi_bkg, pkroi_rmbkg')
+    assert roi_total.shape == roi_bkg.shape == roi_rmbkg.shape == (61, )
+
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.plot(roi_total, label='total')
+    # plt.plot(roi_rmbkg, label='rmbkg')
+    # plt.plot(roi_bkg, label='bkg')
+    # plt.legend()
+    # plt.show()
+    # assert False

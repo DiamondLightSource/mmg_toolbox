@@ -13,22 +13,18 @@ import h5py
 import hdfmap
 import numpy as np
 from hdfmap import NexusLoader, NexusMap, load_hdf
-from hdfmap.eval_functions import dataset2data, dataset2str
+from hdfmap.eval_functions import dataset2data, dataset2str, PROTECTED
 
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapMMGMetadata as Md
-from mmg_toolbox.beamline_metadata.hdfmap_generic import ROI_SUFFIXES
 from mmg_toolbox.beamline_metadata.config import beamline_config, C
 from mmg_toolbox.nexus.instrument_model import NXInstrumentModel
 from mmg_toolbox.nexus.nexus_functions import get_dataset_value, nx_find, nx_find_all
 from mmg_toolbox.nexus.nexus_names import NX_START, NX_END
 from mmg_toolbox.nexus import nexus_writer as nw
 from mmg_toolbox.utils.file_functions import get_scan_number, read_tiff, get_file_time
-from mmg_toolbox.utils.misc_functions import shorten_string, multiple_replace, DataHolder
+from mmg_toolbox.utils.misc_functions import shorten_string, DataHolder
 from mmg_toolbox.xas.spectra_container import SpectraContainer
 from mmg_toolbox.xas.nxxas_loader import load_xas_scans
-
-# TODO: get this from HdfMap
-HDFMAP_PROTECTED = ['filepath', 'filename']  # HdfMap protected variables
 
 
 class NexusScan(NexusLoader):
@@ -44,7 +40,7 @@ class NexusScan(NexusLoader):
         >>> result = scan.fit.multi_peak_fit()
         >>> print(scan)  # print scan default metadata
         >>> print(scan.info())  # print scan namespace
-        >>> scan.map.add_roi('name', ...)  # add ROI to namespace
+        >>> scan.add_roi('name', ...)  # add ROI to namespace
         >>> scan.image(0)  # return first detector image as array
         >>> scan.volume()  # return image stack
         >>> data = scan.get_plot_data()  # return dict of plot data
@@ -65,8 +61,8 @@ class NexusScan(NexusLoader):
         # add alternate names
         self.map.add_named_expression(**self.config.get(C.replace_names, {}))
         # add ROIs
-        for (name, cen_i, cen_j, wid_i, wid_j, det_name) in self.config.get(C.roi, []):
-            self.map.add_roi(name, cen_i, cen_j, wid_i, wid_j, det_name)
+        self._rois = set()
+        self.add_roi_from_config()
 
         from mmg_toolbox.fitting import ScanFitManager, poisson_errors
         self.fit = ScanFitManager(self)
@@ -93,12 +89,211 @@ class NexusScan(NexusLoader):
 
     def info(self, arrays=False, values=False, combined=False,
              metadata=False, scannables=True, image_data=True,
-             local=False, alternate=True) -> str:
+             local=False, alternate=True, rois=False) -> str:
         """Return string of namespace information"""
         map_data = self.map.info_names(arrays=arrays, values=values, combined=combined,
                                        metadata=metadata, scannables=scannables,
                                        image_data=image_data, local=local, alternate=alternate)
+        if rois:
+            map_data += '\n==== ROIs ===\n  '
+            map_data += '\n  '.join(self.rois(''))
         return map_data
+
+    def add_roi_from_config(self, config: dict | None = None):
+        config = config or self.config
+        for roi_params in config.get(C.roi, []):
+            if len(roi_params) == 6:
+                name, cen_i, cen_j, wid_i, wid_j, det_name = roi_params  # old parameters
+                peak_search, peak_wid_i, peak_wid_j = (False, None, None)
+            elif len(roi_params) == 9:
+                (name, cen_i, cen_j, wid_i, wid_j, det_name,
+                 peak_search, peak_wid_i, peak_wid_j) = roi_params  # new parameters
+            else:
+                print(f"Invalid roi params: {roi_params}")
+                continue
+
+            if peak_search:
+                self.add_peak_roi(name, wid_i, wid_j, det_name, cen_i, cen_j, peak_wid_i, peak_wid_j)
+            else:
+                self.add_roi(name, cen_i, cen_j, wid_i, wid_j, det_name)
+
+    def _generate_roi(self, cen_i: int | str, cen_j: int | str,
+                      wid_i: int, wid_j: int, image_name: str) -> tuple[str, str]:
+        """Generate ROI string for expressions"""
+        # use HdfMap "d_***" to return HDF dataset for lazy loading
+        dataset = f"d_{image_name}"
+
+        def build_roi_str(wi, wj):
+            # Note that cen_i, cen_j maybe str and only evaluated when the expression is run
+            min_i = f"max({cen_i}-{abs(wi) // 2:.0f},0)"
+            max_i = f"min({cen_i}+{(abs(wi) + 1) // 2:.0f},{dataset}.shape[-2]-1)"
+            min_j = f"max({cen_j}-{abs(wj) // 2:.0f},0)"
+            max_j = f"min({cen_j}+{(abs(wj) + 1) // 2:.0f},{dataset}.shape[-1]-1)"
+            slice_str = f"{min_i}:{max_i}", f"{min_j}:{max_j}"
+            box_str = (
+                    'array([' +
+                    f"[{min_i}, {min_j}]," +
+                    f"[{min_i}, {max_j}]," +
+                    f"[{max_i}, {max_j}]," +
+                    f"[{max_i}, {min_j}]," +
+                    f"[{min_i}, {min_j}]," +
+                    '])'
+            )
+            return slice_str, box_str
+
+        # Main ROI
+        (islice, jslice), roi_box = build_roi_str(wid_i, wid_j)
+        roi_array = f"{dataset}[..., {islice}, {jslice}]"
+        return roi_array, roi_box
+
+    def add_roi(self, name: str, cen_i: int | str, cen_j: int | str,
+                wid_i: int = 30, wid_j: int = 30, image_name: str = 'IMAGE'):
+        """
+        Add an image ROI (region of interest) to the named expressions
+        The ROI operates on the default IMAGE dataset, loading only the required region from the file.
+        The following expressions will be added, for use in self.eval etc.
+            *name* -> returns the whole ROI array as a HDF5 dataset
+            *name*_total -> returns the sum of each image in the ROI array
+            *name*_max -> returns the max of each image in the ROI array
+            *name*_min -> returns the min of each image in the ROI array
+            *name*_mean -> returns the mean of each image in the ROI array
+            *name*_bkg -> returns the background ROI array (area around ROI)
+            *name*_rmbkg -> returns the total with background subtracted
+            *name*_box -> returns the pixel positions of the ROI corners
+            *name*_bkg_box -> returns the pixel positions of the background ROI
+
+        :param name: string name of the ROI
+        :param cen_i: central pixel index along first dimension, can be callable string
+        :param cen_j: central pixel index along second dimension, can be callable string
+        :param wid_i: full width along first dimension, in pixels
+        :param wid_j: full width along second dimension, in pixels
+        :param image_name: string name of the image
+        """
+        roi_array, roi_box = self._generate_roi(cen_i, cen_j, wid_i, wid_j, image_name)
+        roi_total = f"{roi_array}.sum(axis=(-1, -2))"
+        roi_max = f"{roi_array}.max(axis=(-1, -2))"
+        roi_min = f"{roi_array}.min(axis=(-1, -2))"
+        roi_mean = f"{roi_array}.mean(axis=(-1, -2))"
+
+        # Background
+        bkg_array, roi_bkg_box = self._generate_roi(cen_i, cen_j, 2 * wid_i, 2 * wid_j, image_name)
+        bkg_total = f"{bkg_array}.sum(axis=(-1, -2))"
+        roi_bkg_total = f"({bkg_total} - {roi_total})/3"
+        #roi_bkg_mean = f"{roi_bkg_total}/(12*{wid_i * wid_j})"
+        # Transpose array to broadcast bkg_total
+        #roi_rmbkg = f"({roi_array}.T - {roi_bkg_mean}).sum(axis=(0, 1))"
+        roi_rmbkg = f"(4 * {roi_total} - {bkg_total})/3"
+
+        alternate_names = {
+            f"{name}_total": roi_total,
+            f"{name}_max": roi_max,
+            f"{name}_min": roi_min,
+            f"{name}_mean": roi_mean,
+            f"{name}_bkg": roi_bkg_total,
+            f"{name}_rmbkg": roi_rmbkg,
+            f"{name}_box": roi_box,
+            f"{name}_bkg_box": roi_bkg_box,
+            name: roi_array,
+        }
+        self._rois.add(name)
+        self.map.add_named_expression(**alternate_names)
+
+    def add_peak_roi(self, name: str, wid_i: int = 30, wid_j: int = 30,
+                     image_name: str = 'IMAGE',
+                     rgn_cen_i: int | str | None = None, rgn_cen_j: int | str | None = None,
+                     rgn_wid_i: int | None = None, rgn_wid_j: int | None = None):
+        """
+        Add an image ROI (region of interest) to the named expressions.
+        The ROI created is centred around the largest pixel in a sub-region.
+
+        The ROI operates on the default IMAGE dataset, loading only the required region from the file.
+
+        The following expressions will be added, for use in self.eval etc.
+            *name* -> returns the whole ROI array as a HDF5 dataset
+            *name*_total -> returns the sum of each image in the ROI array
+            *name*_max -> returns the max of each image in the ROI array
+            *name*_min -> returns the min of each image in the ROI array
+            *name*_mean -> returns the mean of each image in the ROI array
+            *name*_bkg -> returns the background ROI array (area around ROI)
+            *name*_rmbkg -> returns the total with background subtracted
+            *name*_box -> returns the pixel positions of the ROI corners
+            *name*_bkg_box -> returns the pixel positions of the background ROI
+            *name*_rgn_box -> returns pixel positions of Peak search region
+            *name*_pos -> returns i,j,k position of the largest pixel in the dataset
+
+        :param name: string name of the ROI
+        :param wid_i: full width along first dimension, in pixels
+        :param wid_j: full width along second dimension, in pixels
+        :param image_name: string name of the image
+        :param rgn_cen_i: centre of the region in which to look for the largest pixel
+        :param rgn_cen_j: centre of the region in which to look for the largest pixel
+        :param rgn_wid_i: width of the region in which to look for the largest pixel
+        :param rgn_wid_j: width of the region in which to look for the largest pixel
+        :return: None
+        """
+        shape = self.map.get_image_shape()
+        rgn_cen_i = shape[-2] // 2 if rgn_cen_i is None else rgn_cen_i
+        rgn_cen_j = shape[-1] // 2 if rgn_cen_j is None else rgn_cen_j
+        rgn_wid_i = shape[-2] if rgn_wid_i is None else rgn_wid_i
+        rgn_wid_j = shape[-2] if rgn_wid_j is None else rgn_wid_j
+        # HdfMap header for eval expressions (HdfMap v1.4.1 onwards)
+        header = """
+        ***
+        def around_max(a, dj, dk, rj, rk, drj, drk):
+            rmn_j = max(rj-drj//2, 0)
+            rmn_k = max(rk-drk//2, 0)
+            rmx_j = min(rj+(drj+1)//2, a.shape[-2]-1)
+            rmx_k = min(rk+(drk+1)//2, a.shape[-1]-1)
+            search = a[:, rmn_j:rmx_j, rmn_k:rmx_k]
+        
+            i, j, k = unravel_index(argmax(search), search.shape)
+            i, j, k = i, j+rmn_j, k+rmn_k
+            mn_j = max(j-dj//2, 0)
+            mn_k = max(k-dk//2, 0)
+            mx_j = min(j+(dj+1)//2, a.shape[-2]-1)
+            mx_k = min(k+(dk+1)//2, a.shape[-1]-1)
+            roi = a[:, mn_j:mx_j, mn_k:mx_k]
+            box = array([[mn_j, mn_k], [mn_j, mx_k], [mx_j, mx_k], [mx_j, mn_k], [mn_j, mn_k]])
+            return roi, box, (i, j, k)
+        ***
+        """
+        fn = f"around_max(d_{image_name}, {wid_i}, {wid_j}, {rgn_cen_i}, {rgn_cen_j}, {rgn_wid_i}, {rgn_wid_j})"
+        bfn = f"around_max(d_{image_name}, {wid_i * 2}, {wid_j * 2}, {rgn_cen_i}, {rgn_cen_j}, {rgn_wid_i}, {rgn_wid_j})"
+
+        roi_expression = header + f"{fn}[0]"
+        box_expression = header + f"{fn}[1]"
+        pos_expression = header + f"{fn}[2]"
+        bkg_expression = header + f"{bfn}[0]"
+        bkg_box_expression = header + f"{bfn}[1]"
+        _, rgn_box = self._generate_roi(rgn_cen_i, rgn_cen_j, rgn_wid_i, rgn_wid_j, image_name)
+
+        roi_total = f"{roi_expression}.sum(axis=(-1, -2))"
+        roi_max = f"{roi_expression}.max(axis=(-1, -2))"
+        roi_min = f"{roi_expression}.min(axis=(-1, -2))"
+        roi_mean = f"{roi_expression}.mean(axis=(-1, -2))"
+
+        bkg_total = f"{bkg_expression}.sum(axis=(-1, -2))"
+        roi_bkg_total = f"({bkg_total} - {roi_total})/3"
+        # roi_bkg_mean = f"{roi_bkg_total}/(12*{wid_i * wid_j})"
+        # Transpose array to broadcast bkg_total
+        # roi_rmbkg = f"({roi_expression}.T - {roi_bkg_mean}).sum(axis=(0, 1))"
+        roi_rmbkg = f"(4 * {roi_total} - {bkg_total})/3"
+
+        alternate_names = {
+            f"{name}_total": roi_total,
+            f"{name}_max": roi_max,
+            f"{name}_min": roi_min,
+            f"{name}_mean": roi_mean,
+            f"{name}_bkg": roi_bkg_total,
+            f"{name}_rmbkg": roi_rmbkg,
+            f"{name}_box": box_expression,
+            f"{name}_bkg_box": bkg_box_expression,
+            f"{name}_rgn_box": rgn_box,
+            f"{name}_pos": pos_expression,
+            name: roi_expression,
+        }
+        self._rois.add(name)
+        self.map.add_named_expression(**alternate_names)
 
     def rois(self, append: str = '_total') -> list[str]:
         """
@@ -109,13 +304,7 @@ class NexusScan(NexusLoader):
         :param append: str to append to each ROI name, e.g. '_total', '_max', '_min', '_mean'
         :return: list of ROI names that can be used in eval.
         """
-        # search for ROIs in HdfMap expressions
-        alternate_name_rois = {
-            next((name.removesuffix(sfx) for sfx in ROI_SUFFIXES if name.endswith(sfx)), name)
-            for name, expression in self.map.alternate_names.items()
-            if expression.startswith('d_')
-        }
-        return [roi + append for roi in alternate_name_rois]
+        return [roi + append for roi in self._rois]
 
     def scan_number(self) -> int:
         return get_scan_number(self.filename)
@@ -315,7 +504,10 @@ class NexusScan(NexusLoader):
         # Default scannables if not generated by hdfmap
         label = self.replace_default_names(axis_name)
         # Check for protected variables
-        axis_name = label if label not in HDFMAP_PROTECTED else axis_name
+        #axis_name = label if label not in PROTECTED else axis_name
+        # Check for very long labels from e.g. ROIs
+        if len(label) > 100 and len(axis_name) < len(label):
+            label = axis_name
 
         data = self.map.eval(hdf, axis_name, local_data=self._local_data)
         if np.ndim(data) > 1 and reduce_shape:
@@ -326,6 +518,7 @@ class NexusScan(NexusLoader):
                 data = np.sum(data, axis=(-1, -2))
             if np.shape(data) != shape:
                 raise ValueError(f"2+D Arrays must have same shape: {axis_name}{np.shape(data)} != {shape}")
+        # TODO: fix this, issue #69 HdfMap
         # Remove this check because msmapper files with l axis not in scannables.
         # if data.shape != self.map.scannables_shape():
         #     raise ValueError(f"plot axis '{axis_name}' has incorrect shape {data.shape} != {self.map.scannables_shape()}")
