@@ -75,15 +75,22 @@ def double_l_edge(
 
         Edge(x, Int1, E0, Gauss, L3) + Edge(x, Int1/2, E0 + 1.5*SOC, Gauss, L2)
 
-    Parameters are intentionally explicit rather than represented as generated strings.
+    :param energy: array of energies in eV
+    :param intensity_l3: edge jump at the L3 edge (typically 2/3 of total jump)
+    :param e0_l3: energy in eV of L3 edge
+    :param spin_orbit_2p: Spin-orbit coupling energy defining difference between L3 and L2 edge
+    :param gaussian_fraction: Fraction of pVoight edge step that is gaussian
+    :param width_l3: Width of edge step function at L3 edge
+    :param width_l2: Width of edge step function at L2 edge
+    :param l2_intensity_ratio: ratio L2 edge to L3 edge step
+    :param l2_energy_factor: multiplier for SOC in energy difference for L2 edge
+    :return: array of double L edge function
     """
-    return edge_step(energy, intensity_l3, e0_l3, gaussian_fraction, width_l3) + edge_step(
-        energy,
-        intensity_l3 * l2_intensity_ratio,
-        e0_l3 + l2_energy_factor * spin_orbit_2p,
-        gaussian_fraction,
-        width_l2,
-    )
+    intensity_l2 = intensity_l3 * l2_intensity_ratio
+    e0_l2 = e0_l3 + l2_energy_factor * spin_orbit_2p
+    edge1 = edge_step(energy, intensity_l3, e0_l3, gaussian_fraction, width_l3)
+    edge2 = edge_step(energy, intensity_l2, e0_l2, gaussian_fraction, width_l2)
+    return edge1 + edge2
 
 
 def background_three_region(
@@ -111,7 +118,7 @@ def background_three_region(
     :param m3: post-l2-edge gradient
     :param t1: l3 edge energy
     :param t2: l2 edge energy
-    :param e_shift: energy reference
+    :param e_shift: energy shift
     :param intercept: initial level of the background
     """
     x_arr = np.asarray(energy, dtype=float)

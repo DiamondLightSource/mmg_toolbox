@@ -11,6 +11,8 @@ subtracted_spectra = spectra2 - spectra3  # subtracts signals at interpolated en
 from __future__ import annotations
 
 from inspect import signature
+from typing import Callable
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -20,17 +22,18 @@ import h5py
 from mmg_toolbox.nexus import nexus_writer as nw
 from mmg_toolbox.xas import spectra_analysis as spa
 from mmg_toolbox.xas.absorption_edges import find_spectra_edge, PREFERRED_EDGES, MultiEdge, xray_edges_in_range, Edge
+from mmg_toolbox.xas.multi_edge_fit_parameters import edge_jump, preedge_slope, midedge_slope, postedge_slope
 
 
 # Build database of spectra functions from spectra_analysis.py
 # these will be called by Spectra.remove_background
-def get_func_doc(fn):
+def get_func_doc(fn: Callable):
     sig = signature(fn)
     doc = next(iter(ln for ln in fn.__doc__.splitlines() if ln), 'background function')
     args = ". args: " + ', '.join(str(par) for name, par in sig.parameters.items() if name not in ['energy', 'signal'])
     return doc + args
 
-BACKGROUND_FUNCTIONS = {
+BACKGROUND_FUNCTIONS: dict[str, Callable] = {
     # description: (en, sig, *args, **kwargs) -> bkg, norm, fit
     'flat': spa.subtract_flat_background,  # ev_from_start
     'norm': spa.normalise_background,  # ev_from_start
@@ -41,8 +44,10 @@ BACKGROUND_FUNCTIONS = {
     'double_edge_step': spa.fit_double_edge_step_background,  # l3_energy, l2_energy, peak_width_ev
     'poly_edges': spa.fit_spectra_background, # *step_energies, peak_width_ev
     'exp_edges': spa.fit_spectra_exp_background, # *step_energies, peak_width_ev
+    'three_region': spa.fit_three_region_background, # no inputs
+    'double_l_edge': spa.fit_double_l_edge_background, # fit
 }
-BACKGROUND_DOCSTRINGS = {
+BACKGROUND_DOCSTRINGS: dict[str, str] = {
     # name: next(iter(fn.__doc__.splitlines()), 'background function') for name, fn in BACKGROUND_FUNCTIONS.items()
     # name: f"{fn.__name__}{str(inspect.signature(fn))}" for name, fn in BACKGROUND_FUNCTIONS.items()
     name: get_func_doc(fn) for name, fn in BACKGROUND_FUNCTIONS.items()
@@ -92,6 +97,7 @@ class Spectra:
         return xray_edges_in_range(self.energy.min(), self.energy.max(), search_edges=search_edges)
 
     def edges(self, search_edges: tuple[str, ...] | None = PREFERRED_EDGES) -> MultiEdge:
+        """Return the MultiEdge object of the measured edges within the energy range"""
         return find_spectra_edge(self.energy, self.signal, search_edges)
 
     def energy_index(self, energy: float) -> int:
@@ -108,10 +114,22 @@ class Spectra:
         return float(np.mean(self.signal[idx1:idx2]))
 
     def signal_peak(self) -> float:
+        """Return the largest signal"""
         return np.max(abs(self.signal))
 
     def signal_jump(self, ev_from_start=5., ev_from_end=None) -> float:
+        """Return the jump in signal from the start to end of the spectrum"""
         return spa.signal_jump(self.energy, self.signal, ev_from_start, ev_from_end)
+
+    def edge_jump(self) -> float:
+        """Return the background subtracted edge jump. For L3+L2 edges only"""
+        m1 = preedge_slope(self.energy, self.signal)
+        m2 = midedge_slope(self.energy, self.signal)
+        m3 = postedge_slope(self.energy, self.signal)
+        edge = self.edges()
+        t1, t2 = edge.energies()
+        initial_intercept = self.signal[:5].mean()
+        return edge_jump(self.energy, self.signal, m1, m2, m3, t1, t2, initial_intercept)
 
     """SPECTRA OPERATIONS - RETURNS PROCESSED SPECTRA"""
 
@@ -277,25 +295,48 @@ class Spectra:
             '\n'.join(f"'{name}': {doc}" for name, doc in BACKGROUND_DOCSTRINGS.items())
     )
 
-    def auto_edge_background(self, peak_width_ev: float = 5., edges: dict[str, float] | None = None) -> Spectra:
+    def auto_edge_background(self, peak_width_ev: float = 5., edges: MultiEdge | None = None) -> Spectra:
         """
         Remove generic xray absorption background from spectra
         """
         if edges is None:
             edges = self.edges()
-        edge_energies = edges.values()
+        edge_energies = edges.energies()
         bkg, jump, fit = spa.fit_spectra_background(self.energy, self.signal, *edge_energies, peak_width_ev=peak_width_ev)
         sig = (self.signal - bkg) / jump
         proc_label = f"Auto_edge_background"
         process = f"Background removal 'poly_edges': \n {BACKGROUND_DOCSTRINGS['poly_edges']}\n"
         process += f"peak_width_ev = {peak_width_ev}\n"
-        edge_str = '\n'.join(f"  {lbl}: {energy}" for lbl, energy in edges.items())
+        edge_str = '\n'.join(str(e) for e in edges)
         process += f"Edges:\n {edge_str}"
         process += f"\nFit Report:\n{fit.fit_report() if fit is not None else 'None'}\n"
         process += f"\nResults:\n  <bkg> = {np.mean(bkg)}\n  norm = {jump}\nsignal = (signal - bkg) / norm\n"
         parameters = {'peak_width_ev': peak_width_ev, 'edges': edges}
         return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
                        process_label=proc_label, process=process, mode=self.mode, parameters=parameters)
+
+    # def double_edge_background(self) -> Spectra:
+    #     """
+    #     Remove three region background from spectra
+    #     """
+    #     m1 = preedge_slope(self.energy, self.signal)
+    #     m2 = midedge_slope(self.energy, self.signal)
+    #     m3 = postedge_slope(self.energy, self.signal)
+    #     edge = self.edges()
+    #     t1, t2 = edge.energies()
+    #     initial_intercept = np.mean(self.signal[:5])
+    #     bkg = background_three_region(self.energy, m1, m2, m3, t1, t2, 0, initial_intercept)
+    #     sig = self.signal - bkg
+    #     proc_label = f"double_edge_background"
+    #     process = f"Background removal 'background_three_region': \n Assign three different slopes to regions around edges\n"
+    #     edge_str = '\n'.join(str(e) for e in edge)
+    #     process += f"Edges:\n {edge_str}"
+    #     parameters = {}
+    #     return Spectra(self.energy, sig, parents=[self], background=bkg, label=self.label,
+    #                    process_label=proc_label, process=process, mode=self.mode, parameters=parameters)
+
+
+
 
     """SPECTRA NEXUS OUTPUT"""
 

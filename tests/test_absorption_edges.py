@@ -6,7 +6,8 @@ import numpy as np
 from pytest import approx
 from . import only_dls_file_system
 from mmg_toolbox.xas.absorption_edges import (split_element_edge, split_element_oxidation, xray_edges_in_range,
-                                              Element, Edge, MultiEdge, find_spectra_edge, get_edges)
+                                              Element, Edge, MultiEdge, find_spectra_edge, get_edges,
+                                              get_atomic_parameters)
 
 
 def test_split_element_edge():
@@ -182,3 +183,22 @@ def test_find_spectra_edge():
     assert str(edges) == 'Ir L3'
 
 
+def test_spin_orbit():
+    element = Element('Co3+')
+    assert element.spin_orbit > 0
+    element = Element('Cr+')
+    assert element.spin_orbit > 0
+
+
+def test_d_electrons_vs_atomic_pars():
+    atomic_pars = get_atomic_parameters()
+
+    def get_d_electrons(atomic_system):
+        return atomic_pars[atomic_system][2]
+
+    for symbol in atomic_pars:
+        atomic_pars_d = get_d_electrons(symbol)
+        el = Element(symbol)
+        el_d = el.d_electrons()
+        print(f"symbol: {symbol}, atomic_pars_d: {atomic_pars_d:.0f}, el.d_electrons: {el_d}")
+        assert el_d == approx(atomic_pars_d)

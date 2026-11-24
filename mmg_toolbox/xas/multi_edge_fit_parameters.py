@@ -92,6 +92,15 @@ def l2_edge_energy(l3_edge: float, soc: float) -> float:
     """
     return l3_edge + 1.5 * soc
 
+# TODO remove this or use it
+def measured_l_edge_energies(energy: np.ndarray, signal: np.ndarray) -> tuple[float, float]:
+    """Return L3, L2 edge energies measured from spectrum"""
+    l3_edge = edge_energy(energy, signal)
+    atomic_system = get_atomic_system(energy)  # TODO: replace with MultiEdge
+    soc, _ = get_spin_orbit(atomic_system)
+    l2_edge = l2_edge_energy(l3_edge, soc)
+    return l3_edge, l2_edge
+
 
 def get_atomic_system(energy: np.ndarray) -> str:
     """
@@ -129,7 +138,7 @@ def energy_reference(energy: np.ndarray) -> float:
     """
     Energy Reference - point at which to specify the initial background
     """
-    return energy[1]  # this would be better as a mean
+    return energy[0]  # TODO: this would be better as a mean
 
 
 def preedge_slope(energy: np.ndarray, signal: np.ndarray, edge_en: float | None = None) -> float:
@@ -200,7 +209,7 @@ def midedge_slope(energy: np.ndarray, signal: np.ndarray,
     p0, p1 = np.polyfit(energy[index1:index2], signal[index1:index2], 1)
     return p0
 
-
+# TODO: not really sure this is needed
 def transition_points(l3_edge: float, soc: float) -> tuple[float, float]:
     """
     Return the transition points in eV
@@ -210,7 +219,7 @@ def transition_points(l3_edge: float, soc: float) -> tuple[float, float]:
 
 def edge_jump(energy: np.ndarray, signal: np.ndarray,
               m1: float, m2: float, m3: float,
-              t1: float, t2: float, e_ref: float) -> float:
+              t1: float, t2: float, initial_intercept: float) -> float:
     """
     Calculate edge jump
 
@@ -224,19 +233,23 @@ def edge_jump(energy: np.ndarray, signal: np.ndarray,
     :param energy: energy array
     :param signal: signal array
     :param m1: pre-l3-edge gradient
-    :param m2: post-l3-edge gradient
+    :param m2: mid-l3/l2-edge gradient
+    :param m3: post-l2-edge gradient
     :param t1: l3 edge energy
-    :e_ref: energy reference
+    :param t2: l2 edge energy
+    :param initial_intercept: signal value below l3 edge
     :returns: float edge jump energy
     """
-    idx = int(np.argmin(np.abs(energy - e_ref)))
-    initial_intercept = float(signal[idx])
-    background = background_three_region(energy, m1, m2, m3, t1, t2, e_ref, initial_intercept)
+
+    background = background_three_region(energy, m1, m2, m3, t1, t2, 0, initial_intercept)
     y = signal - background
 
-    print(f"Background: {background.shape}, min={background.min():.3f}, max={background.max():.3f}")
-    print(f"sig-bkg: {y.shape}, min={y.min():.3f}, max={y.max():.3f}")
+    # print(f"Background: {background.shape}, min={background.min():.3f}, max={background.max():.3f}")
+    # print(f"sig-bkg: {y.shape}, min={y.min():.3f}, max={y.max():.3f}")
 
-    index1 = np.argmin(np.abs(energy - t1 - 10))
-    index2 = np.argmin(np.abs(energy - t2 + 10))
-    return abs(np.mean(y[index2:]) - np.mean(y[:index1])) / 1.5
+    # The edge jump is calculated as the difference between the average
+    # of the background subtracted signal 10eV below the L3 and the average of the signal
+    # 10eV above L2, divided by 3/2
+    index1 = np.argmin(np.abs(energy - t1 + 10))
+    index2 = np.argmin(np.abs(energy - t2 - 10))
+    return abs(np.mean(y[index2:]) - np.mean(y[:index1])) / 1.5  # TODO: 1.5 value is for L3 edge step, so decide if this is what we want

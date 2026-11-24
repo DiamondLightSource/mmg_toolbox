@@ -9,10 +9,10 @@ from typing import Any
 import numpy as np
 from lmfit import Model, Parameters
 
+from . import MultiEdge
 from .multi_edge_fit_functions import background_three_region, double_l_edge
 from .multi_edge_fit_parameters import (
     edge_energy,
-    energy_reference,
     get_atomic_system,
     get_spin_orbit,
     midedge_slope,
@@ -60,13 +60,15 @@ class BackgroundThreeRegionModel(Model):
             raise ValueError("at least three energy and signal points are required to guess parameters")
 
         e0 = edge_energy(energy, signal)
-        atomic_system = get_atomic_system(energy)
+        atomic_system = get_atomic_system(energy)  # TODO: replace with MultiEdge
         spin_orbit, _ = get_spin_orbit(atomic_system)
-        e_ref = energy_reference(energy)
+        # e_ref = energy_reference(energy)
         m1 = preedge_slope(energy, signal, e0)
         m2 = midedge_slope(energy, signal, e0, spin_orbit)
         m3 = postedge_slope(energy, signal, e0, spin_orbit)
-        t1, t2 = transition_points(e0, spin_orbit)
+        t1, t2 = transition_points(e0, spin_orbit)  # TODO: t1 is e0
+        e_shift = np.mean(energy[:5])  # TODO: e_shift should be renamed e_ref
+        initial_intercept = np.mean(signal[:5])
 
         if atomic_system[:2] not in {"Cu", "Co", "Ni"}:
             m2 = m1
@@ -74,15 +76,15 @@ class BackgroundThreeRegionModel(Model):
         _max_slope = max(m1, m2, m3)
         _min_slope = min(m1, m2, m3)
 
-        idx = int(np.argmin(np.abs(energy - e_ref)))
-        initial_intercept = float(signal[idx])
+        # idx = int(np.argmin(np.abs(energy - e_ref)))
+        # initial_intercept = float(signal[idx])
 
         # value, vary, min, max
         params: dict[str, dict[str, float | bool]] = {
             'e_shift': {
-                'value': e_ref,
-                'min': e_ref,
-                'max': e0 - 8,
+                'value': e_shift,
+                'min': e_shift-2,
+                'max': e_shift+2,
                 'vary': True
             },
             'intercept': {
@@ -165,22 +167,22 @@ class DoubleLEdgeModel(Model):
             raise ValueError("at least three energy and signal points are required to guess parameters")
 
         tail_size = max(1, energy.size // 10)
-        signal_step = float(np.median(signal[-tail_size:]) - np.median(signal[:tail_size]))
+        signal_step = float(np.median(signal[-tail_size:]) - np.median(signal[:tail_size]))  # TODO: replace with edge_jump
         intensity_l3 = abs(signal_step) / 1.5
 
         e0_l3 = edge_energy(energy, signal)
-        atomic_system = get_atomic_system(energy)
+        atomic_system = get_atomic_system(energy)  # TODO: replace with MultiEdge, check L23 is available, check e0_l3, or use edge en
         spin_orbit_2p, _ = get_spin_orbit(atomic_system)
 
         # value, vary, min, max
         params: dict[str, dict[str, float | bool]] = {
-            'e0_l3': {
+            'e0_l3': {  # measured edge of L3
                 'value': e0_l3,
                 'min': e0_l3 - 1.5,
                 'max': e0_l3 + 4,
                 'vary': True
             },
-            'intensity_l3': {
+            'intensity_l3': {  # step edge of L3 == 2/3 edge jump
                 'value': intensity_l3,
                 'min': intensity_l3 * 0.5,
                 'max': intensity_l3 * 2,
@@ -208,7 +210,7 @@ class DoubleLEdgeModel(Model):
                 'value': spin_orbit_2p,
                 'min': spin_orbit_2p - 0.1,
                 'max': spin_orbit_2p + 0.1,
-                'vary': False
+                'vary': True
             },
             'l2_intensity_ratio': {
                 'value': 0.5,

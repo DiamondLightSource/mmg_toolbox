@@ -141,6 +141,37 @@ def test_load_xas_scans():
 
 
 @only_dls_file_system
+def test_spectra_backgrounds():
+    # assert is_nxxas(FILES_DICT['i06-1 zacscan'])
+    # spectra, = load_xas_scans(FILES_DICT['i06-1 zacscan'], dls_loader=True)
+    # assert spectra.metadata.pol == 'pc'
+    # assert spectra.metadata.mag_field == approx(0)
+
+    spectra, = load_xas_scans(FILES_DICT['i10-1 Fe L3,2 +1T pc'], dls_loader=True)
+
+    spectra = spectra.trim(ev_from_start=2., ev_from_end=None)
+    norm = spectra.divide_by_preedge(ev_from_start=5)
+    rembk = norm.remove_background('exp')
+    assert rembk.tey.signal[0] == approx(0, abs=0.002)
+    rembk = spectra.remove_background('three_region').remove_background('double_l_edge')
+    # rembk = spectra.remove_background('three_region')
+    assert rembk.tey.signal[0] == approx(0, abs=0.002)
+    assert rembk.tey.signal[-1] == approx(0, abs=1)  # TODO: check this is reasonable
+
+    # import matplotlib.pyplot as plt
+    #
+    # fig, ax = plt.subplots()
+    # spectra.tey.plot(ax)
+    # rembk.tey.plot(ax)
+    # rembk.tey.plot_bkg(ax)
+    # plt.legend()
+    # plt.show()
+    # assert False
+
+
+
+
+@only_dls_file_system
 def test_average_polarised_scans():
     files = [
         FILES_DICT['i10-1 Fe L3,2 +1T pc'],
