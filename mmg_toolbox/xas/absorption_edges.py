@@ -21,7 +21,10 @@ regex_oxidation = re.compile(rf"({ELEMENTS})(\d?)([+-]?)")
 regex_edges = re.compile(r"\b([KLMN])([1-5])?(?:,*([1-5]))?\b", re.IGNORECASE)
 
 
-EDGE_FILE = Path(__file__).parent.parent / 'data' / 'xray_edges.json'
+DATA_DIR = Path(__file__).parent.parent / 'data'
+EDGE_FILE = DATA_DIR / 'xray_edges.json'
+ATOMIC_PARS_FILE = DATA_DIR / 'atomic_parameters.json'
+
 EDGES: dict[str, dict[str, str | float]] = {}
 SEARCH_EDGES = ('L3', 'L2')
 # PREFERRED_EDGES = ('L3', 'L2', 'K', 'M5', 'M4')
@@ -61,6 +64,24 @@ def load_edge_energies(edges: list[str] | tuple[str, ...] | None = SEARCH_EDGES)
     labels = np.array(list(edge_energies.keys()))
     idx = np.argsort(energies)
     return energies[idx], labels[idx]
+
+
+def get_atomic_parameters() -> dict[str, list[float]]:
+    """Open atomic parameters file"""
+    return json.load(open(ATOMIC_PARS_FILE))
+
+
+def get_spin_orbit(atomic_system: str) -> float:
+    """
+    Return Spin Orbit energy
+    """
+    atomic_pars = get_atomic_parameters()
+    if atomic_system not in atomic_pars:
+        atomic_system = atomic_system.replace('+', '1+').replace('-', '1-')
+        if atomic_system not in atomic_pars:
+            return 0
+    atomic_parameters = get_atomic_parameters()[atomic_system]
+    return atomic_parameters[1]
 
 
 def split_element_edge(symbol: str) -> tuple[str, list[str]]:
@@ -113,19 +134,49 @@ def split_element_oxidation(symbol: str) -> tuple[str, int]:
     return element, oxidation_value
 
 
+def join_element_oxidation(element: str, oxidation: float | int):
+    """
+    Join element symbol and oxidation state
+    :param element: str element symbol
+    :param oxidation: float or int, oxidation state of element
+    :return: string, e.g. 'Co3+'
+    """
+    oxidation = float(oxidation)
+    if np.isclose(oxidation, 0):
+        return element
+    if np.isclose(oxidation, 1):
+        ox_str = '+'
+    elif np.isclose(oxidation, -1):
+        ox_str = '-'
+    elif oxidation > 0:
+        ox_str = f"{oxidation:.3g}+"
+    else:
+        ox_str = f"{abs(oxidation):.3g}-"
+    return f"{element}{ox_str}"
+
+
 class Element:
-    def __init__(self, symbol: str) -> None:
-        element, oxidation = split_element_oxidation(symbol)
+    """
+    Element Object
+    Defines an element with a specific oxidation state
+
+        Co = Element('Co3+')
+
+    """
+    def __init__(self, symbol: str, oxidation: float | None = None) -> None:
+        element, _oxidation = split_element_oxidation(symbol)
         self.symbol = element
+        if oxidation is None:
+            oxidation = _oxidation
         self.oxidation = oxidation
 
     def __repr__(self) -> str:
-        return f"{self.symbol}"
+        return join_element_oxidation(self.symbol, self.oxidation)
 
     def __eq__(self, o: object) -> bool:
         o = Element(o) if isinstance(o, str) else o
         if isinstance(o, Element):
-            return self.atomic_number == o.atomic_number
+            return (self.atomic_number == o.atomic_number) and np.isclose(self.oxidation, o.oxidation)
         return False
 
     def __hash__(self) -> int:
@@ -166,6 +217,13 @@ class Element:
         """Return weight of element"""
         return float(self._get_props()['weight'])
 
+    @property
+    def spin_orbit(self) -> float:
+        """Return spin-orbit value for this element and oxidation state"""
+        if self.is_d() and abs(self.oxidation) < 1:
+            return get_spin_orbit(repr(self) + '3+')  # most tabulated spin orbit values are for 3+
+        return get_spin_orbit(repr(self))
+
     def _edges(self) -> dict[str, dict[str, str | float]]:
         return {name: edge for name, edge in _get_edges().items() if name.startswith(self.symbol)}
 
@@ -180,12 +238,12 @@ class Element:
         if not self.is_d():
             raise ValueError(f"Element {self} is not in the d-band")
 
-        # Oxidation removes s electrons first, then d electrons
-        # All these metals have 2 s-electrons in the neutral state
         neutral_d = NEUTRAL_D_ELECTRONS[self.symbol]
-        s_removed = min(oxidation, 2)
-        d_removed = max(0, oxidation - 2)
-        d_electrons = max(0, neutral_d - d_removed)
+        if abs(oxidation) < 0.5:
+            d_electrons = neutral_d
+        else:
+            # Neutral transition metals are treated as having two valence s electrons.
+            d_electrons = max(0, neutral_d + 2 - oxidation)
         return d_electrons
 
     def d_holes(self, oxidation: float | None = None) -> float:
@@ -303,7 +361,11 @@ class MultiEdge:
         """Return the energy between edges"""
         if len(self.edges) > 1:
             return sum([edge.energy for edge in self.edges]) / len(self.edges)
-        return self.edges[0].energy * 1.05 #+ soc
+        soc = self.element.spin_orbit
+        if abs(soc) < 0.1:
+            energies = self.energies()
+            soc = np.mean(energies) if len(self) > 1 else 0.05 * energies[0]
+        return self.edges[0].energy + soc
 
 
 def xray_edges_in_range(min_energy_ev: float, max_energy_ev: float | None = None,
