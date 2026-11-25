@@ -19,10 +19,11 @@ from matplotlib.axes import Axes
 from matplotlib import ticker
 import h5py
 
-from mmg_toolbox.nexus import nexus_writer as nw
-from mmg_toolbox.xas import spectra_analysis as spa
-from mmg_toolbox.xas.absorption_edges import find_spectra_edge, PREFERRED_EDGES, MultiEdge, xray_edges_in_range, Edge
-from mmg_toolbox.xas.multi_edge_fit_parameters import edge_jump, preedge_slope, midedge_slope, postedge_slope
+from ..nexus import nexus_writer as nw
+from . import spectra_analysis as spa
+from .absorption_edges import find_spectra_edge, PREFERRED_EDGES, MultiEdge, xray_edges_in_range, Edge
+from .multi_edge_fit_functions import background_three_region
+from .multi_edge_fit_parameters import l3_edge_jump, preedge_slope, midedge_slope, postedge_slope
 
 
 # Build database of spectra functions from spectra_analysis.py
@@ -127,9 +128,12 @@ class Spectra:
         m2 = midedge_slope(self.energy, self.signal)
         m3 = postedge_slope(self.energy, self.signal)
         edge = self.edges()
-        t1, t2 = edge.energies()
+        l3, l2 = edge.energies()
         initial_intercept = self.signal[:5].mean()
-        return edge_jump(self.energy, self.signal, m1, m2, m3, t1, t2, initial_intercept)
+        e_ref = self.energy[:5].mean()
+        background = background_three_region(self.energy, m1, m2, m3, l3, l2, e_ref, initial_intercept)
+        rm_bkg = self.signal - background
+        return l3_edge_jump(self.energy, rm_bkg, l3, l2)
 
     """SPECTRA OPERATIONS - RETURNS PROCESSED SPECTRA"""
 

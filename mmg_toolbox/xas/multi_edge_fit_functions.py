@@ -100,7 +100,7 @@ def background_three_region(
     m3: float,
     t1: float,
     t2: float,
-    e_shift: float,
+    e_ref: float,
     intercept: float
 ) -> NDArray[np.float64]:
     """Evaluate the three-region empirical background model.
@@ -118,13 +118,13 @@ def background_three_region(
     :param m3: post-l2-edge gradient
     :param t1: l3 edge energy
     :param t2: l2 edge energy
-    :param e_shift: energy shift
+    :param e_ref: energy shift
     :param intercept: initial level of the background
     """
     x_arr = np.asarray(energy, dtype=float)
-    f1 = m1 * (x_arr - e_shift) + intercept
-    f2 = m2 * (x_arr - t1) + m1 * (t1 - e_shift) + intercept
-    f3 = m3 * (x_arr - t2) + m2 * (t2 - t1) + m1 * (t1 - e_shift) + intercept
+    f1 = m1 * (x_arr - e_ref) + intercept
+    f2 = m2 * (x_arr - t1) + m1 * (t1 - e_ref) + intercept
+    f3 = m3 * (x_arr - t2) + m2 * (t2 - t1) + m1 * (t1 - e_ref) + intercept
 
     # Add function values to different regions
     out = np.empty_like(x_arr, dtype=float)

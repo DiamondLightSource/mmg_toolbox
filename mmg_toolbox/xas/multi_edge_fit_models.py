@@ -12,13 +12,11 @@ from lmfit import Model, Parameters
 from . import MultiEdge
 from .multi_edge_fit_functions import background_three_region, double_l_edge
 from .multi_edge_fit_parameters import (
-    edge_energy,
-    get_atomic_system,
-    get_spin_orbit,
     midedge_slope,
     postedge_slope,
     preedge_slope,
     transition_points,
+    l3_edge_jump
 )
 
 
@@ -58,33 +56,32 @@ class BackgroundThreeRegionModel(Model):
             raise ValueError("energy and signal must be one-dimensional arrays of matching shape")
         if energy.size < 3:
             raise ValueError("at least three energy and signal points are required to guess parameters")
+        edge = MultiEdge.from_spectra(energy, signal)
+        if len(edge) < 2:
+            raise ValueError(f"at least two edges are required, got {repr(edge)}")
 
-        e0 = edge_energy(energy, signal)
-        atomic_system = get_atomic_system(energy)  # TODO: replace with MultiEdge
-        spin_orbit, _ = get_spin_orbit(atomic_system)
-        # e_ref = energy_reference(energy)
+        e0 = edge.energies()[0]
+        spin_orbit = edge.element.spin_orbit
+
         m1 = preedge_slope(energy, signal, e0)
         m2 = midedge_slope(energy, signal, e0, spin_orbit)
         m3 = postedge_slope(energy, signal, e0, spin_orbit)
-        t1, t2 = transition_points(e0, spin_orbit)  # TODO: t1 is e0
-        e_shift = np.mean(energy[:5])  # TODO: e_shift should be renamed e_ref
+        t1, t2 = transition_points(e0, spin_orbit)
+        e_ref = np.mean(energy[:5])
         initial_intercept = np.mean(signal[:5])
 
-        if atomic_system[:2] not in {"Cu", "Co", "Ni"}:
+        if edge.element.symbol not in {"Cu", "Co", "Ni"}:
             m2 = m1
 
         _max_slope = max(m1, m2, m3)
         _min_slope = min(m1, m2, m3)
 
-        # idx = int(np.argmin(np.abs(energy - e_ref)))
-        # initial_intercept = float(signal[idx])
-
         # value, vary, min, max
         params: dict[str, dict[str, float | bool]] = {
-            'e_shift': {
-                'value': e_shift,
-                'min': e_shift-2,
-                'max': e_shift+2,
+            'e_ref': {
+                'value': e_ref,
+                'min': e_ref-2,
+                'max': e_ref+2,
                 'vary': True
             },
             'intercept': {
@@ -165,21 +162,25 @@ class DoubleLEdgeModel(Model):
             raise ValueError("energy and signal must be one-dimensional arrays of matching shape")
         if energy.size < 3:
             raise ValueError("at least three energy and signal points are required to guess parameters")
+        edge = MultiEdge.from_spectra(energy, signal)
+        if len(edge) < 2:
+            raise ValueError(f"at least two edges are required, got {repr(edge)}")
 
-        tail_size = max(1, energy.size // 10)
-        signal_step = float(np.median(signal[-tail_size:]) - np.median(signal[:tail_size]))  # TODO: replace with edge_jump
-        intensity_l3 = abs(signal_step) / 1.5
+        # Subtract background
+        bkg_model = BackgroundThreeRegionModel()
+        bkg_params = bkg_model.guess(signal, x=energy)
+        bkg = bkg_model.eval(bkg_params, energy=energy)
+        l3, l2 = bkg_params['t1'].value, bkg_params['t2'].value
+        intensity_l3 = l3_edge_jump(energy, signal - bkg, l3, l2)
+        spin_orbit_2p = edge.element.spin_orbit
 
-        e0_l3 = edge_energy(energy, signal)
-        atomic_system = get_atomic_system(energy)  # TODO: replace with MultiEdge, check L23 is available, check e0_l3, or use edge en
-        spin_orbit_2p, _ = get_spin_orbit(atomic_system)
 
         # value, vary, min, max
         params: dict[str, dict[str, float | bool]] = {
             'e0_l3': {  # measured edge of L3
-                'value': e0_l3,
-                'min': e0_l3 - 1.5,
-                'max': e0_l3 + 4,
+                'value': l3,
+                'min': l3 - 1.5,
+                'max': l3 + 4,
                 'vary': True
             },
             'intensity_l3': {  # step edge of L3 == 2/3 edge jump

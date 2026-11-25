@@ -7,20 +7,9 @@ Based on VirtualBeamline by Mario Delgado Jaime
 # from __future__ import annotations
 
 import numpy as np
-import json
-from pathlib import Path
 from numpy.typing import ArrayLike, NDArray
 
-from .multi_edge_fit_functions import background_three_region, double_l_edge
-
-
-DATA_DIR = Path(__file__).parent.parent / 'data'
-ATOMIC_PARS_FILE = DATA_DIR / 'atomic_parameters.json'
-
-
-def get_atomic_parameters() -> dict[str, list[float]]:
-    """Open atomic parameters file"""
-    return json.load(open(ATOMIC_PARS_FILE))
+from . import MultiEdge
 
 
 def nan2avg(array: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -92,54 +81,6 @@ def l2_edge_energy(l3_edge: float, soc: float) -> float:
     """
     return l3_edge + 1.5 * soc
 
-# TODO remove this or use it
-def measured_l_edge_energies(energy: np.ndarray, signal: np.ndarray) -> tuple[float, float]:
-    """Return L3, L2 edge energies measured from spectrum"""
-    l3_edge = edge_energy(energy, signal)
-    atomic_system = get_atomic_system(energy)  # TODO: replace with MultiEdge
-    soc, _ = get_spin_orbit(atomic_system)
-    l2_edge = l2_edge_energy(l3_edge, soc)
-    return l3_edge, l2_edge
-
-
-def get_atomic_system(energy: np.ndarray) -> str:
-    """
-    Return atomic system using edge energy
-    """
-    avg = np.mean(energy)
-
-    if avg < 500:  # Ti 4+
-        return 'Ti4+'
-    elif 500 <= avg < 550:  # V3+
-        return 'V3+'
-    elif 550 <= avg < 630:  # Cr3+
-        return 'Cr3+'
-    elif 630 <= avg < 690:  # Mn2+
-        return 'Cr3+'
-    elif 690 <= avg < 750:  # Fe2+
-        return 'Fe2+'
-    elif 750 <= avg < 830:  # Co2+
-        return 'Co2+'
-    elif 830 <= avg < 890:  # Ni2:
-        return 'Ni2+'
-    else:  # Cu2+
-        return 'Cu2+'
-
-
-def get_spin_orbit(atomic_system: str) -> tuple[float, int]:
-    """
-    Return Spin Orbit energy and number of d-electrons
-    """
-    atomic_parameters = get_atomic_parameters()[atomic_system]
-    return atomic_parameters[1], int(atomic_parameters[2])
-
-
-def energy_reference(energy: np.ndarray) -> float:
-    """
-    Energy Reference - point at which to specify the initial background
-    """
-    return energy[0]  # TODO: this would be better as a mean
-
 
 def preedge_slope(energy: np.ndarray, signal: np.ndarray, edge_en: float | None = None) -> float:
     """
@@ -175,8 +116,8 @@ def postedge_slope(energy: np.ndarray, signal: np.ndarray,
     if edge_en is None:
         edge_en = edge_energy(energy, signal)
     if soc is None:
-        atsym = get_atomic_system(energy)
-        soc, nd = get_spin_orbit(atsym)
+        edge = MultiEdge.from_spectra(energy, signal)
+        soc = edge.element.spin_orbit
     max_en = l2_edge_energy(edge_en, soc)
     index = np.argmin(np.abs(energy - (max_en + 10)))
     p0, p1 = np.polyfit(energy[index:], signal[index:], 1)
@@ -201,8 +142,8 @@ def midedge_slope(energy: np.ndarray, signal: np.ndarray,
     if edge_en is None:
         edge_en = edge_energy(energy, signal)
     if soc is None:
-        atsym = get_atomic_system(energy)
-        soc, nd = get_spin_orbit(atsym)
+        edge = MultiEdge.from_spectra(energy, signal)
+        soc = edge.element.spin_orbit
     avg_en = edge_en + soc
     index1 = np.argmin(np.abs(energy - (avg_en - 1)))
     index2 = np.argmin(np.abs(energy - (avg_en + 1)))
@@ -217,11 +158,9 @@ def transition_points(l3_edge: float, soc: float) -> tuple[float, float]:
     return l3_edge, l2_edge_energy(l3_edge, soc)
 
 
-def edge_jump(energy: np.ndarray, signal: np.ndarray,
-              m1: float, m2: float, m3: float,
-              t1: float, t2: float, initial_intercept: float) -> float:
+def l3_edge_jump(energy: np.ndarray, signal: np.ndarray, l3_edge: float, l2_edge: float) -> float:
     """
-    Calculate edge jump
+    Calculate edge jump at the L3 edge, which is 2/3 of the total L3/L2 edge jump
 
         x = app.Component1.RawData.X;
         b = Background(x,1,C, m1, m2, m3, T1, T2, ERef);
@@ -230,26 +169,16 @@ def edge_jump(energy: np.ndarray, signal: np.ndarray,
         [~, idx1] = min(abs(app.Component1.RawData.X-(app.Params.E0.Current-10)));
         app.Params.Int1.Current = abs( mean(y(idx2:end)) - mean(y(1:idx1)) )/1.5;
 
-    :param energy: energy array
+    :param energy: energy array in eV
     :param signal: signal array
-    :param m1: pre-l3-edge gradient
-    :param m2: mid-l3/l2-edge gradient
-    :param m3: post-l2-edge gradient
-    :param t1: l3 edge energy
-    :param t2: l2 edge energy
-    :param initial_intercept: signal value below l3 edge
+    :param l3_edge: l3 edge energy un eV
+    :param l2_edge: l2 edge energy in eV
     :returns: float edge jump energy
     """
-
-    background = background_three_region(energy, m1, m2, m3, t1, t2, 0, initial_intercept)
-    y = signal - background
-
-    # print(f"Background: {background.shape}, min={background.min():.3f}, max={background.max():.3f}")
-    # print(f"sig-bkg: {y.shape}, min={y.min():.3f}, max={y.max():.3f}")
 
     # The edge jump is calculated as the difference between the average
     # of the background subtracted signal 10eV below the L3 and the average of the signal
     # 10eV above L2, divided by 3/2
-    index1 = np.argmin(np.abs(energy - t1 + 10))
-    index2 = np.argmin(np.abs(energy - t2 - 10))
-    return abs(np.mean(y[index2:]) - np.mean(y[:index1])) / 1.5  # TODO: 1.5 value is for L3 edge step, so decide if this is what we want
+    index1 = np.argmin(np.abs(energy - l3_edge + 10))
+    index2 = np.argmin(np.abs(energy - l2_edge - 10))
+    return abs(np.mean(signal[index2:]) - np.mean(signal[:index1])) / 1.5
