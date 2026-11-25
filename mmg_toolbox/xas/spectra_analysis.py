@@ -11,6 +11,8 @@ from scipy.signal import correlate
 from lmfit.model import ModelResult
 from lmfit.models import LinearModel, QuadraticModel, ExponentialModel, StepModel, PolynomialModel
 
+from .multi_edge_fit_models import DoubleLEdgeModel, BackgroundThreeRegionModel
+
 
 # trapz replaced by trapezoid in Numpy 2.0
 try:
@@ -253,8 +255,8 @@ def fit_spectra_background(energy: np.ndarray, signal: np.ndarray, *step_energie
         pars[f'edge{n+1}_sigma'].set(value=2, min=1, max=3)
         if n > 0:
             pars[f'edge{n + 1}_sigma'].set(expr='edge1_sigma')
-        edge_jump = guess_jump * (len(step_energies) - n) / (len(step_energies) + 1)
-        pars[f'edge{n + 1}_amplitude'].set(value=edge_jump, min=0.8 * edge_jump, max=1.2 * edge_jump)
+        ejump = guess_jump * (len(step_energies) - n) / (len(step_energies) + 1)
+        pars[f'edge{n + 1}_amplitude'].set(value=ejump, min=0.8 * ejump, max=1.2 * ejump)
     # bkg_ini = model.eval(pars, x=energy)
     fit_output = model.fit(sig_region, pars, x=en_region)
     bkg = fit_output.eval(x=energy)
@@ -301,8 +303,8 @@ def fit_spectra_exp_background(energy: np.ndarray, signal: np.ndarray, *step_ene
         pars[f'edge{n+1}_sigma'].set(value=2, min=1, max=3)
         if n > 0:
             pars[f'edge{n + 1}_sigma'].set(expr='edge1_sigma')
-        edge_jump = guess_jump * (len(step_energies) - n) / (len(step_energies) + 1)
-        pars[f'edge{n + 1}_amplitude'].set(value=edge_jump, min=0.8 * edge_jump, max=1.2 * edge_jump)
+        ejump = guess_jump * (len(step_energies) - n) / (len(step_energies) + 1)
+        pars[f'edge{n + 1}_amplitude'].set(value=ejump, min=0.8 * ejump, max=1.2 * ejump)
     # bkg_ini = model.eval(pars, x=energy)
     fit_output = model.fit(sig_region, pars, x=en_region)
     bkg = fit_output.eval(x=energy)
@@ -310,6 +312,43 @@ def fit_spectra_exp_background(energy: np.ndarray, signal: np.ndarray, *step_ene
     for n, edge in enumerate(step_energies):
         jump += fit_output.params[f'edge{n + 1}_amplitude']
     return bkg, jump, fit_output
+
+
+def fit_three_region_background(energy: np.ndarray, signal: np.ndarray) -> tuple[np.ndarray, float, ModelResult]:
+    """
+    Fit Three Region Background function to the data
+
+    Parameters
+    :energy: ndarray[n] of spectra energy in eV
+    :signal: ndarray[n] of spectra signal
+    :return: background[ndarray], jump[float],  lmfit.ModelResult
+    """
+    model = BackgroundThreeRegionModel()
+    params = model.guess(signal, x=energy)  # Fitting of background slopes is performed here
+    result = ModelResult(model, params)  # Don't perform a further fit
+    bkg = model.eval(params, energy=energy)
+    return bkg, 1, result
+
+
+def fit_double_l_edge_background(energy: np.ndarray, signal: np.ndarray, fit: bool = True) -> tuple[np.ndarray, float, ModelResult]:
+    """
+    Fit double L edge step function
+    The pre-edge region must be zero before fitting.
+
+    Parameters
+    :energy: ndarray[n] of spectra energy in eV
+    :signal: ndarray[n] of spectra signal
+    :return: background[ndarray], jump[float],  lmfit.ModelResult
+    """
+    model = DoubleLEdgeModel()
+    params = model.guess(signal, x=energy)
+    if fit:
+        result = model.fit(signal, params, energy=energy)
+    else:
+        result = ModelResult(model, params)
+    bkg = result.eval(energy=energy)
+    ejump = result.params['intensity_l3'].value * 1.5
+    return bkg, ejump, result
 
 
 """
