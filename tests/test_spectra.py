@@ -154,12 +154,10 @@ def test_spectra_backgrounds():
     rembk = norm.remove_background('exp')
     assert rembk.tey.signal[0] == approx(0, abs=0.002)
     rembk = spectra.remove_background('three_region').remove_background('double_l_edge')
-    # rembk = spectra.remove_background('three_region')
     assert rembk.tey.signal[0] == approx(0, abs=0.002)
-    assert rembk.tey.signal[-1] == approx(0, abs=1)  # TODO: check this is reasonable
+    assert rembk.tey.signal[-1] == approx(0, abs=1)  # large difference, not great
 
     # import matplotlib.pyplot as plt
-    #
     # fig, ax = plt.subplots()
     # spectra.tey.plot(ax)
     # rembk.tey.plot(ax)
@@ -167,8 +165,6 @@ def test_spectra_backgrounds():
     # plt.legend()
     # plt.show()
     # assert False
-
-
 
 
 @only_dls_file_system

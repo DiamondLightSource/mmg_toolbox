@@ -35,14 +35,14 @@ def test_split_element_oxidation():
 def test_element():
     element = Element('Co3+')
     assert element.symbol == 'Co'
-    assert str(element) == 'Co'
+    assert str(element) == 'Co3+'
     assert element.oxidation == 3
     assert element.d_electrons(0) == 7
     assert element.d_holes() == 4
 
     assert Element('Fe') > Element('Mn')
     assert Element('O') < Element('Mn')
-    assert Element('Na2+') == Element('Na')
+    assert Element('Na2+') != Element('Na')
 
 
 def test_d_electrons():

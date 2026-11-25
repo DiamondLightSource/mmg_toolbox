@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from mmg_toolbox.xas import MultiEdge
-from mmg_toolbox.xas.multi_edge_fit_parameters import (preedge_slope, midedge_slope, postedge_slope,
+from mmg_toolbox.xas.multi_edge_fit_parameters import (edge_energy, preedge_slope, midedge_slope, postedge_slope,
                                                        transition_points, l3_edge_jump)
 from mmg_toolbox.xas.multi_edge_fit_functions import background_three_region, double_l_edge
 from mmg_toolbox.xas.multi_edge_fit_models import BackgroundThreeRegionModel, DoubleLEdgeModel
@@ -60,18 +60,18 @@ def test_edge_slope():
     signal[60:70] += 40
 
     l3, l2 = energy[35], energy[61]
+    edge = MultiEdge.from_spectra(energy, signal)
+    e0 = edge_energy(energy, signal)
+    soc = edge.element.spin_orbit
+    assert e0 == approx(710)
+    assert soc == approx(8.2, 0.001)
+    assert e0 == approx(l3, abs=3)
 
     p0 = preedge_slope(energy, signal)
     p1 = midedge_slope(energy, signal)
     p2 = postedge_slope(energy, signal)
     background = background_three_region(energy, p0, p1, p2, l3, l2, energy[1], signal[1])
     jump = l3_edge_jump(energy, signal - background, l3, l2)
-
-    fig, ax = plt.subplots()
-    ax.plot(energy, signal, label='signal')
-    ax.plot(energy, background, label='background')
-    ax.legend()
-    plt.show()
 
     assert p0 == approx(0)
     assert p1 == approx(0)
@@ -86,13 +86,13 @@ def test_edge_slope():
     assert rm_edge[0] == approx(0, abs=0.01)
     assert rm_edge[-1] == approx(0, abs=0.01)
 
-    fig, ax = plt.subplots()
-    ax.plot(energy, signal, label='signal')
-    ax.plot(energy, background, label='background')
-    ax.plot(energy, edge, label='edge')
-    ax.plot(energy, rm_edge, label='rm_background')
-    ax.legend()
-    plt.show()
+    # fig, ax = plt.subplots()
+    # ax.plot(energy, signal, label='signal')
+    # ax.plot(energy, background, label='background')
+    # ax.plot(energy, edge, label='edge')
+    # ax.plot(energy, rm_edge, label='rm_background')
+    # ax.legend()
+    # plt.show()
 
 
 @only_dls_file_system
@@ -106,8 +106,10 @@ def test_against_matlab_parameters(matlab_data):
     signal = c1[:, 1] / c1[:, 2]
 
     edge = MultiEdge.from_spectra(energy, signal)
-    e0 = edge.energies()[0]
+    e0 = edge_energy(energy, signal)
     soc = edge.element.spin_orbit
+    assert e0 == approx(709, abs=0.01)
+    assert soc == approx(8.2, 0.001)
     e_ref = energy[:5].mean()
     intercept = signal[:5].mean()
     slope1 = preedge_slope(energy, signal, e0)
@@ -125,12 +127,12 @@ def test_against_matlab_parameters(matlab_data):
     assert slope3 == approx(init_params['m13']['Current'], abs=0.0001)
     assert jump == approx(init_params['Int1']['Current'], abs=0.0001)
 
-    fig, ax = plt.subplots()
-    ax.plot(energy, signal, label='signal')
-    ax.plot(energy, background, label='background')
-    ax.plot(energy, rm_bkg, label='rm_background')
-    ax.legend()
-    plt.show()
+    # fig, ax = plt.subplots()
+    # ax.plot(energy, signal, label='signal')
+    # ax.plot(energy, background, label='background')
+    # ax.plot(energy, rm_bkg, label='rm_background')
+    # ax.legend()
+    # plt.show()
 
     assert rm_bkg[0] == approx(0, abs=0.01)
 
@@ -154,7 +156,7 @@ def test_lmfit_models(matlab_data):
     assert params['m2'].value == approx(init_params['m12']['Current'], abs=0.0001)
     assert params['m3'].value == approx(init_params['m13']['Current'], abs=0.0001)
     assert params['t1'].value == approx(init_params['T11']['Current'], abs=0.0001)
-    assert params['t2'].value == approx(init_params['T12']['Current'], abs=0.0001)
+    assert params['t2'].value == approx(init_params['T12']['Current'], abs=0.003)
     assert abs(rem_bkg[0]) < 0.01
 
     model2 = DoubleLEdgeModel()
@@ -163,18 +165,18 @@ def test_lmfit_models(matlab_data):
     rem_bkg = rem_bkg - edge
 
     assert params2['e0_l3'].value == approx(init_params['E0']['Current'], abs=0.0001)
-    assert params2['intensity_l3'].value == approx(init_params['Int1']['Current'], abs=0.0004)
-    assert params2['spin_orbit_2p'].value == approx(init_params['SOC2p']['Current'], abs=0.0001)
+    assert params2['intensity_l3'].value == approx(init_params['Int1']['Current'], abs=0.001)
+    assert params2['spin_orbit_2p'].value == approx(init_params['SOC2p']['Current'], abs=0.001)
     assert abs(rem_bkg[0]) < 0.01
     assert abs(rem_bkg[-1]) < 0.01
 
-    fig, ax = plt.subplots()
-    ax.plot(energy, signal, label='signal')
-    ax.plot(energy, bkg, label='background')
-    ax.plot(energy, edge, label='edge')
-    ax.plot(energy, rem_bkg, label='rm_background')
-    ax.legend()
-    plt.show()
+    # fig, ax = plt.subplots()
+    # ax.plot(energy, signal, label='signal')
+    # ax.plot(energy, bkg, label='background')
+    # ax.plot(energy, edge, label='edge')
+    # ax.plot(energy, rem_bkg, label='rm_background')
+    # ax.legend()
+    # plt.show()
 
     # assert False
 

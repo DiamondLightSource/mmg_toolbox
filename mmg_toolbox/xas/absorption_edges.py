@@ -220,6 +220,8 @@ class Element:
     @property
     def spin_orbit(self) -> float:
         """Return spin-orbit value for this element and oxidation state"""
+        if self.is_d() and abs(self.oxidation) < 1:
+            return get_spin_orbit(repr(self) + '3+')  # most tabulated spin orbit values are for 3+
         return get_spin_orbit(repr(self))
 
     def _edges(self) -> dict[str, dict[str, str | float]]:

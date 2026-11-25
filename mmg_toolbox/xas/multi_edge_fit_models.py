@@ -12,6 +12,7 @@ from lmfit import Model, Parameters
 from . import MultiEdge
 from .multi_edge_fit_functions import background_three_region, double_l_edge
 from .multi_edge_fit_parameters import (
+    edge_energy,
     midedge_slope,
     postedge_slope,
     preedge_slope,
@@ -60,7 +61,7 @@ class BackgroundThreeRegionModel(Model):
         if len(edge) < 2:
             raise ValueError(f"at least two edges are required, got {repr(edge)}")
 
-        e0 = edge.energies()[0]
+        e0 = edge_energy(energy, signal)
         spin_orbit = edge.element.spin_orbit
 
         m1 = preedge_slope(energy, signal, e0)
