@@ -13,6 +13,7 @@ from mmg_toolbox.utils.polarisation import (get_polarisation, get_polarisation_a
                                             check_polarisation, opposite_polarisations,
                                             get_i16_polarisation_from_phaseplate_cmd)
 from mmg_toolbox.nexus.nexus_functions import nx_find, nx_find_all, nx_find_data
+from mmg_toolbox.nexus.nexus_names import NX_EDGE
 from mmg_toolbox.beamline_metadata.hdfmap_generic import HdfMapXASMetadata as Md
 from mmg_toolbox.beamline_metadata.hdfmap_generic import ROI_SUFFIXES
 
@@ -206,6 +207,7 @@ def get_absorption_edge(hdf: h5py.File) -> tuple[str, str]:
     )
     edge = str(
         nx_find_data(hdf, 'NXedge', 'name', default=None) or
+        nx_find_data(hdf, NX_EDGE, 'name', default=None) or
         nx_find_data(hdf, 'NXxas', 'edge', default='None')
     )
     return element, edge
